@@ -1,0 +1,122 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  COORDINATOR
+  MANAGER
+  DRIVER
+}
+
+enum BidStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+model User {
+  id         String  @id @default(cuid())
+  name       String
+  email      String  @unique
+  role       Role
+  isApproved Boolean @default(false)
+  approvedBy String? // who approved them (admin or manager)
+
+  managerId String? // if role = DRIVER
+  manager   User?   @relation("ManagerDrivers", fields: [managerId], references: [id])
+  drivers   User[]  @relation("ManagerDrivers") // if role = MANAGER
+
+  autoBids            AutoBid[]
+  bids                Bid[]
+  rideRequestsCreated RideRequest[]  @relation("CreatedRides")
+  TripFeedback        TripFeedback[]
+  Invoice             Invoice[]
+  createdAt           DateTime       @default(now())
+}
+
+model RideRequest {
+  id              String   @id @default(cuid())
+  pickup          String
+  dropoff         String
+  distanceMiles   Float
+  date            DateTime
+  time            String
+  passengerName   String
+  additionalNeeds String?
+
+  createdById String
+  createdBy   User   @relation("CreatedRides", fields: [createdById], references: [id])
+
+  bids          Bid[]
+  acceptedBidId String @unique
+  acceptedBid   Bid?   @relation("AcceptedBid", fields: [acceptedBidId], references: [id])
+
+  createdAt    DateTime       @default(now())
+  TripFeedback TripFeedback[]
+  Invoice      Invoice[]
+}
+
+model Bid {
+  id     String  @id @default(cuid())
+  amount Float
+  notes  String?
+
+  driverId String
+  driver   User   @relation(fields: [driverId], references: [id])
+
+  rideId String
+  ride   RideRequest @relation(fields: [rideId], references: [id])
+
+  status    BidStatus @default(PENDING)
+  createdAt DateTime  @default(now())
+
+  // For accepted bid relation
+  RideRequest_acceptedBid RideRequest? @relation("AcceptedBid")
+}
+
+model AutoBid {
+  id          String @id @default(cuid())
+  driverId    String
+  driver      User   @relation(fields: [driverId], references: [id])
+  maxDistance Float // in miles
+  price       Float // fixed price for rides within range
+}
+
+model TripFeedback {
+  id     String      @id @default(cuid())
+  tripId String
+  trip   RideRequest @relation(fields: [tripId], references: [id])
+
+  submittedById String
+  submittedBy   User   @relation(fields: [submittedById], references: [id])
+
+  type      FeedbackType @default(NOTE)
+  message   String
+  resolved  Boolean      @default(false)
+  createdAt DateTime     @default(now())
+}
+
+enum FeedbackType {
+  NOTE
+  COMPLAINT
+}
+
+model Invoice {
+  id       String @id @default(cuid())
+  driverId String
+  driver   User   @relation(fields: [driverId], references: [id])
+
+  rideId String?
+  ride   RideRequest? @relation(fields: [rideId], references: [id])
+
+  amount   Float
+  issuedAt DateTime  @default(now())
+  paid     Boolean   @default(false)
+  paidAt   DateTime?
+  notes    String?
+}
