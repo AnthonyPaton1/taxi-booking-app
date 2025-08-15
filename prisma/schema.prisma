@@ -19,91 +19,123 @@ enum BidStatus {
   DECLINED
 }
 
+enum FeedbackType {
+  NOTE
+  COMPLAINT
+}
+
 model User {
-  id         String  @id @default(cuid())
-  name       String
-  email      String  @unique
-  role       Role
-  isApproved Boolean @default(false)
-  approvedBy String? // who approved them (admin or manager)
+  id    String  @id @default(cuid())
+  email String  @unique
+  name  String?
+  phone String? @unique
+  role  Role    @default(DRIVER)
 
-  managerId String? // if role = DRIVER
+  // manager/driver relationship (optional)
+  managerId String?
   manager   User?   @relation("ManagerDrivers", fields: [managerId], references: [id])
-  drivers   User[]  @relation("ManagerDrivers") // if role = MANAGER
+  drivers   User[]  @relation("ManagerDrivers")
 
-  autoBids            AutoBid[]
-  bids                Bid[]
-  rideRequestsCreated RideRequest[]  @relation("CreatedRides")
-  TripFeedback        TripFeedback[]
-  Invoice             Invoice[]
-  createdAt           DateTime       @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // relations
+  rideRequests RideRequest[]  @relation("CreatorRides")
+  bids         Bid[]
+  autoBids     AutoBid[]
+  feedback     TripFeedback[]
+  invoices     Invoice[]
 }
 
 model RideRequest {
-  id              String   @id @default(cuid())
-  pickup          String
-  dropoff         String
-  distanceMiles   Float
-  date            DateTime
-  time            String
-  passengerName   String
+  id          String @id @default(cuid())
+  createdById String
+  createdBy   User   @relation("CreatorRides", fields: [createdById], references: [id])
+
+  pickupTime       DateTime
+  returnTime       DateTime?
+  pickupLocation   String
+  dropoffLocation  String
+  wheelchairAccess Boolean   @default(false)
+  highRoof         Boolean   @default(false)
+  carerPresent     Boolean   @default(false)
+  notes            String?
+
+  distanceKm      Float? // optional pre-computed distance
+  passengersName  String?
   additionalNeeds String?
 
-  createdById String
-  createdBy   User   @relation("CreatedRides", fields: [createdById], references: [id])
+  // bidding
+  acceptedBidId String? @unique
+  acceptedBid   Bid?    @relation("AcceptedBid", fields: [acceptedBidId], references: [id])
 
-  bids          Bid[]
-  acceptedBidId String @unique
-  acceptedBid   Bid?   @relation("AcceptedBid", fields: [acceptedBidId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  createdAt    DateTime       @default(now())
+  bids         Bid[]
   TripFeedback TripFeedback[]
   Invoice      Invoice[]
+
+  @@index([createdById, pickupTime])
+  @@index([pickupTime])
 }
 
 model Bid {
-  id     String  @id @default(cuid())
-  amount Float
-  notes  String?
+  id            String      @id @default(cuid())
+  rideRequestId String
+  rideRequest   RideRequest @relation(fields: [rideRequestId], references: [id])
 
-  driverId String
-  driver   User   @relation(fields: [driverId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  amountCents Int
+  message     String?
+  status      BidStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // reverse link to ride.acceptedBid
+  acceptedOnRide RideRequest? @relation("AcceptedBid")
+
+  @@index([rideRequestId, status, createdAt])
+  @@index([userId, createdAt])
+}
+
+model AutoBid {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  minDistanceKm  Float @default(0)
+  maxDistanceKm  Float
+  minAmountCents Int   @default(0)
+  maxAmountCents Int
+
+  active Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, active])
+}
+
+model TripFeedback {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
   rideId String
   ride   RideRequest @relation(fields: [rideId], references: [id])
 
-  status    BidStatus @default(PENDING)
-  createdAt DateTime  @default(now())
+  type     FeedbackType @default(NOTE)
+  message  String
+  resolved Boolean      @default(false)
 
-  // For accepted bid relation
-  RideRequest_acceptedBid RideRequest? @relation("AcceptedBid")
-}
+  createdAt DateTime @default(now())
 
-model AutoBid {
-  id          String @id @default(cuid())
-  driverId    String
-  driver      User   @relation(fields: [driverId], references: [id])
-  maxDistance Float // in miles
-  price       Float // fixed price for rides within range
-}
-
-model TripFeedback {
-  id     String      @id @default(cuid())
-  tripId String
-  trip   RideRequest @relation(fields: [tripId], references: [id])
-
-  submittedById String
-  submittedBy   User   @relation(fields: [submittedById], references: [id])
-
-  type      FeedbackType @default(NOTE)
-  message   String
-  resolved  Boolean      @default(false)
-  createdAt DateTime     @default(now())
-}
-
-enum FeedbackType {
-  NOTE
-  COMPLAINT
+  @@index([rideId])
+  @@index([userId, createdAt])
 }
 
 model Invoice {
@@ -114,9 +146,13 @@ model Invoice {
   rideId String?
   ride   RideRequest? @relation(fields: [rideId], references: [id])
 
-  amount   Float
-  issuedAt DateTime  @default(now())
-  paid     Boolean   @default(false)
-  paidAt   DateTime?
-  notes    String?
+  amountCents Int
+  currency    String    @default("GBP")
+  issuedAt    DateTime  @default(now())
+  paid        Boolean   @default(false)
+  paidAt      DateTime?
+  notes       String?
+
+  @@index([driverId, issuedAt])
+  @@index([rideId])
 }
