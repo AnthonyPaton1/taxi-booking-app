@@ -7,9 +7,20 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/**
+ * ===== Enums =====
+ */
+
 enum Role {
+  SUPER_ADMIN // me
+  COMPANY_ADMIN // Head office of a company
+  COORDINATOR // Organises area-level stuff
+  MANAGER // House manager
+  DRIVER
+}
+
+enum CompanyRole {
   COORDINATOR
-  MANAGER
   DRIVER
 }
 
@@ -24,50 +35,160 @@ enum FeedbackType {
   COMPLAINT
 }
 
-model User {
-  id    String  @id @default(cuid())
-  email String  @unique
-  name  String?
-  phone String? @unique
-  role  Role    @default(DRIVER)
+enum RideVisibility {
+  PRIVATE_TO_COMPANY
+  LINK_ONLY
+  PUBLIC
+}
 
-  // manager/driver relationship (optional)
-  managerId String?
-  manager   User?   @relation("ManagerDrivers", fields: [managerId], references: [id])
-  drivers   User[]  @relation("ManagerDrivers")
+enum RideStatus {
+  OPEN
+  CLOSED
+  ACCEPTED
+  SCHEDULED
+  COMPLETED
+  CANCELED
+}
+
+/**
+ * ===== Models =====
+ */
+
+model User {
+  id         String  @id @default(cuid())
+  email      String  @unique
+  name       String?
+  phone      String? @unique
+  role       Role    @default(DRIVER)
+  isApproved Boolean @default(false)
+  // Optional manager/driver hierarchy (global)
+  managerId  String?
+  manager    User?   @relation("ManagerDrivers", fields: [managerId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  drivers    User[]  @relation("ManagerDrivers")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // relations
+  // Relations
   rideRequests RideRequest[]  @relation("CreatorRides")
   bids         Bid[]
-  autoBids     AutoBid[]
   feedback     TripFeedback[]
   invoices     Invoice[]
+
+  // 🔧 disambiguated relation names:
+  memberships         UserCompany[] @relation("UserCompanyMember") // user is the member
+  verifiedMemberships UserCompany[] @relation("UserCompanyVerifier") // user acted as verifier
+
+  schedules     RideSchedule[] @relation("DriverSchedules")
+  notifications Notification[]
+
+  deletedAt DateTime?
+
+  @@index([deletedAt])
+}
+
+model Company {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members      UserCompany[]
+  rides        RideRequest[]
+  houses       House[]
+  DriverInvite DriverInvite[]
+  deletedAt    DateTime?
+
+  @@index([deletedAt])
+}
+
+model UserCompany {
+  id        String      @id @default(cuid())
+  userId    String
+  companyId String
+  role      CompanyRole
+
+  // 🔧 name this relation "UserCompanyMember"
+  user    User    @relation("UserCompanyMember", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  // Coordinator verification (simple booleans)
+  dbsChecked         Boolean @default(false)
+  insuranceChecked   Boolean @default(false)
+  plInsuranceChecked Boolean @default(false)
+  isVerified         Boolean @default(false)
+
+  invitedAt  DateTime?
+  verifiedAt DateTime?
+
+  verifiedById String?
+  // 🔧 and this one "UserCompanyVerifier"
+  verifiedBy   User?   @relation("UserCompanyVerifier", fields: [verifiedById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  verifyNotes String?
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  @@unique([userId, companyId])
+  @@index([companyId, role])
+  @@index([companyId, isVerified])
+  @@index([deletedAt])
+}
+
+model House {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  label    String
+  line1    String
+  city     String
+  postcode String
+  notes    String?
+
+  // NEW FIELDS FOR LOGIN
+  internalId String @unique
+  pin        String
+  loginName  String @unique
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  @@index([companyId, label])
+  @@index([deletedAt])
 }
 
 model RideRequest {
   id          String @id @default(cuid())
   createdById String
-  createdBy   User   @relation("CreatorRides", fields: [createdById], references: [id])
+  createdBy   User   @relation("CreatorRides", fields: [createdById], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  pickupTime       DateTime
-  returnTime       DateTime?
-  pickupLocation   String
-  dropoffLocation  String
-  wheelchairAccess Boolean   @default(false)
-  highRoof         Boolean   @default(false)
-  carerPresent     Boolean   @default(false)
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  pickupTime      DateTime
+  returnTime      DateTime?
+  pickupLocation  String
+  dropoffLocation String
+
+  wheelchairAccess Boolean @default(false)
+  highRoof         Boolean @default(false)
+  carerPresent     Boolean @default(false)
   notes            String?
 
-  distanceKm      Float? // optional pre-computed distance
-  passengersName  String?
-  additionalNeeds String?
+  // Bidding
+  visibility    RideVisibility @default(PRIVATE_TO_COMPANY)
+  bidDeadline   DateTime?
+  status        RideStatus     @default(OPEN)
+  acceptedBidId String?        @unique
+  acceptedBid   Bid?           @relation("AcceptedBid", fields: [acceptedBidId], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
-  // bidding
-  acceptedBidId String? @unique
-  acceptedBid   Bid?    @relation("AcceptedBid", fields: [acceptedBidId], references: [id])
+  // Denorm (optional)
+  bidCount    Int  @default(0)
+  minBidCents Int?
+  maxBidCents Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -75,65 +196,104 @@ model RideRequest {
   bids         Bid[]
   TripFeedback TripFeedback[]
   Invoice      Invoice[]
+  schedule     RideSchedule?
+  Notification Notification[]
+  deletedAt    DateTime?
 
-  @@index([createdById, pickupTime])
-  @@index([pickupTime])
+  @@index([companyId, pickupTime])
+  @@index([status, pickupTime])
+  @@index([bidDeadline])
+  @@index([companyId, status, pickupTime])
+  @@index([deletedAt])
 }
 
 model Bid {
   id            String      @id @default(cuid())
   rideRequestId String
-  rideRequest   RideRequest @relation(fields: [rideRequestId], references: [id])
+  rideRequest   RideRequest @relation(fields: [rideRequestId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   userId String
-  user   User   @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  amountCents Int
-  message     String?
-  status      BidStatus @default(PENDING)
+  amountCents  Int
+  message      String?
+  etaMinutes   Int?
+  vehicleNotes String?
+  validUntil   DateTime?
+  status       BidStatus @default(PENDING)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // reverse link to ride.acceptedBid
-  acceptedOnRide RideRequest? @relation("AcceptedBid")
+  // reverse link to RideRequest.acceptedBid
+  acceptedOnRide RideRequest?   @relation("AcceptedBid")
+  Notification   Notification[]
+  idempotencyKey String?        @unique // (optional but handy)
+  deletedAt      DateTime?
 
-  @@index([rideRequestId, status, createdAt])
+  @@index([rideRequestId, status, amountCents])
   @@index([userId, createdAt])
+  @@index([deletedAt])
 }
 
-model AutoBid {
+model RideSchedule {
+  id     String      @id @default(cuid())
+  rideId String      @unique
+  ride   RideRequest @relation(fields: [rideId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  driverId String
+  driver   User   @relation("DriverSchedules", fields: [driverId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  startAt DateTime
+  endAt   DateTime?
+  notes   String?
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  @@index([driverId, startAt])
+  @@index([deletedAt])
+  @@index([startAt])
+}
+
+model Notification {
   id     String @id @default(cuid())
   userId String
-  user   User   @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  minDistanceKm  Float @default(0)
-  maxDistanceKm  Float
-  minAmountCents Int   @default(0)
-  maxAmountCents Int
+  type   String // or switch to an enum if you standardize types
+  rideId String?
+  ride   RideRequest? @relation(fields: [rideId], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
-  active Boolean @default(true)
+  bidId String?
+  bid   Bid?    @relation(fields: [bidId], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  payload Json?
+  readAt  DateTime?
 
-  @@index([userId, active])
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  @@index([userId, createdAt])
+  @@index([deletedAt])
 }
 
 model TripFeedback {
   id     String @id @default(cuid())
   userId String
-  user   User   @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   rideId String
-  ride   RideRequest @relation(fields: [rideId], references: [id])
+  ride   RideRequest @relation(fields: [rideId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   type     FeedbackType @default(NOTE)
   message  String
   resolved Boolean      @default(false)
 
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
 
+  @@index([deletedAt])
   @@index([rideId])
   @@index([userId, createdAt])
 }
@@ -141,10 +301,10 @@ model TripFeedback {
 model Invoice {
   id       String @id @default(cuid())
   driverId String
-  driver   User   @relation(fields: [driverId], references: [id])
+  driver   User   @relation(fields: [driverId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   rideId String?
-  ride   RideRequest? @relation(fields: [rideId], references: [id])
+  ride   RideRequest? @relation(fields: [rideId], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   amountCents Int
   currency    String    @default("GBP")
@@ -152,7 +312,23 @@ model Invoice {
   paid        Boolean   @default(false)
   paidAt      DateTime?
   notes       String?
+  deletedAt   DateTime?
 
+  @@index([deletedAt])
   @@index([driverId, issuedAt])
   @@index([rideId])
+}
+
+model DriverInvite {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  email      String
+  token      String    @unique
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([companyId, email])
 }
