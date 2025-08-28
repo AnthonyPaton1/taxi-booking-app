@@ -1,6 +1,5 @@
-import CheckoutSteps from "@/components/shared/header/checkoutSteps";
 import Onboarding from "./onboarding";
-
+import CheckoutSteps from "@/components/shared/header/checkoutSteps";
 const AdminPage = () => {
   return (
     <>
