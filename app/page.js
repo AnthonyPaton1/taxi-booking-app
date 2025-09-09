@@ -13,6 +13,7 @@ import {
   SlidersHorizontal,
   UserCheck,
 } from "lucide-react";
+import InfoBoxes from "@/components/layout/InfoBoxes";
 
 const HomePage = () => {
   return (
@@ -41,14 +42,17 @@ const HomePage = () => {
           </div>
         </div>
       </section>
+      <section className="mt-10">
+        <InfoBoxes />
+      </section>
 
       {/* HOW IT WORKS SECTION */}
-      <section className="w-full bg-blue-50 py-20 px-4 mt-10">
+      <section className="w-full bg-blue-100 py-20 px-4 mt-10">
         <div className="text-center">
-          <h2 className="font-bold text-4xl text-blue-700 mb-2 ">
+          <h2 className="font-bold text-4xl text-blue-800 mb-2 ">
             How It Works
           </h2>
-          <p className="text-gray-600 text-center mb-8 mx-auto">
+          <p className="text-gray-900 text-center mb-8 mx-auto">
             NEAT helps you manage, assign, and track non-emergency accessible
             journeys — all in one seamless dashboard.
           </p>
@@ -57,7 +61,7 @@ const HomePage = () => {
         <Cards>
           <Card className="hover:shadow-xl transition-shadow duration-300">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-blue-700">
+              <CardTitle className="flex items-center gap-2 text-blue-800">
                 <CalendarDays size={20} />
                 Pre-book All Your Journeys
               </CardTitle>
@@ -70,7 +74,7 @@ const HomePage = () => {
 
           <Card className="hover:shadow-xl transition-shadow duration-300">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-blue-700">
+              <CardTitle className="flex items-center gap-2 text-blue-800">
                 <Gavel size={20} />
                 Bidding System
               </CardTitle>
@@ -83,7 +87,7 @@ const HomePage = () => {
 
           <Card className="hover:shadow-xl transition-shadow duration-300">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-blue-700">
+              <CardTitle className="flex items-center gap-2 text-blue-800">
                 <LayoutDashboard size={20} />
                 Dashboards
               </CardTitle>
@@ -96,7 +100,7 @@ const HomePage = () => {
 
           <Card className="hover:shadow-xl transition-shadow duration-300">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-blue-700">
+              <CardTitle className="flex items-center gap-2 text-blue-800">
                 <ScrollText size={20} />
                 Audit
               </CardTitle>
@@ -109,7 +113,7 @@ const HomePage = () => {
 
           <Card className="hover:shadow-xl transition-shadow duration-300">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-blue-700">
+              <CardTitle className="flex items-center gap-2 text-blue-800">
                 <UserCheck size={20} />
                 Local & Trusted
               </CardTitle>
@@ -122,7 +126,7 @@ const HomePage = () => {
 
           <Card className="hover:shadow-xl transition-shadow duration-300">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-blue-700">
+              <CardTitle className="flex items-center gap-2 text-blue-800">
                 <SlidersHorizontal size={20} />
                 Control
               </CardTitle>
@@ -137,12 +141,10 @@ const HomePage = () => {
       <section>
         <FaqSection />
       </section>
-      <section className="w-full bg-blue-50 py-20 px-4">
+      <section className="w-full bg-blue-700 py-20 px-4">
         <div className="max-w-6xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-blue-700 mb-6">
-            More from NEAT
-          </h2>
-          <p className="text-gray-800 mb-12 max-w-2xl mx-auto">
+          <h2 className="text-3xl font-bold text-white mb-6">More from NEAT</h2>
+          <p className="text-white mb-12 max-w-2xl mx-auto">
             We’re building a suite of tools to support accessible living and
             ethical business — explore what else is available:
           </p>

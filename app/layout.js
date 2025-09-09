@@ -1,7 +1,7 @@
 // app/layout.jsx
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Providers from "./providers"; // ✅ Import your wrapper
+import Providers from "./providers";
 import Navbar from "@/components/layout/navbar";
 import Footer from "@/components/layout/footer";
 

@@ -1,10 +1,9 @@
-// components/forms/WaitlistForm.jsx
 "use client";
 
 import React, { useState } from "react";
 import formFields from "./formFields";
-import { Button } from "@/components/ui/button"; // ShadCN button
-import { sendContactEmail } from "@/app/actions/sendContactEmail"; // Your server action
+import { Button } from "@/components/ui/button";
+import { sendContactEmail } from "@/app/actions/sendContactEmail";
 
 const WaitlistForm = () => {
   const [formData, setFormData] = useState(
@@ -42,7 +41,12 @@ const WaitlistForm = () => {
     <form
       onSubmit={handleSubmit}
       className="space-y-4 bg-blue-50 p-6 rounded-lg shadow-lg"
+      aria-labelledby="waitlist-heading"
     >
+      <h2 id="waitlist-heading" className="sr-only">
+        Register your business to the waitlist
+      </h2>
+
       {formFields.map(({ id, label, type, required }) => (
         <div key={id}>
           <label htmlFor={id} className="block font-medium text-gray-700 mb-1">
@@ -54,6 +58,8 @@ const WaitlistForm = () => {
             <textarea
               id={id}
               required={required}
+              aria-required={required}
+              aria-label={label}
               rows={4}
               className="w-full border bg-white border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={formData[id]}
@@ -64,6 +70,8 @@ const WaitlistForm = () => {
               id={id}
               type={type}
               required={required}
+              aria-required={required}
+              aria-label={label}
               className="w-full border bg-white border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={formData[id]}
               onChange={handleChange}
@@ -75,12 +83,19 @@ const WaitlistForm = () => {
       <Button
         type="submit"
         className="w-full bg-blue-700 text-white py-2 px-4 rounded hover:bg-blue-800 transition"
+        aria-label="Submit your business registration form"
       >
-        Join Waitlist
+        Register Your Business Here
       </Button>
 
       {status && (
-        <p className="text-sm mt-2 text-center text-gray-700">{status}</p>
+        <p
+          className="text-sm mt-2 text-center text-gray-700"
+          role="status"
+          aria-live="polite"
+        >
+          {status}
+        </p>
       )}
     </form>
   );

@@ -1,7 +1,7 @@
-// app/api/onboarding/route.js
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { OnboardingSchema } from "@/lib/validators";
+import { z } from "zod"; // Ensure Zod is imported
 
 export async function POST(req) {
   try {
@@ -16,34 +16,31 @@ export async function POST(req) {
       },
     });
 
-    // Create coordinator user
-    const user = await prisma.user.upsert({
-      where: { email: validated.coordinatorEmail },
-      update: {
-        name: validated.coordinatorName,
-        phone: validated.coordinatorPhone,
-      },
-      create: {
-        email: validated.coordinatorEmail,
-        name: validated.coordinatorName,
-        phone: validated.coordinatorPhone,
-        role: "COORDINATOR",
-      },
-    });
+    // Create each coordinator and link to company
+    for (const coord of validated.coordinators) {
+      const user = await prisma.user.upsert({
+        where: { email: coord.email },
+        update: {
+          name: coord.name,
+          phone: coord.phone,
+        },
+        create: {
+          email: coord.email,
+          name: coord.name,
+          phone: coord.phone,
+          role: "COORDINATOR",
+        },
+      });
 
-    // Link coordinator to company
-    await prisma.userCompany.create({
-      data: {
-        userId: user.id,
-        companyId: company.id,
-        role: "COORDINATOR",
-      },
-    });
+      await prisma.userCompany.create({
+        data: {
+          userId: user.id,
+          companyId: company.id,
+          role: "COORDINATOR",
+        },
+      });
+    }
 
-    // Optional: Store address/areas for future use
-    // (Add `headOfficeLine1`, `city`, etc., to Company model if needed)
-
-    // Placeholder for email notification (future SMTP integration)
     console.log("New onboarding submission:", validated);
 
     return NextResponse.json({ success: true });

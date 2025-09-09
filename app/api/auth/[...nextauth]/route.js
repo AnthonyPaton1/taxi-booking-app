@@ -12,16 +12,49 @@ export const authOptions = {
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
+  session: {
+    strategy: "jwt",
+  },
   callbacks: {
-    async session({ session }) {
-      if (!session?.user?.email) return session;
-      const user = await prisma.user.findUnique({
-        where: { email: session.user.email },
-        select: { id: true, role: true },
+    async jwt({ token, user }) {
+      // Always keep email
+      if (user?.email) {
+        token.email = user.email;
+      }
+
+      if (!token.email && user?.email) {
+        token.email = user.email;
+      }
+
+      // Check DB for this user
+      const dbUser = await prisma.user.findUnique({
+        where: { email: token.email },
       });
-      if (user) {
-        session.user.id = user.id;
-        session.user.role = user.role;
+
+      // If no user, create one with PUBLIC role
+      if (!dbUser && token.email) {
+        const newUser = await prisma.user.create({
+          data: {
+            email: token.email,
+            name: user?.name || "",
+            image: user?.image || "",
+            role: "PUBLIC",
+          },
+        });
+        token.id = newUser.id;
+        token.role = newUser.role;
+      } else if (dbUser) {
+        token.id = dbUser.id;
+        token.role = dbUser.role;
+      }
+
+      return token;
+    },
+
+    async session({ session, token }) {
+      if (token) {
+        session.user.id = token.id;
+        session.user.role = token.role;
       }
       return session;
     },
