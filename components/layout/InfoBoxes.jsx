@@ -1,4 +1,4 @@
-import InfoBox from "@/components/layout/InfoBox";
+import InfoBox from "./infoBox";
 import { signIn } from "next-auth/react";
 
 const InfoBoxes = () => {

@@ -1,6 +1,6 @@
 // app/api/auth/set-password/route.js
 import { prisma } from "@/lib/db";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 export async function POST(req) {
   const { token, password } = await req.json();
