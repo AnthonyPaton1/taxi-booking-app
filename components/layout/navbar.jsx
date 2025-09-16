@@ -3,8 +3,8 @@
 import React, { useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
-import Image from "next/image";
 import { FaBell } from "react-icons/fa";
+
 //import profileDefault from "@/public/profile-default.png"; // Add a default profile image to /public
 
 const Navbar = () => {
@@ -64,42 +64,33 @@ const Navbar = () => {
 
               {/* Profile Dropdown */}
               <div className="relative">
-                <button
-                  onClick={() => setIsProfileMenuOpen((prev) => !prev)}
-                  className="rounded-full bg-gray-800 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                  aria-label="Toggle profile menu"
-                >
-                  <Image
-                    className="h-8 w-8 rounded-full"
-                    src={user?.image || profileDefault}
-                    alt="User profile"
-                    width={32}
-                    height={32}
-                  />
-                </button>
+  <button
+    onClick={() => setIsProfileMenuOpen((prev) => !prev)}
+    className="rounded-full bg-gray-800 text-sm w-8 h-8 flex items-center justify-center text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+    aria-label="Toggle profile menu"
+  >
+    {/* Could be avatar or initial */}
+    {user?.name?.[0] || "U"}
+  </button>
 
-                {isProfileMenuOpen && (
-                  <div
-                    className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 z-50"
-                    role="menu"
-                    aria-label="Profile menu"
-                  >
-                    <button
-                      onClick={() => {
-                        setIsProfileMenuOpen(false);
-                        signOut({ callbackUrl: "/" });
-                      }}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      role="menuitem"
-                    >
-                      Sign Out
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+  {isProfileMenuOpen && (
+    <div
+      className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 z-50"
+      role="menu"
+      aria-label="Profile menu"
+    >
+      <button
+        onClick={() => signOut({ callbackUrl: "/" })}
+        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+      >
+        Logout
+      </button>
+    </div>
+  )}
+</div>
+</div>
+)}
+</div>
       </div>
     </nav>
   );

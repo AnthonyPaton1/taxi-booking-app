@@ -1,4 +1,4 @@
-import InfoBox from "./InfoBox";
+import InfoBox from "@/components/layout/InfoBox";
 import { signIn } from "next-auth/react";
 
 const InfoBoxes = () => {
@@ -27,23 +27,19 @@ const InfoBoxes = () => {
             Book transport for yourself or a family member.
           </InfoBox>
 
-          <InfoBox
-            heading="NEAT for Business"
-            backgroundColor="bg-blue-100"
-            buttonInfo={{
-              text: "Business Login",
-              onClick: () =>
-                signIn("google", {
-                  callbackUrl: "/auth/business-redirect",
-                  prompt: "select_account",
-                }),
-
-              backgroundColor: "bg-blue-700",
-              ariaLabel: "Sign in as business user",
-            }}
-          >
-            Sign in to access bookings, manage trips, and view bids.
-          </InfoBox>
+         <InfoBox
+  heading="NEAT for Businesses and Drivers"
+  backgroundColor="bg-blue-100"
+  buttonInfo={{
+    text: "Sign in Here",
+    
+     onClick: () => (window.location.href = "/login"),
+    backgroundColor: "bg-blue-700",
+    ariaLabel: "Sign in as business user",
+  }}
+>
+  Sign in to access bookings, manage trips, and view bids.
+</InfoBox>
         </div>
       </div>
     </section>

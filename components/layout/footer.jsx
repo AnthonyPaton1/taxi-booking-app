@@ -6,60 +6,60 @@ import CurrentYear from "../simples/currentYear";
 function Footer() {
   return (
     <footer
-      className="bg-blue-700 text-white py-6 mt-auto border-blue-500"
+      className="bg-blue-700 text-white py-10 mt-auto border-t border-blue-600"
       aria-label="Footer"
     >
-      <div className="container mx-auto flex flex-col md:flex-row items-center justify-center md:justify-between px-4 text-center md:text-left">
-        {/* Logo */}
-        <div className="mb-4 md:mb-0">
-          {/* <Image
-            src={logo}
-            alt="Accessible Venues logo"
-            className="h-8 w-auto mx-auto md:mx-0"
-          /> */}
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-10">
+          <h2 className="text-3xl font-bold text-white mb-4">More from NEAT</h2>
+          <p className="text-blue-100 mb-8 max-w-2xl mx-auto">
+            We’re building a suite of tools to support accessible living and
+            ethical business — explore what else is available:
+          </p>
         </div>
 
-        {/* Footer Navigation */}
-        <nav aria-label="Footer navigation" className="mb-4 md:mb-0">
-          <ul className="flex flex-wrap justify-center md:justify-start gap-x-4 gap-y-2">
-            <li>
-              <Link
-                href=""
-                className="hover:underline focus:outline-none focus:ring-2 focus:ring-white"
-              >
-                Terms of Service
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/venues/privacy"
-                className="hover:underline focus:outline-none focus:ring-2 focus:ring-white"
-              >
-                Privacy Policy
-              </Link>
-            </li>
-            <li>
-              <Link
-                href=""
-                className="hover:underline focus:outline-none focus:ring-2 focus:ring-white"
-              >
-                How It Works
-              </Link>
-            </li>
-            <li>
-              <Link
-                href=""
-                className="hover:underline focus:outline-none focus:ring-2 focus:ring-white"
-              >
-                Contact Us
-              </Link>
-            </li>
-          </ul>
-        </nav>
+        <div className="grid gap-6 md:grid-cols-2 max-w-5xl mx-auto mb-10">
+          {/* Venues App */}
+          <div className="bg-white rounded-lg shadow-md p-6 text-left hover:shadow-lg transition">
+            <h3 className="text-2xl font-semibold text-blue-700 mb-2">
+              Discover Accessible Venues
+            </h3>
+            <p className="text-gray-700 mb-4">
+              Discover, list, and review accessible venues across the UK.
+              Perfect for families, carers, and organisations looking for
+              inclusive spaces.
+            </p>
+            <a
+              href="https://www.discoveraccessiblevenues.co.uk"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 font-medium hover:underline"
+            >
+              Explore Venues →
+            </a>
+          </div>
 
-        {/* Copyright */}
-        <div className="text-sm">
-          &copy; <CurrentYear /> NEAT Bookings App. All rights reserved.
+          {/* E-commerce App */}
+          <div className="bg-white rounded-lg shadow-md p-6 text-left hover:shadow-lg transition">
+            <h3 className="text-2xl font-semibold text-blue-700 mb-2">
+              Ethical E-commerce App
+            </h3>
+            <p className="text-gray-700 mb-4">
+              Coming soon — a curated store featuring inclusive products,
+              mobility aids, sensory tools, and more, hand-picked by carers for
+              carers.
+            </p>
+            <a
+              href="/ecomm"
+              className="text-blue-600 font-medium hover:underline"
+            >
+              Visit Store →
+            </a>
+          </div>
+        </div>
+
+        <div className="text-sm text-blue-100 text-center">
+          © {new Date().getFullYear()} NEAT Transport. All rights reserved.
         </div>
       </div>
 

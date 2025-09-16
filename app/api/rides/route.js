@@ -5,23 +5,23 @@ import { prisma } from "@/lib/db";
 import { RideRequestSchema } from "@/lib/validators";
 import { safeParse } from "@/lib/utils/safeParse";
 import { normalizeRideRequest } from "@/lib/constants";
+import { geocodeAddress } from "@/lib/utils/geocode";
 
 export async function POST(req) {
   try {
-    // 1) Auth
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 2) Parse body (works with JSON or FormData sent as JSON)
     const raw = await req.json();
     const normalized = normalizeRideRequest(raw);
-
-    // 3) Validate
     const data = safeParse(RideRequestSchema, normalized);
 
-    // 4) Create in DB
+    // ✅ Geocode pickup location
+    const pickupCoords = await geocodeAddress(data.pickupLocation);
+    const dropoffCoords = await geocodeAddress(data.dropoffLocation);
+
     const ride = await prisma.rideRequest.create({
       data: {
         createdById: session.user.id,
@@ -33,7 +33,13 @@ export async function POST(req) {
         highRoof: data.highRoof,
         carerPresent: data.carerPresent,
         notes: data.notes ?? null,
-        // optional extras if you provided them:
+
+        // ✅ Include geolocation
+        pickupLat: pickupCoords.lat,
+        pickupLng: pickupCoords.lng,
+        dropoffLat: dropoffCoords.lat,
+        dropoffLng: dropoffCoords.lng,
+
         distanceKm: data.distanceKm ?? null,
         passengersName: data.passengersName ?? null,
         additionalNeeds: data.additionalNeeds ?? null,
@@ -54,7 +60,6 @@ export async function POST(req) {
 
     return NextResponse.json(ride, { status: 201 });
   } catch (err) {
-    // Zod validation error bubbled by safeParse
     if (err?.message === "ValidationError") {
       return NextResponse.json(
         { error: "Invalid input", details: err.details },

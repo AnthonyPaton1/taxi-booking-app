@@ -1,14 +1,71 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "@/lib/db";
+import bcrypt from "bcryptjs";
+
+function getDashboardByRole(role) {
+switch (role) {
+case "SUPER_ADMIN":
+case "ADMIN":
+  return "/dashboard/admin";
+case "MANAGER":
+  return "/dashboard/manager";
+case "COORDINATOR":
+  return "/dashboard/coordinator";
+case "DRIVER":
+  return "/dashboard/driver";
+case "PUBLIC":
+default:
+  return "/dashboard/public";
+}
+}
 
 export const authOptions = {
   adapter: PrismaAdapter(prisma),
-  providers: [
+   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    }),
+
+    CredentialsProvider({
+      id: "credentials",
+      name: "Credentials",
+      credentials: {
+        email: { label: "Email", type: "text" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error("Missing email or password");
+        }
+
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email },
+        });
+
+        if (!user || !user.password) {
+          throw new Error("Invalid credentials");
+        }
+
+        const isValid = await bcrypt.compare(credentials.password, user.password);
+        if (!isValid) {
+          throw new Error("Invalid credentials");
+        }
+
+        if (!user.isApproved) {
+          throw new Error("Your account is pending approval");
+        }
+
+        return {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          name: user.name,
+        };
+      },
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
@@ -17,47 +74,20 @@ export const authOptions = {
   },
   callbacks: {
     async jwt({ token, user }) {
-      // Always keep email
-      if (user?.email) {
-        token.email = user.email;
+      if (user) {
+        token.id = user.id;
+        token.role = user.role;
       }
-
-      if (!token.email && user?.email) {
-        token.email = user.email;
-      }
-
-      // Check DB for this user
-      const dbUser = await prisma.user.findUnique({
-        where: { email: token.email },
-      });
-
-      // If no user, create one with PUBLIC role
-      if (!dbUser && token.email) {
-        const newUser = await prisma.user.create({
-          data: {
-            email: token.email,
-            name: user?.name || "",
-            image: user?.image || "",
-            role: "PUBLIC",
-          },
-        });
-        token.id = newUser.id;
-        token.role = newUser.role;
-      } else if (dbUser) {
-        token.id = dbUser.id;
-        token.role = dbUser.role;
-      }
-
       return token;
     },
-
-    async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id;
-        session.user.role = token.role;
-      }
-      return session;
-    },
+   async session({ session, token }) {
+  if (token) {
+    session.user.id = token.id;
+    session.user.role = token.role;
+    session.user.dashboardUrl = getDashboardByRole(token.role);
+  }
+  return session;
+}
   },
 };
 

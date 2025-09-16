@@ -2,15 +2,14 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
-import PublicDashboardLayout from "@/components/dashboard/public/public-dashboard";
+import PublicDashboardClient from "@/components/dashboard/public/PublicDashboardClient";
 
-export default async function PublicDashboard() {
+export default async function PublicDashboardPage() {
   const session = await getServerSession(authOptions);
 
-  // Basic protection: must be logged in
   if (!session) {
     return redirect("/unauthorised");
   }
 
-  return <PublicDashboardLayout user={session.user} />;
+  return <PublicDashboardClient user={session.user} />;
 }

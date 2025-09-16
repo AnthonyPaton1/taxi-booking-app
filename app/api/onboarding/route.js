@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { OnboardingSchema } from "@/lib/validators";
-import { z } from "zod"; // Ensure Zod is imported
+import { z } from "zod";
 
 export async function POST(req) {
   try {
@@ -12,7 +12,12 @@ export async function POST(req) {
     const company = await prisma.company.create({
       data: {
         name: validated.businessName,
+        addressLine1: validated.addressLine1,
+        city: validated.city,
+        postcode: validated.postcode,
+        website: validated.website,
         phone: validated.contactNumber,
+        email: validated.contactEmail,
       },
     });
 

@@ -138,58 +138,47 @@ const HomePage = () => {
           </Card>
         </Cards>
       </section>
-      <section>
-        <FaqSection />
-      </section>
-      <section className="w-full bg-blue-700 py-20 px-4">
-        <div className="max-w-6xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-white mb-6">More from NEAT</h2>
-          <p className="text-white mb-12 max-w-2xl mx-auto">
-            We’re building a suite of tools to support accessible living and
-            ethical business — explore what else is available:
+
+      <section className="bg-blue-100 py-20">
+        <div className="max-w-3xl mx-auto px-4">
+          <h2 className="text-2xl md:text-3xl font-semibold text-blue-800 mb-4 text-center">
+            <b>Our Mission: NEAT Transport</b>
+          </h2>
+          <p className="text-gray-700 mb-6 text-center">
+            <b>NEAT</b> stands for <b>Non-Emergency Accessible Transport</b> —
+            but it means so much more than that.
           </p>
 
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* Venues App */}
-            <div className="bg-white rounded-lg shadow-md p-6 text-left hover:shadow-lg transition">
-              <h3 className="text-2xl font-semibold text-blue-700 mb-2">
-                Discover Accessible Venues
-              </h3>
-              <p className="text-gray-700 mb-4">
-                Discover, list, and review accessible venues across the UK.
-                Perfect for families, carers, and organisations looking for
-                inclusive spaces.
-              </p>
-              <a
-                href="https://www.discoveraccessiblevenues.co.uk"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 font-medium hover:underline"
-              >
-                Explore Venues →
-              </a>
-            </div>
+          <ul className="text-gray-700 text-left list-disc list-inside space-y-2">
+            <li>
+              <b>N</b>eeds-based support for every individual
+            </li>
+            <li>
+              <b>E</b>mpathy for visible and invisible disabilities
+            </li>
+            <li>
+              <b>A</b>ccessibility as a non-negotiable, not a luxury
+            </li>
+            <li>
+              <b>T</b>ransport that adapts to people — not the other way around
+            </li>
+          </ul>
 
-            {/* E-commerce App */}
-            <div className="bg-white rounded-lg shadow-md p-6 text-left hover:shadow-lg transition">
-              <h3 className="text-2xl font-semibold text-blue-700 mb-2">
-                Ethical E-commerce App
-              </h3>
-              <p className="text-gray-700 mb-4">
-                Coming soon — a curated store featuring inclusive products,
-                mobility aids, sensory tools, and more, hand-picked by carers
-                for carers.
-              </p>
-              <a
-                href="/ecomm"
-                className="text-blue-600 font-medium hover:underline"
-              >
-                Visit Store →
-              </a>
-            </div>
+          {/* Align the last lines to left for smoother reading */}
+          <div className="mt-6 text-left text-gray-700 space-y-3">
+            <p>
+              Whether you’re booking a wheelchair-accessible minibus, need a
+              quiet ride with no conversation, or prefer a familiar female
+              driver — <b>NEAT is designed for you.</b>
+            </p>
+            <p>This is transport that listens.</p>
+            <p>
+              <b>This is NEAT.</b>
+            </p>
           </div>
         </div>
       </section>
+      <FaqSection className="mt-20" />
     </main>
   );
 };

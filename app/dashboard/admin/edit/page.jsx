@@ -8,45 +8,44 @@ import CheckoutSteps from "@/components/shared/header/checkoutSteps";
 const EditDetailsPage = () => {
   const [loading, setLoading] = useState(true);
   const [coordinators, setCoordinators] = useState([]);
-  const [formData, setFormData] = useState({
-    businessName: "",
-    addressLine1: "",
-    city: "",
-    postcode: "",
-    website: "",
-    contactNumber: "",
-    contactEmail: "",
-  });
+ const [formData, setFormData] = useState({
+  companyId: "",
+  businessName: "",
+  addressLine1: "",
+  city: "",
+  postcode: "",
+  website: "",
+  contactNumber: "",
+  contactEmail: "",
+});
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await fetch("/api/edit-details");
+  const fetchData = async () => {
+    try {
+      const res = await fetch("/api/edit-details");
+      const data = await res.json();
 
-        const data = await res.json();
+      setFormData({
+        companyId: data.companyId || "",
+        businessName: data.businessName || "",
+        addressLine1: data.addressLine1 || "",
+        city: data.city || "",
+        postcode: data.postcode || "",
+        website: data.website || "",
+        contactNumber: data.contactNumber || "",
+        contactEmail: data.contactEmail || "",
+      });
 
-        // Populate the form state with fetched data
-        setFormData({
-          businessName: data.businessName || "",
-          addressLine1: data.addressLine1 || "",
-          city: data.city || "",
-          postcode: data.postcode || "",
-          website: data.website || "",
-          contactNumber: data.contactNumber || "",
-          contactEmail: data.contactEmail || "",
-        });
+      setCoordinators(data.coordinators || []);
+    } catch (err) {
+      console.error("❌ Failed to fetch edit data", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        setCoordinators(data.coordinators || []);
-      } catch (err) {
-        console.error("Failed to fetch edit data", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
+  fetchData();
+}, []);
   const handleChange = (e) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));

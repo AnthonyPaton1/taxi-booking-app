@@ -8,21 +8,31 @@ datasource db {
 }
 
 /**
- * ===== Enums =====
+ * ======================
+ * Enums
+ * ======================
  */
-
 enum Role {
-  SUPER_ADMIN // me
-  COMPANY_ADMIN // Head office of a company
-  COORDINATOR // Organises area-level stuff
-  MANAGER // House manager
-  DRIVER
+  SUPER_ADMIN
+  MANAGER
+  COORDINATOR
   PUBLIC
+  ADMIN
+  DRIVER
 }
 
-enum CompanyRole {
+enum BusinessType {
+  CARE
+  TAXI
+}
+
+enum BusinessMembershipRole {
+  ADMIN
   COORDINATOR
+  MANAGER
   DRIVER
+  OWNER
+  DISPATCHER
 }
 
 enum BidStatus {
@@ -36,13 +46,13 @@ enum FeedbackType {
   COMPLAINT
 }
 
-enum RideVisibility {
+enum AdvancedBookingVisibility {
   PRIVATE_TO_COMPANY
   LINK_ONLY
   PUBLIC
 }
 
-enum RideStatus {
+enum AdvancedBookingStatus {
   OPEN
   CLOSED
   ACCEPTED
@@ -51,89 +61,139 @@ enum RideStatus {
   CANCELED
 }
 
-enum RequestType {
-  PUBLIC
-  BUSINESS
+enum InstantBookingStatus {
+  PENDING
+  ACCEPTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELED
 }
 
 /**
- * ===== Models =====
+ * ======================
+ * Core Models
+ * ======================
  */
+
+model RegistrationRequest {
+  id        String   @id @default(cuid())
+  type      String   // "BUSINESS" | "DRIVER"
+  name      String
+  email     String   @unique
+  phone     String?
+  approved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation("UserPasswordResetTokens", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}
+
+
 
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
   name          String?
   phone         String?   @unique
+  password      String?
   role          Role      @default(PUBLIC)
   image         String?
   emailVerified DateTime?
   isApproved    Boolean   @default(false)
 
+  // Self relation: manager ↔ drivers
   managerId String?
-  manager   User?   @relation("ManagerDrivers", fields: [managerId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  manager   User?   @relation("ManagerDrivers", fields: [managerId], references: [id])
   drivers   User[]  @relation("ManagerDrivers")
+
+  // Business link
+  businessId String?
+  business   Business? @relation("UserBusiness", fields: [businessId], references: [id])
+
+  // Area link
+  areaId String?
+  area   Area?   @relation("UserArea", fields: [areaId], references: [id])
+
+  // Relations
+  bids                Bid[]                @relation("UserBids")
+  feedback            TripFeedback[]
+  invoices            Invoice[]
+  memberships         BusinessMembership[] @relation("MembershipUser")
+  verifiedMemberships BusinessMembership[] @relation("MembershipVerifier")
+  schedules           RideSchedule[]       @relation("DriverSchedules")
+  notifications       Notification[]
+  incidents           Incident[]
+  instantBookings     InstantBooking[]     @relation("CreatorInstantBookings")
+  advancedBookings    AdvancedBooking[]    @relation("CreatorAdvancedBookings")
+
+  adminOfBusiness         Business?        @relation("BusinessAdminUser")
+  acceptedInstantBookings InstantBooking[] @relation("UserAcceptedInstant")
+  passwordResetTokens PasswordResetToken[] @relation("UserPasswordResetTokens")
+   passwordResetToken   String?
+  passwordResetExpires DateTime?
+  // Preferences
+  postcode     String?
+  radius       Int?
+  capabilities String[]
+
+  Account Account[]
+  Session Session[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  rideRequests        RideRequest[]  @relation("CreatorRides")
-  bids                Bid[]
-  feedback            TripFeedback[]
-  invoices            Invoice[]
-  memberships         UserCompany[]  @relation("UserCompanyMember")
-  verifiedMemberships UserCompany[]  @relation("UserCompanyVerifier")
-  schedules           RideSchedule[] @relation("DriverSchedules")
-  notifications       Notification[]
-
-  Account Account[]
-  Session Session[]
-
-  // ✅ many-to-many areas
-  areas    Area[]     @relation("UserAreas")
-  Incident Incident[]
-  Booking  Booking[]
-
   @@index([deletedAt])
 }
 
-model Company {
-  id        String   @id @default(cuid())
-  name      String
-  phone     String?
+model Business {
+  id       String       @id @default(cuid())
+  type     BusinessType
+  name     String
+  phone    String?
+  email    String?
+  website  String?
+  address1 String?
+  city     String?
+  postcode String?
+  approved Boolean      @default(false)
+
+  // Admin account
+  adminUserId String @unique
+  adminUser   User   @relation("BusinessAdminUser", fields: [adminUserId], references: [id])
+
+  // Staff & members
+  memberships BusinessMembership[] @relation("MembershipBusiness")
+  employees   User[]               @relation("UserBusiness")
+
+  // Domain data
+  houses                  House[]
+  driverInvites           DriverInvite[]
+  incidents               Incident[]
+  advancedBookings        AdvancedBooking[] @relation("BusinessAdvancedBookings")
+  instantBookings         InstantBooking[]  @relation("BusinessInstantBookings")
+  acceptedInstantBookings InstantBooking[]  @relation("BusinessAcceptedInstant")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  members      UserCompany[]
-  rides        RideRequest[]
-  houses       House[]
-  DriverInvite DriverInvite[]
-  deletedAt    DateTime?
-  Incident     Incident[]
-
-  @@index([deletedAt])
 }
 
-model Area {
-  id   String @id @default(cuid())
-  name String @unique
+model BusinessMembership {
+  id         String                 @id @default(cuid())
+  userId     String
+  businessId String
+  role       BusinessMembershipRole
 
-  // ✅ reverse side of the many-to-many
-  coordinators User[] @relation("UserAreas")
-}
+  user     User     @relation("MembershipUser", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  business Business @relation("MembershipBusiness", fields: [businessId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-model UserCompany {
-  id        String      @id @default(cuid())
-  userId    String
-  companyId String
-  role      CompanyRole
-
-  //  name this relation "UserCompanyMember"
-  user    User    @relation("UserCompanyMember", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  // Coordinator verification (simple booleans)
+  // Verification
   dbsChecked         Boolean @default(false)
   insuranceChecked   Boolean @default(false)
   plInsuranceChecked Boolean @default(false)
@@ -143,24 +203,30 @@ model UserCompany {
   verifiedAt DateTime?
 
   verifiedById String?
-  //  and this one "UserCompanyVerifier"
-  verifiedBy   User?   @relation("UserCompanyVerifier", fields: [verifiedById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  verifiedBy   User?   @relation("MembershipVerifier", fields: [verifiedById], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   verifyNotes String?
 
   createdAt DateTime  @default(now())
   deletedAt DateTime?
 
-  @@unique([userId, companyId])
-  @@index([companyId, role])
-  @@index([companyId, isVerified])
+  @@unique([userId, businessId])
+  @@index([businessId, role])
+  @@index([businessId, isVerified])
   @@index([deletedAt])
 }
 
+model Area {
+  id   String @id @default(cuid())
+  name String @unique
+
+  users User[] @relation("UserArea")
+}
+
 model House {
-  id        String  @id @default(cuid())
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   label    String
   line1    String
@@ -168,77 +234,156 @@ model House {
   postcode String
   notes    String?
 
-  // NEW FIELDS FOR LOGIN
   internalId String @unique
   pin        String
   loginName  String @unique
 
-  createdAt DateTime   @default(now())
-  deletedAt DateTime?
-  Incident  Incident[]
+  incidents Incident[]
 
-  @@index([companyId, label])
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  @@index([businessId, label])
   @@index([deletedAt])
 }
 
-model RideRequest {
+/**
+ * ======================
+ * Bookings
+ * ======================
+ */
+model AdvancedBooking {
   id          String @id @default(cuid())
   createdById String
-  createdBy   User   @relation("CreatorRides", fields: [createdById], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  createdBy   User   @relation("CreatorAdvancedBookings", fields: [createdById], references: [id])
 
-  companyId String?
-  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
-  type RequestType @default(BUSINESS)
+  businessId String?
+  business   Business? @relation("BusinessAdvancedBookings", fields: [businessId], references: [id])
 
   pickupTime      DateTime
   returnTime      DateTime?
   pickupLocation  String
   dropoffLocation String
 
-  wheelchairAccess Boolean @default(false)
-  highRoof         Boolean @default(false)
-  carerPresent     Boolean @default(false)
-  passengerCount   Int     @default(1)
-  wheelchairUsers  Int     @default(1)
-  notes            String?
+  // Accessibility
+  wheelchairAccess       Boolean @default(false)
+  doubleWheelchairAccess Boolean @default(false)
+  highRoof               Boolean @default(false)
+  carerPresent           Boolean @default(false)
+  passengerCount         Int     @default(0)
+  wheelchairUsers        Int     @default(0)
+  nonWAVvehicle          Boolean @default(false)
+  femaleDriverOnly       Boolean @default(false)
+  quietEnvironment       Boolean @default(false)
+  assistanceRequired     Boolean @default(false)
+  noConversation         Boolean @default(false)
+  specificMusic          String?
+  electricScooterStorage Boolean @default(false)
+  visualSchedule         Boolean @default(false)
+  assistanceAnimal       Boolean @default(false)
+  familiarDriverOnly     Boolean @default(false)
+  ageOfPassenger         Int?
+  escortRequired         Boolean @default(false)
+  preferredLanguage      String?
+  signLanguageRequired   Boolean @default(false)
+  textOnlyCommunication  Boolean @default(false)
+  medicalConditions      String?
+  medicationOnBoard      Boolean @default(false)
+  additionalNeeds        String?
 
   // Bidding
-  visibility    RideVisibility @default(PRIVATE_TO_COMPANY)
+  visibility    AdvancedBookingVisibility @default(PRIVATE_TO_COMPANY)
   bidDeadline   DateTime?
-  status        RideStatus     @default(OPEN)
-  acceptedBidId String?        @unique
-  acceptedBid   Bid?           @relation("AcceptedBid", fields: [acceptedBidId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  status        AdvancedBookingStatus     @default(OPEN)
+  acceptedBidId String?                   @unique
+  acceptedBid   Bid?                      @relation("AcceptedBid", fields: [acceptedBidId], references: [id], onDelete: SetNull)
 
-  // Denormalised fields
-  bidCount    Int  @default(0)
-  minBidCents Int?
-  maxBidCents Int?
+  bids          Bid[]          @relation("AdvancedBookingBids")
+  feedback      TripFeedback[]
+  invoices      Invoice[]
+  notifications Notification[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  bids         Bid[]
-  TripFeedback TripFeedback[]
-  Invoice      Invoice[]
-  schedule     RideSchedule?
-  Notification Notification[]
+  schedule RideSchedule?
 
-  @@index([companyId, pickupTime])
+  @@index([businessId, pickupTime])
   @@index([status, pickupTime])
   @@index([bidDeadline])
-  @@index([companyId, status, pickupTime])
   @@index([deletedAt])
 }
 
+model InstantBooking {
+  id String @id @default(cuid())
+
+  createdById String
+  createdBy   User   @relation("CreatorInstantBookings", fields: [createdById], references: [id], onDelete: Cascade)
+
+  businessId String?
+  business   Business? @relation("BusinessInstantBookings", fields: [businessId], references: [id], onDelete: Cascade)
+
+  pickupTime      DateTime
+  returnTime      DateTime?
+  pickupLocation  String
+  dropoffLocation String
+
+  // Accessibility
+  wheelchairAccess       Boolean @default(false)
+  doubleWheelchairAccess Boolean @default(false)
+  highRoof               Boolean @default(false)
+  carerPresent           Boolean @default(false)
+  passengerCount         Int     @default(0)
+  wheelchairUsers        Int     @default(0)
+  nonWAVvehicle          Boolean @default(false)
+  femaleDriverOnly       Boolean @default(false)
+  quietEnvironment       Boolean @default(false)
+  assistanceRequired     Boolean @default(false)
+  noConversation         Boolean @default(false)
+  specificMusic          String?
+  electricScooterStorage Boolean @default(false)
+  visualSchedule         Boolean @default(false)
+  assistanceAnimal       Boolean @default(false)
+  familiarDriverOnly     Boolean @default(false)
+  ageOfPassenger         Int?
+  escortRequired         Boolean @default(false)
+  preferredLanguage      String?
+  signLanguageRequired   Boolean @default(false)
+  textOnlyCommunication  Boolean @default(false)
+  medicalConditions      String?
+  medicationOnBoard      Boolean @default(false)
+  additionalNeeds        String?
+
+  // Acceptance
+  acceptedAt           DateTime?
+  acceptedByUserId     String?
+  acceptedByUser       User?     @relation("UserAcceptedInstant", fields: [acceptedByUserId], references: [id], onDelete: SetNull)
+  acceptedByBusinessId String?
+  acceptedByBusiness   Business? @relation("BusinessAcceptedInstant", fields: [acceptedByBusinessId], references: [id], onDelete: SetNull)
+
+  status InstantBookingStatus @default(PENDING)
+
+  feedback      TripFeedback[]
+  invoices      Invoice[]
+  notifications Notification[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/**
+ * ======================
+ * Bids / Schedule / Notifications
+ * ======================
+ */
 model Bid {
-  id            String      @id @default(cuid())
-  rideRequestId String
-  rideRequest   RideRequest @relation(fields: [rideRequestId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  id                String          @id @default(cuid())
+  advancedBookingId String
+  advancedBooking   AdvancedBooking @relation("AdvancedBookingBids", fields: [advancedBookingId], references: [id], onDelete: Cascade)
 
   userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user   User   @relation("UserBids", fields: [userId], references: [id], onDelete: Cascade)
 
   amountCents  Int
   message      String?
@@ -250,21 +395,20 @@ model Bid {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // reverse link to RideRequest.acceptedBid
-  acceptedOnRide RideRequest?   @relation("AcceptedBid")
-  Notification   Notification[]
-  idempotencyKey String?        @unique // (optional but handy)
+  acceptedOnRide AdvancedBooking? @relation("AcceptedBid")
+  notifications  Notification[]
+  idempotencyKey String?          @unique
   deletedAt      DateTime?
 
-  @@index([rideRequestId, status, amountCents])
+  @@index([advancedBookingId, status, amountCents])
   @@index([userId, createdAt])
   @@index([deletedAt])
 }
 
 model RideSchedule {
-  id     String      @id @default(cuid())
-  rideId String      @unique
-  ride   RideRequest @relation(fields: [rideId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  id                String          @id @default(cuid())
+  advancedBookingId String          @unique
+  advancedBooking   AdvancedBooking @relation(fields: [advancedBookingId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   driverId String
   driver   User   @relation("DriverSchedules", fields: [driverId], references: [id], onDelete: Cascade, onUpdate: Cascade)
@@ -286,9 +430,13 @@ model Notification {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  type   String // or switch to an enum if you standardize types
-  rideId String?
-  ride   RideRequest? @relation(fields: [rideId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  type String
+
+  advancedBookingId String?
+  advancedBooking   AdvancedBooking? @relation(fields: [advancedBookingId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  instantBookingId String?
+  instantBooking   InstantBooking? @relation(fields: [instantBookingId], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   bidId String?
   bid   Bid?    @relation(fields: [bidId], references: [id], onDelete: SetNull, onUpdate: Cascade)
@@ -303,13 +451,20 @@ model Notification {
   @@index([deletedAt])
 }
 
+/**
+ * ======================
+ * Feedback / Invoices / Invites / Incidents
+ * ======================
+ */
 model TripFeedback {
   id     String @id @default(cuid())
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  rideId String
-  ride   RideRequest @relation(fields: [rideId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  advancedBookingId String?
+  advancedBooking   AdvancedBooking? @relation(fields: [advancedBookingId], references: [id])
+  instantBookingId  String?
+  instantBooking    InstantBooking?  @relation(fields: [instantBookingId], references: [id])
 
   type     FeedbackType @default(NOTE)
   message  String
@@ -319,8 +474,9 @@ model TripFeedback {
   deletedAt DateTime?
 
   @@index([deletedAt])
-  @@index([rideId])
   @@index([userId, createdAt])
+  @@index([advancedBookingId])
+  @@index([instantBookingId])
 }
 
 model Invoice {
@@ -328,8 +484,10 @@ model Invoice {
   driverId String
   driver   User   @relation(fields: [driverId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  rideId String?
-  ride   RideRequest? @relation(fields: [rideId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  advancedBookingId String?
+  advancedBooking   AdvancedBooking? @relation(fields: [advancedBookingId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  instantBookingId  String?
+  instantBooking    InstantBooking?  @relation(fields: [instantBookingId], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   amountCents Int
   currency    String    @default("GBP")
@@ -341,13 +499,14 @@ model Invoice {
 
   @@index([deletedAt])
   @@index([driverId, issuedAt])
-  @@index([rideId])
+  @@index([advancedBookingId])
+  @@index([instantBookingId])
 }
 
 model DriverInvite {
-  id        String  @id @default(cuid())
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   email      String
   token      String    @unique
@@ -355,9 +514,36 @@ model DriverInvite {
   acceptedAt DateTime?
   createdAt  DateTime  @default(now())
 
-  @@index([companyId, email])
+  @@index([businessId, email])
 }
 
+model Incident {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  houseId    String?
+  house      House?   @relation(fields: [houseId], references: [id])
+
+  time         DateTime
+  type         String
+  description  String
+  emergency    Boolean
+  actionsTaken String?
+  followUp     Boolean
+  image        String?
+  evidenceUrl  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/**
+ * ======================
+ * NextAuth
+ * ======================
+ */
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -390,43 +576,4 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
-}
-
-model Incident {
-  id           String   @id @default(cuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id])
-  companyId    String
-  company      Company  @relation(fields: [companyId], references: [id])
-  time         DateTime
-  type         String
-  description  String
-  emergency    Boolean
-  actionsTaken String?
-  followUp     Boolean
-  image        String? // optional Cloudinary image
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  House        House?   @relation(fields: [houseId], references: [id])
-  houseId      String?
-  evidenceUrl  String?
-}
-
-model Booking {
-  id              String   @id @default(cuid())
-  userId          String   @map("user_id")
-  from            String
-  to              String
-  date            DateTime
-  pickupTime      String
-  returnTime      String?
-  roundTrip       Boolean
-  passengerCount  Int
-  wheelchairUsers Int
-  specialNeeds    String[] // e.g. ["highRoof", "lift", "carer", "animal"]
-  status          String   @default("Pending") // e.g. Pending, Approved
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id])
 }

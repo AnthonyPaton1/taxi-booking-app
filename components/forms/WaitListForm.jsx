@@ -10,7 +10,7 @@ const WaitlistForm = () => {
     formFields.reduce((acc, field) => {
       acc[field.id] = "";
       return acc;
-    }, {})
+    }, { type: "" }) // ✅ add type field for business/taxi
   );
 
   const [status, setStatus] = useState(null);
@@ -23,6 +23,11 @@ const WaitlistForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!formData.type) {
+      setStatus("Please select Business or Taxi.");
+      return;
+    }
+
     const res = await sendContactEmail(formData);
     if (res.success) {
       setStatus("Message sent successfully!");
@@ -30,7 +35,7 @@ const WaitlistForm = () => {
         formFields.reduce((acc, field) => {
           acc[field.id] = "";
           return acc;
-        }, {})
+        }, { type: "" })
       );
     } else {
       setStatus("Something went wrong. Please try again later.");
@@ -44,9 +49,45 @@ const WaitlistForm = () => {
       aria-labelledby="waitlist-heading"
     >
       <h2 id="waitlist-heading" className="sr-only">
-        Register your business to the waitlist
+        Register your business or taxi to the waitlist
       </h2>
 
+      {/* Business/Taxi selector */}
+      <fieldset className="space-y-2">
+        <legend className="block font-medium text-gray-700 mb-1">
+          Are you a Business or a Taxi? <span className="text-red-500">*</span>
+        </legend>
+        <div className="flex items-center space-x-4">
+          <label className="flex items-center space-x-2">
+            <input
+              type="radio"
+              name="type"
+              value="BUSINESS"
+              checked={formData.type === "BUSINESS"}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, type: e.target.value }))
+              }
+              required
+            />
+            <span>Business</span>
+          </label>
+          <label className="flex items-center space-x-2">
+            <input
+              type="radio"
+              name="type"
+              value="TAXI"
+              checked={formData.type === "TAXI"}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, type: e.target.value }))
+              }
+              required
+            />
+            <span>Taxi</span>
+          </label>
+        </div>
+      </fieldset>
+
+      {/* Existing fields */}
       {formFields.map(({ id, label, type, required }) => (
         <div key={id}>
           <label htmlFor={id} className="block font-medium text-gray-700 mb-1">
@@ -83,9 +124,9 @@ const WaitlistForm = () => {
       <Button
         type="submit"
         className="w-full bg-blue-700 text-white py-2 px-4 rounded hover:bg-blue-800 transition"
-        aria-label="Submit your business registration form"
+        aria-label="Submit your registration form"
       >
-        Register Your Business Here
+        Register
       </Button>
 
       {status && (

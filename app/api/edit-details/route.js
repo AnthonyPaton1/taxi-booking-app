@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { OnboardingSchema } from "@/lib/validators";
+import { z } from "zod";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -23,69 +24,63 @@ export async function GET() {
     where: { companyId: company.id, role: "COORDINATOR" },
     include: { user: true },
   });
-
+  console.log("Company GET:", company.id);
   return NextResponse.json({
+    companyId: company.id, // ✅ send this to the frontend
     businessName: company.name,
     contactNumber: company.phone,
     contactEmail: user.email,
-    // etc...
+    addressLine1: company.addressLine1 ?? "",
+    city: company.city ?? "",
+    postcode: company.postcode ?? "",
+    website: company.website ?? "",
     coordinators: coordinators.map((c) => ({
       name: c.user.name,
       email: c.user.email,
       phone: c.user.phone,
-      areas: c.user.areas?.join(", "), // if storing areas separately
+      areas: c.user.areas?.join(", "),
     })),
   });
 }
 
 export async function PUT(req) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
     const body = await req.json();
     const validated = OnboardingSchema.parse(body);
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      include: { memberships: true },
-    });
+    const companyId = body.companyId; // Make sure this is being sent from the form
 
-    const companyId = user?.memberships?.[0]?.companyId;
+    function normalizeWebsite(url) {
+      if (!url) return "";
+      if (!/^https?:\/\//i.test(url)) {
+        return "https://" + url;
+      }
+      return url;
+    }
 
-    // Update company
     await prisma.company.update({
       where: { id: companyId },
       data: {
         name: validated.businessName,
+        addressLine1: validated.addressLine1,
+        city: validated.city,
+        postcode: validated.postcode,
+        website: normalizeWebsite(validated.website),
         phone: validated.contactNumber,
+        email: validated.contactEmail,
       },
     });
-
-    // Optional: Clear + recreate coordinator links, or update individually
-    for (const coord of validated.coordinators) {
-      await prisma.user.upsert({
-        where: { email: coord.email },
-        update: {
-          name: coord.name,
-          phone: coord.phone,
-        },
-        create: {
-          email: coord.email,
-          name: coord.name,
-          phone: coord.phone,
-          role: "COORDINATOR",
-        },
-      });
-      // ... and link to company if needed
-    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Edit error:", error);
+
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.errors }, { status: 400 });
+    }
+
     return NextResponse.json(
-      { error: "Something went wrong" },
+      { error: "Failed to update company" },
       { status: 500 }
     );
   }
