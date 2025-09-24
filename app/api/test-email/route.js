@@ -1,7 +1,7 @@
 // /app/api/enquiry/route.js (or /api/enquiry.js depending on routing)
 
 import { prisma } from "@/lib/db";
-import { sendMail } from "@/lib/email";
+import { sendEmail } from "@/lib/email";
 
 export async function POST(req) {
   const body = await req.json();
@@ -22,7 +22,7 @@ export async function POST(req) {
     });
 
     // Notify admin via email
-    await sendMail({
+    await sendEmail({
       to: "admin@yourdomain.com",
       subject: "New NEAT Enquiry Submitted",
       html: `
