@@ -6,25 +6,25 @@ import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 
 function getDashboardByRole(role) {
-switch (role) {
-case "SUPER_ADMIN":
-case "ADMIN":
-  return "/dashboard/admin";
-case "MANAGER":
-  return "/dashboard/manager";
-case "COORDINATOR":
-  return "/dashboard/coordinator";
-case "DRIVER":
-  return "/dashboard/driver";
-case "PUBLIC":
-default:
-  return "/dashboard/public";
-}
+  switch (role) {
+    case "SUPER_ADMIN":
+    case "ADMIN":
+      return "/dashboard/admin";
+    case "MANAGER":
+      return "/dashboard/manager";
+    case "COORDINATOR":
+      return "/dashboard/coordinator";
+    case "DRIVER":
+      return "/dashboard/driver";
+    case "PUBLIC":
+    default:
+      return "/dashboard/public";
+  }
 }
 
 export const authOptions = {
   adapter: PrismaAdapter(prisma),
-   providers: [
+  providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -78,16 +78,32 @@ export const authOptions = {
         token.id = user.id;
         token.role = user.role;
       }
+
+      if (token?.email) {
+        const dbUser = await prisma.user.findUnique({
+          where: { email: token.email },
+          select: { id: true, role: true, driverOnboarded: true },
+        });
+
+        if (dbUser) {
+          token.id = dbUser.id;
+          token.role = dbUser.role;
+          token.driverOnboarded = dbUser.driverOnboarded;
+        }
+      }
+
       return token;
     },
-   async session({ session, token }) {
-  if (token) {
-    session.user.id = token.id;
-    session.user.role = token.role;
-    session.user.dashboardUrl = getDashboardByRole(token.role);
-  }
-  return session;
-}
+
+    async session({ session, token }) {
+      if (token) {
+        session.user.id = token.id;
+        session.user.role = token.role;
+        session.user.dashboardUrl = getDashboardByRole(token.role);
+        session.user.driverOnboarded = Boolean(token.driverOnboarded);
+      }
+      return session;
+    },
   },
 };
 

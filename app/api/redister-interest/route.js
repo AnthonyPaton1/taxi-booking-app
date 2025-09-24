@@ -6,7 +6,7 @@ export async function POST(req) {
     const { name, email, phone, type } = await req.json();
 
     // Save request
-    const request = await prisma.registrationRequest.create({
+    const request = await prisma.registerInterest.create({
       data: { name, email, phone, type },
     });
 

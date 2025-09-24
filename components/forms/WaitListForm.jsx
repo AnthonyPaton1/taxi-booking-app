@@ -10,7 +10,7 @@ const WaitlistForm = () => {
     formFields.reduce((acc, field) => {
       acc[field.id] = "";
       return acc;
-    }, { type: "" }) // ✅ add type field for business/taxi
+    }, { type: "" }) //  add type field for business/taxi
   );
 
   const [status, setStatus] = useState(null);
@@ -19,6 +19,8 @@ const WaitlistForm = () => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
   };
+
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();

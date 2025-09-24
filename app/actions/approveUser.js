@@ -1,12 +1,12 @@
 // actions/approveUser.js
-import { prisma } from "@/lib/prisma";
+import  {prisma} from "@/lib/db";
 import crypto from "crypto";
-import { sendEmail } from "@/lib/email"; // we’ll build this helper
+import { sendEmail } from "@/lib/email"; 
 
 export async function approveUser(registrationId) {
-  const registration = await prisma.registrationRequest.findUnique({
-    where: { id: registrationId },
-  });
+const registration = await prisma.registerInterest.findUnique({
+  where: { id: registrationId },
+});
 
   if (!registration) throw new Error("Registration not found");
 
@@ -15,7 +15,7 @@ export async function approveUser(registrationId) {
     data: {
       email: registration.email,
       name: registration.name,
-      role: registration.role, // DRIVER or BUSINESS
+      role: registration.type === "TAXI" ? "DRIVER" : "ADMIN",
       isApproved: true,
     },
   });
@@ -24,7 +24,7 @@ export async function approveUser(registrationId) {
   const token = crypto.randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-  await prisma.passwordResetToken.create({
+  await prisma.PasswordResetToken.create({
     data: {
       token,
       userId: user.id,
@@ -34,6 +34,9 @@ export async function approveUser(registrationId) {
 
   // build link
   const resetLink = `${process.env.NEXTAUTH_URL}/set-password?token=${token}`;
+
+  console.log("✅ Sending to:", user.email);
+console.log("🔗 Reset link:", resetLink);
 
   // send email
   await sendEmail({

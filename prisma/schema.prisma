@@ -75,15 +75,7 @@ enum InstantBookingStatus {
  * ======================
  */
 
-model RegistrationRequest {
-  id        String   @id @default(cuid())
-  type      String   // "BUSINESS" | "DRIVER"
-  name      String
-  email     String   @unique
-  phone     String?
-  approved  Boolean  @default(false)
-  createdAt DateTime @default(now())
-}
+
 
 model PasswordResetToken {
   id        String   @id @default(cuid())
@@ -106,12 +98,16 @@ model User {
   image         String?
   emailVerified DateTime?
   isApproved    Boolean   @default(false)
-
+  driverOnboarded      Boolean   @default(false)
+  managerOnboarded     Boolean   @default(false)
+  coordinatorOnboarded Boolean   @default(false)
+  adminOnboarded Boolean @default(false)
   // Self relation: manager ↔ drivers
   managerId String?
   manager   User?   @relation("ManagerDrivers", fields: [managerId], references: [id])
   drivers   User[]  @relation("ManagerDrivers")
 
+driver Driver? 
   // Business link
   businessId String?
   business   Business? @relation("UserBusiness", fields: [businessId], references: [id])
@@ -150,6 +146,40 @@ model User {
   deletedAt DateTime?
 
   @@index([deletedAt])
+}
+
+model Driver {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+   // Compliance
+  ukDrivingLicence         Boolean @default(false)
+  localAuthorityRegistered Boolean @default(false)
+  dbsChecked               Boolean @default(false)
+  publicLiabilityInsurance Boolean @default(false)
+  fullyCompInsurance       Boolean @default(false)
+  healthCheckPassed        Boolean @default(false)
+  englishProficiency       Boolean @default(false)
+
+ //compliance
+
+  
+  vehicleType    String   // e.g. Car, WAV, Minibus
+  vehicleReg     String
+  localPostcode  String   // base area
+  radiusMiles    Int      // pickup radius
+  phone          String
+  approved       Boolean  @default(false)
+
+  instantBookings  InstantBooking[] @relation("DriverInstantBookings")
+  advancedBids     Bid[]            @relation("DriverBids")
+
+ // Vehicle amenities
+  amenities String[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model Business {
@@ -329,6 +359,9 @@ model InstantBooking {
   pickupLocation  String
   dropoffLocation String
 
+   driverId String?
+  driver   Driver? @relation("DriverInstantBookings", fields: [driverId], references: [id], onDelete: SetNull)
+
   // Accessibility
   wheelchairAccess       Boolean @default(false)
   doubleWheelchairAccess Boolean @default(false)
@@ -394,6 +427,9 @@ model Bid {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  driverId String
+  driver   Driver @relation("DriverBids", fields: [driverId], references: [id])
 
   acceptedOnRide AdvancedBooking? @relation("AcceptedBid")
   notifications  Notification[]
@@ -576,4 +612,15 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model RegisterInterest {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  phone     String?
+  type      String   // DRIVER | BUSINESS
+  message   String?
+  approved  Boolean  @default(false)
+  createdAt DateTime @default(now())
 }

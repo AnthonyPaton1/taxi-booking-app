@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 export async function POST(req) {
   const { token, password } = await req.json();
 
-  const reset = await prisma.passwordResetToken.findUnique({ where: { token } });
+  const reset = await prisma.PasswordResetToken.findUnique({ where: { token } });
 
   if (!reset || reset.expiresAt < new Date()) {
     return Response.json({ message: "Invalid or expired token" }, { status: 400 });
@@ -18,7 +18,7 @@ export async function POST(req) {
     data: { password: hashed },
   });
 
-  await prisma.passwordResetToken.delete({ where: { id: reset.id } });
+  await prisma.PasswordResetToken.delete({ where: { id: reset.id } });
 
   return Response.json({ message: "Password set successfully. You can now log in." });
 }
