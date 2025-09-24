@@ -1,14 +1,25 @@
 // actions/approveUser.js
+"use server";
 import  {prisma} from "@/lib/db";
 import crypto from "crypto";
 import { sendEmail } from "@/lib/email"; 
 
 export async function approveUser(registrationId) {
+  console.log("✅ approveUser called with ID:", registrationId);
 const registration = await prisma.registerInterest.findUnique({
   where: { id: registrationId },
 });
 
   if (!registration) throw new Error("Registration not found");
+
+  // Check if user already exists
+const existingUser = await prisma.user.findUnique({
+  where: { email: registration.email },
+});
+
+if (existingUser) {
+  throw new Error("User with this email already exists.");
+}
 
   // create user
   const user = await prisma.user.create({
@@ -35,8 +46,9 @@ const registration = await prisma.registerInterest.findUnique({
   // build link
   const resetLink = `${process.env.NEXTAUTH_URL}/set-password?token=${token}`;
 
-  console.log("✅ Sending to:", user.email);
-console.log("🔗 Reset link:", resetLink);
+console.log("✅ Created user:", user.email);
+console.log("✅ Created token:", token);
+console.log("✅ Sent reset link:", resetLink);
 
   // send email
   await sendEmail({

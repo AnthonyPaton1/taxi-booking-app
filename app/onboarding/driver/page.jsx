@@ -26,14 +26,14 @@ export default function DriverOnboardingPage() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="p-6 space-y-4 max-w-xl mx-auto">
+    <div onSubmit={handleSubmit} className="p-6 space-y-4 max-w-xl mx-auto">
       <h1 className="text-2xl font-bold text-blue-700">Driver Onboarding</h1>
       
       {/* add your actual onboarding form fields here */}
       <p>This is your one-time onboarding form. Please confirm your details.</p>
-      <DriverOnboardingForm />
+      <DriverOnboardingForm  />
 
       
-    </form>
+    </div>
   );
 }

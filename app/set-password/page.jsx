@@ -45,7 +45,7 @@ export default function SetPasswordPage() {
       setError(data.message || "Something went wrong.");
     } else {
       setMessage("Password set successfully. Redirecting to login…");
-      setTimeout(() => router.push("/auth/redirect"), 1500);
+      setTimeout(() => router.push("/login"), 1500);
     }
   }
 
