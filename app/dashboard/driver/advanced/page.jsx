@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic"; // ensure fresh data on each load
 
 import { getAvailableAdvancedBookings } from "@/app/actions/driver/getAvailableAdvancedBookings"; 
-import JourneyCard from "@/components/shared/JourneyCard";
+import JourneyCard from "@/components/shared/journeyCard";
 
 
 export default async function DriverAdvancedPage() {
