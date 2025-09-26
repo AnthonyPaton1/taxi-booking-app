@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { approveUser } from "@/app/actions/approveUser";
+import { approveUser } from "@/app/actions/auth/approveUser";
 
 export default function ApproveUserDevPage() {
   const [id, setId] = useState("");

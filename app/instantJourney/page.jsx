@@ -1,4 +1,4 @@
-import { getInstantBookings} from "@/app/actions/bookings"
+import { getInstantBookings} from "@/app/actions/bookings/instantBookings"
 import JourneyCard from "@/components/shared/journeyCard";
 
 export default async function InstantJourneyPage() {

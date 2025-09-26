@@ -75,13 +75,4 @@ export const config = {
   ],
 };
 
-// export const config = {
-//   matcher: [
-//     "/dashboard/:path*", "/onboarding/driver",
-//     "/dashboard/admin/:path*",
-//     "/dashboard/driver/:path*",
-//     "/dashboard/manager/:path*",
-//     "/dashboard/coordinator/:path*",
-//     "/dashboard/public/:path*",
-//   ],
-// };
+

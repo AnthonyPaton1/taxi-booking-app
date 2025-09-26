@@ -1,5 +1,5 @@
 // app/api/test-approve/route.js
-import { approveUser } from "@/app/actions/approveUser";
+import { approveUser } from "@/app/actions/auth/approveUser";
 
 export async function GET() {
   const testId = "cmfx20fz80003y5tectvppqix"; // Replace with an actual ID from your DB

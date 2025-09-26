@@ -101,7 +101,7 @@ const faqItems = [
     id: "driver-2",
     question: "How do I sign up?",
     answer:
-      "As long as you are a verified WAV driver, and licensed in your local council, you can sign up to the platform.",
+      "As long as you are a verified WAV driver, and licenced in your local council, you can sign up to the platform.",
   },
   {
     id: "driver-3",

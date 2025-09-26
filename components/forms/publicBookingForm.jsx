@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { createPublicBooking } from "@/app/actions/createPublicBooking";
+import { createPublicBooking } from "@/app/actions/bookings/createPublicBooking";
 import RideAccessibilityOptions from "./RideAccessibilityOptions";
 import PhysicalRequirementsCheckboxes from "./PhysicalRequirementsCheckBoxes";
 import StatusMessage from "../shared/statusMessage";

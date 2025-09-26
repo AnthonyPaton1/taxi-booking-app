@@ -107,7 +107,7 @@ model User {
   manager   User?   @relation("ManagerDrivers", fields: [managerId], references: [id])
   drivers   User[]  @relation("ManagerDrivers")
 
-driver Driver? 
+driver Driver? @relation("UserDriver")
   // Business link
   businessId String?
   business   Business? @relation("UserBusiness", fields: [businessId], references: [id])
@@ -151,8 +151,8 @@ driver Driver?
 model Driver {
   id             String   @id @default(cuid())
   userId         String   @unique
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  name String
+user   User   @relation("UserDriver", fields: [userId], references: [id], onDelete: Cascade) 
    // Compliance
   ukDrivingLicence         Boolean @default(false)
   localAuthorityRegistered Boolean @default(false)
@@ -167,6 +167,7 @@ model Driver {
   
   vehicleType    String   // e.g. Car, WAV, Minibus
   vehicleReg     String
+  licenceNumber String
   localPostcode  String   // base area
   radiusMiles    Int      // pickup radius
   phone          String

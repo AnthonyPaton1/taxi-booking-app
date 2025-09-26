@@ -1,13 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { completeDriverOnboarding } from "@/app/actions/driverOnboarding";
+import { completeDriverOnboarding } from "@/app/actions/driver/driverOnboarding";
 
-// Default form state
+// Required fields
+const requiredFields = [
+  "name",
+  "vehicleType",
+  "vehicleReg",
+  "licenceNumber",
+  "localPostcode",
+  "radiusMiles",
+  "phone",
+];
+
+const requiredBooleans = [
+  "ukDrivingLicence",
+  "localAuthorityRegistered",
+  "dbsChecked",
+  "publicLiabilityInsurance",
+  "fullyCompInsurance",
+  "healthCheckPassed",
+  "englishProficiency",
+];
+
 const defaultFormData = {
   name: "",
   vehicleType: "",
+  vehicleReg: "",
+  licenceNumber: "",
   localPostcode: "",
   radiusMiles: 5,
   phone: "",
@@ -21,8 +43,8 @@ const defaultFormData = {
   healthCheckPassed: false,
   englishProficiency: false,
 
-  //accessibility options
-   wheelchairAssistance: false,
+  // Accessibility options
+  wheelchairAssistance: false,
   seatTransferHelp: false,
   mobilityAidStorage: false,
   quietRide: false,
@@ -40,14 +62,33 @@ const defaultFormData = {
   amenities: [],
 };
 
-const DriverOnboardingForm = ({ onSubmit }) => {
+const amenityOptions = [
+  "High roof",
+  "Side step",
+  "Hydraulic lift",
+  "Large boot",
+  "Double wheelchair access",
+  "Oxygen tank space",
+  "Electric scooter storage",
+];
+
+export default function DriverOnboardingForm() {
   const [formData, setFormData] = useState(defaultFormData);
+  const [errors, setErrors] = useState({});
+  const [firstErrorKey, setFirstErrorKey] = useState(null);
+
+  useEffect(() => {
+    if (firstErrorKey) {
+      const el = document.getElementById(firstErrorKey);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [firstErrorKey]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: type === "checkbox" ? checked : type === "number" ? Number(value) : value,
     }));
   };
 
@@ -62,27 +103,41 @@ const DriverOnboardingForm = ({ onSubmit }) => {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  try {
-    await completeDriverOnboarding(formData);
-    alert("Onboarding completed!");
-    // Redirect to driver dashboard
-    window.location.href = "/dashboard/driver";
-  } catch (err) {
-    console.error(err);
-    alert("Something went wrong");
-  }
-};
+    e.preventDefault();
 
-  const amenityOptions = [
-    "High roof",
-    "Side step",
-    "Hydraulic lift",
-    "Large boot",
-    "Double wheelchair access",
-    "Oxygen tank space",
-    "Electric scooter storage",
-  ];
+    const newErrors = {};
+
+    requiredFields.forEach((field) => {
+      if (!formData[field] || formData[field].toString().trim() === "") {
+        newErrors[field] = "This field is required.";
+      }
+    });
+
+    requiredBooleans.forEach((field) => {
+      if (!formData[field]) {
+        newErrors[field] = "This checkbox must be checked.";
+      }
+    });
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      setFirstErrorKey(Object.keys(newErrors)[0]);
+      return;
+    }
+
+    // Reset errors and submit
+    setErrors({});
+    setFirstErrorKey(null);
+
+    try {
+      await completeDriverOnboarding(formData);
+      alert("Onboarding completed!");
+      window.location.href = "/dashboard/driver";
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong");
+    }
+  };
 
 
 
@@ -118,7 +173,8 @@ const DriverOnboardingForm = ({ onSubmit }) => {
             value={formData.name}
             onChange={handleChange}
             className="w-full mt-1 p-2 border rounded focus:ring focus:ring-blue-500"
-          />
+            />
+            {errors.name && <p className="text-red-600 text-sm mt-1">{errors.name}</p>}
         </div>
 
         <div>
@@ -139,6 +195,42 @@ const DriverOnboardingForm = ({ onSubmit }) => {
             <option value="WAV">Wheelchair Accessible Vehicle</option>
             <option value="MINIBUS">Minibus</option>
           </select>
+                      {errors.vehicleType && <p className="text-red-600 text-sm mt-1">{errors.vehicleType}</p>}
+
+        </div>
+        <div>
+          <label htmlFor="vehicleReg" className="block font-medium text-gray-700">
+            Vehicle Reg Number
+          </label>
+          <input
+            type="text"
+            id="vehicleReg"
+            name="vehicleReg"
+            required
+            aria-required="true"
+            value={formData.vehicleReg}
+            onChange={handleChange}
+            className="w-full mt-1 p-2 border rounded focus:ring focus:ring-blue-500"
+          />
+          {errors.vehicleReg && <p className="text-red-600 text-sm mt-1">{errors.vehicleReg}</p>}
+
+        </div>
+        <div>
+          <label htmlFor="licenceNumber" className="block font-medium text-gray-700">
+            Registered Licence Number
+          </label>
+          <input
+            type="text"
+            id="licenceNumber"
+            name="licenceNumber"
+            required
+            aria-required="true"
+            value={formData.licenceNumber}
+            onChange={handleChange}
+            className="w-full mt-1 p-2 border rounded focus:ring focus:ring-blue-500"
+          />
+          {errors.licenceNumber && <p className="text-red-600 text-sm mt-1">{errors.licenceNumber}</p>}
+
         </div>
 
         <div>
@@ -156,6 +248,7 @@ const DriverOnboardingForm = ({ onSubmit }) => {
             className="w-full mt-1 p-2 border rounded focus:ring focus:ring-blue-500"
             placeholder="e.g. M1 1AA"
           />
+          {errors.localPostcode && <p className="text-red-600 text-sm mt-1">{errors.localPostcode}</p>}
         </div>
 
         <div>
@@ -172,6 +265,7 @@ const DriverOnboardingForm = ({ onSubmit }) => {
             onChange={handleChange}
             className="w-full mt-1 p-2 border rounded focus:ring focus:ring-blue-500"
           />
+          {errors.radiusMiles && <p className="text-red-600 text-sm mt-1">{errors.radiusMiles}</p>}
         </div>
 
         <div>
@@ -189,6 +283,7 @@ const DriverOnboardingForm = ({ onSubmit }) => {
             className="w-full mt-1 p-2 border rounded focus:ring focus:ring-blue-500"
             placeholder="e.g. 07123 456789"
           />
+          {errors.phone && <p className="text-red-600 text-sm mt-1">{errors.phone}</p>}
         </div>
       </fieldset>
 
@@ -201,30 +296,32 @@ const DriverOnboardingForm = ({ onSubmit }) => {
           Compliance Requirements
         </legend>
 
-        {[
-          { name: "ukDrivingLicence", label: "I hold a full and clean UK driving licence" },
-          { name: "localAuthorityRegistered", label: "Registered with local authority" },
-          { name: "dbsChecked", label: "I hold a valid enhanced DBS certificate and am registered with the DBS Update Service" },
-          { name: "publicLiabilityInsurance", label: "Public liability insurance" },
-          { name: "fullyCompInsurance", label: "Fully comprehensive insurance" },
-          { name: "healthCheckPassed", label: "Health check passed" },
-          { name: "englishProficiency", label: "I can communicate effectively in English" },
-        ].map((field) => (
-          <div key={field.name} className="flex items-center">
-            <input
-              type="checkbox"
-              id={field.name}
-              name={field.name}
-              checked={formData[field.name]}
-              onChange={handleChange}
-              className="mr-2"
-            />
-            <label htmlFor={field.name} className="text-gray-700">
-              {field.label}
-            </label>
-          </div>
-
-        ))}
+       {[
+  { name: "ukDrivingLicence", label: "I hold a full and clean UK driving licence" },
+  { name: "localAuthorityRegistered", label: "Registered with local authority" },
+  { name: "dbsChecked", label: "I hold a valid enhanced DBS certificate and am registered with the DBS Update Service" },
+  { name: "publicLiabilityInsurance", label: "Public liability insurance" },
+  { name: "fullyCompInsurance", label: "Fully comprehensive insurance" },
+  { name: "healthCheckPassed", label: "Health check passed" },
+  { name: "englishProficiency", label: "I can communicate effectively in English" },
+].map((field) => (
+  <div key={field.name} className="flex flex-col space-y-1">
+    <label className="flex items-center space-x-2">
+      <input
+        type="checkbox"
+        id={field.name}
+        name={field.name}
+        checked={formData[field.name]}
+        onChange={handleChange}
+        className="mr-2"
+      />
+      <span className="text-gray-700">{field.label}</span>
+    </label>
+    {errors[field.name] && (
+      <p className="text-red-600 text-sm">{errors[field.name]}</p>
+    )}
+  </div>
+))}
       </fieldset>
  <h4 className="text-md font-semibold text-blue-800 mb-6 bg-blue-50 p-3 rounded">
   Please answer the questions below accurately.  
@@ -473,4 +570,3 @@ const DriverOnboardingForm = ({ onSubmit }) => {
   );
 };
 
-export default DriverOnboardingForm;

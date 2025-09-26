@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import formFields from "./formFields";
 import { Button } from "@/components/ui/button";
-import { sendContactEmail } from "@/app/actions/sendContactEmail";
+import { sendContactEmail } from "@/app/actions/messaging/sendContactEmail";
 
 const WaitlistForm = () => {
   const [formData, setFormData] = useState(
@@ -32,7 +32,7 @@ const WaitlistForm = () => {
 
     const res = await sendContactEmail(formData);
     if (res.success) {
-      setStatus("Message sent successfully!");
+      setStatus("Message sent successfully! Please check your Email.");
       setFormData(
         formFields.reduce((acc, field) => {
           acc[field.id] = "";

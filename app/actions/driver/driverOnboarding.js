@@ -26,7 +26,7 @@ export async function completeDriverOnboarding(formData) {
         where: { userId },
         data: {
           name: formData.name,
-          licenseNumber: formData.licenseNumber,
+          licenceNumber: formData.licenceNumber,
           vehicleType: formData.vehicleType,
           vehicleReg: formData.vehicleReg,
           localPostcode: formData.localPostcode,
@@ -52,7 +52,7 @@ export async function completeDriverOnboarding(formData) {
         data: {
           userId,
           name: formData.name,
-          licenseNumber: formData.licenseNumber,
+          licenceNumber: formData.licenceNumber,
           vehicleType: formData.vehicleType,
           vehicleReg: formData.vehicleReg,
           localPostcode: formData.localPostcode,

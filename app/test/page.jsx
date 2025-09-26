@@ -1,9 +1,9 @@
 // app/test/page.jsx
-import { approveUser } from "@/app/actions/approveUser";
+import { approveUser } from "@/app/actions/auth/approveUser";
 
 export default async function TestPage() {
   // Replace with the actual ID from RegisterInterest
-  const id = "cmfxvv58q0007y57m9sf0lay0";
+  const id = "cmfz9gv9q0000y5uuvg5l4pbh";
 
   try {
     const user = await approveUser(id);
