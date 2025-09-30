@@ -4,13 +4,11 @@ import React from "react";
 import Link from "next/link";
 
 const steps = [
-  { name: "Driver Dashboard", href: "/dashboard/driver" },
-  { name: "Daily Job Sheet", href: "/dashboard/driver/daily-job-sheet" },
-  { name: "Advanced Job Sheet", href: "/dashboard/driver/advanced" },
-  { name: "Active Bids", href: "/dashboard/driver/active-bids" },
-  { name: "Messages", href: "/dashboard/driver/messages" }, 
-  { name: "Ratings & Feedback", href: "/dashboard/driver/feedback" }, 
-  { name: "Edit details", href: "/dashboard/driver/edit-details" },
+  { name: "Main Dashboard", href: "/dashboard/super-admin/mainPage" },
+  { name: "Manage Drivers", href: "/dashboard/super-admin/manage-drivers" },
+  { name: "Manage Businesses", href: "/dashboard/super-admin/manage-businesses" },
+  { name: "Approve Users", href: "/dashboard/super-admin/approve-user" },
+  { name: "Revenue", href: "/dashboard/super-admin/revenue" },
 ];
 
 const CheckoutSteps = ({ current = 0 }) => {

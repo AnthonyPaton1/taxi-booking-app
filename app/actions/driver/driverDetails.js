@@ -44,6 +44,23 @@ export async function completeDriverOnboarding(formData) {
 
           // Vehicle amenities
           amenities: formData.amenities || [],
+          // Accessibility & Support
+wheelchairAccess: formData.wheelchairAccess || false,
+seatTransferHelp: formData.seatTransferHelp || false,
+mobilityAidStorage: formData.mobilityAidStorage || false,
+quietEnvironment: formData.quietEnvironment || false,
+noScents: formData.noScents || false,
+specificMusic: formData.specificMusic || false,
+visualSchedule: formData.visualSchedule || false,
+signLanguageRequired: formData.signLanguageRequired || false,
+textOnlyCommunication: formData.textOnlyCommunication || false,
+translationSupport: formData.translationSupport || false,
+firstAidTrained: formData.firstAidTrained || false,
+medicationOnBoard: formData.medicationOnBoard || false,
+conditionAwareness: formData.conditionAwareness || false,
+
+// Additional
+femaleDriverOnly: formData.femaleDriverOnly || false,
         },
       });
     } else {
@@ -70,6 +87,24 @@ export async function completeDriverOnboarding(formData) {
 
           // Vehicle amenities
           amenities: formData.amenities || [],
+
+          // Accessibility & Support
+wheelchairAccess: formData.wheelchairAccess || false,
+seatTransferHelp: formData.seatTransferHelp || false,
+mobilityAidStorage: formData.mobilityAidStorage || false,
+quietEnvironment: formData.quietEnvironment || false,
+noScents: formData.noScents || false,
+specificMusic: formData.specificMusic || false,
+visualSchedule: formData.visualSchedule || false,
+signLanguageRequired: formData.signLanguageRequired || false,
+textOnlyCommunication: formData.textOnlyCommunication || false,
+translationSupport: formData.translationSupport || false,
+firstAidTrained: formData.firstAidTrained || false,
+medicationOnBoard: formData.medicationOnBoard || false,
+conditionAwareness: formData.conditionAwareness || false,
+
+// Additional
+femaleDriverOnly: formData.femaleDriverOnly || false,
         },
       });
     }

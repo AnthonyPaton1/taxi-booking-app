@@ -1,10 +1,10 @@
+// components/forms/driver/DriverEditForm.jsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { completeDriverOnboarding } from "@/app/actions/driver/driverOnboarding";
+import { completeDriverOnboarding } from "@/app/actions/driver/driverDetails";
 
-// Required fields
 const requiredFields = [
   "name",
   "vehicleType",
@@ -25,43 +25,6 @@ const requiredBooleans = [
   "englishProficiency",
 ];
 
-const defaultFormData = {
-  name: "",
-  vehicleType: "",
-  vehicleReg: "",
-  licenceNumber: "",
-  localPostcode: "",
-  radiusMiles: 5,
-  phone: "",
-
-  // Compliance
-  ukDrivingLicence: false,
-  localAuthorityRegistered: false,
-  dbsChecked: false,
-  publicLiabilityInsurance: false,
-  fullyCompInsurance: false,
-  healthCheckPassed: false,
-  englishProficiency: false,
-
-  // Accessibility options
-  wheelchairAssistance: false,
-  seatTransferHelp: false,
-  mobilityAidStorage: false,
-  quietRide: false,
-  noScents: false,
-  specificMusic: false,
-  visualSchedule: false,
-  signLanguage: false,
-  textOnlyComm: false,
-  translationSupport: false,
-  firstAidTrained: false,
-  medicationSupport: false,
-  conditionAwareness: false,
-
-  // Vehicle amenities
-  amenities: [],
-};
-
 const amenityOptions = [
   "High roof",
   "Side step",
@@ -72,10 +35,11 @@ const amenityOptions = [
   "Electric scooter storage",
 ];
 
-export default function DriverOnboardingForm() {
-  const [formData, setFormData] = useState(defaultFormData);
+export default function DriverEditForm({ formData: initialData }) {
+  const [formData, setFormData] = useState(initialData || {});
   const [errors, setErrors] = useState({});
   const [firstErrorKey, setFirstErrorKey] = useState(null);
+  
 
   useEffect(() => {
     if (firstErrorKey) {
@@ -101,6 +65,7 @@ export default function DriverOnboardingForm() {
         : prev.amenities.filter((a) => a !== value),
     }));
   };
+ 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -125,13 +90,12 @@ export default function DriverOnboardingForm() {
       return;
     }
 
-    // Reset errors and submit
     setErrors({});
     setFirstErrorKey(null);
 
     try {
       await completeDriverOnboarding(formData);
-      alert("Onboarding completed!");
+      alert("Driver details updated!");
       window.location.href = "/dashboard/driver";
     } catch (err) {
       console.error(err);
@@ -139,195 +103,80 @@ export default function DriverOnboardingForm() {
     }
   };
 
-
-
   return (
     <form
       onSubmit={handleSubmit}
-      className={`bg-white p-6 rounded-lg shadow-md space-y-6 max-w-3xl mx-auto mt-8 `}
-      aria-labelledby="driver-onboarding-form"
+      className="bg-white p-6 rounded-lg shadow-md space-y-6 max-w-3xl mx-auto mt-8"
     >
-      <h2
-        id="driver-onboarding-form"
-        className="text-xl font-bold text-blue-800"
-      >
-        Driver Onboarding
-      </h2>
+      <h2 className="text-xl font-bold text-blue-800">Update and Edit your Personal or Vehicle Details </h2>
 
-      {/* Personal details */}
+      {/* Personal Information */}
       <fieldset className="space-y-4">
         <legend className="text-lg font-semibold text-gray-700">
           Personal Information
         </legend>
 
-        <div>
-          <label htmlFor="name" className="block font-medium text-gray-700">
-            Full Name
-          </label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            required
-            aria-required="true"
-            value={formData.name}
-            onChange={handleChange}
-            className="w-full mt-1 p-2 border rounded focus:ring focus:ring-blue-500"
-            />
-            {errors.name && <p className="text-red-600 text-sm mt-1">{errors.name}</p>}
-        </div>
-
-        <div>
-          <label htmlFor="vehicleType" className="block font-medium text-gray-700">
-            Vehicle Type
-          </label>
-          <select
-            id="vehicleType"
-            name="vehicleType"
-            required
-            aria-required="true"
-            value={formData.vehicleType}
-            onChange={handleChange}
-            className="w-full mt-1 p-2 border rounded focus:ring focus:ring-blue-500"
-          >
-            <option value="">Select vehicle type</option>
-            <option value="CAR">Car</option>
-            <option value="WAV">Wheelchair Accessible Vehicle</option>
-            <option value="MINIBUS">Minibus</option>
-          </select>
-                      {errors.vehicleType && <p className="text-red-600 text-sm mt-1">{errors.vehicleType}</p>}
-
-        </div>
-        <div>
-          <label htmlFor="vehicleReg" className="block font-medium text-gray-700">
-            Vehicle Reg Number
-          </label>
-          <input
-            type="text"
-            id="vehicleReg"
-            name="vehicleReg"
-            required
-            aria-required="true"
-            value={formData.vehicleReg}
-            onChange={handleChange}
-            className="w-full mt-1 p-2 border rounded focus:ring focus:ring-blue-500"
-          />
-          {errors.vehicleReg && <p className="text-red-600 text-sm mt-1">{errors.vehicleReg}</p>}
-
-        </div>
-        <div>
-          <label htmlFor="licenceNumber" className="block font-medium text-gray-700">
-            Registered Licence Number
-          </label>
-          <input
-            type="text"
-            id="licenceNumber"
-            name="licenceNumber"
-            required
-            aria-required="true"
-            value={formData.licenceNumber}
-            onChange={handleChange}
-            className="w-full mt-1 p-2 border rounded focus:ring focus:ring-blue-500"
-          />
-          {errors.licenceNumber && <p className="text-red-600 text-sm mt-1">{errors.licenceNumber}</p>}
-
-        </div>
-
-        <div>
-          <label htmlFor="localPostcode" className="block font-medium text-gray-700">
-            Base Postcode
-          </label>
-          <input
-            type="text"
-            id="localPostcode"
-            name="localPostcode"
-            required
-            aria-required="true"
-            value={formData.localPostcode}
-            onChange={handleChange}
-            className="w-full mt-1 p-2 border rounded focus:ring focus:ring-blue-500"
-            placeholder="e.g. M1 1AA"
-          />
-          {errors.localPostcode && <p className="text-red-600 text-sm mt-1">{errors.localPostcode}</p>}
-        </div>
-
-        <div>
-          <label htmlFor="radiusMiles" className="block font-medium text-gray-700">
-            Operating Radius (miles)
-          </label>
-          <input
-            type="number"
-            id="radiusMiles"
-            name="radiusMiles"
-            min={1}
-            max={100}
-            value={formData.radiusMiles}
-            onChange={handleChange}
-            className="w-full mt-1 p-2 border rounded focus:ring focus:ring-blue-500"
-          />
-          {errors.radiusMiles && <p className="text-red-600 text-sm mt-1">{errors.radiusMiles}</p>}
-        </div>
-
-        <div>
-          <label htmlFor="phone" className="block font-medium text-gray-700">
-            Contact Phone
-          </label>
-          <input
-            type="tel"
-            id="phone"
-            name="phone"
-            required
-            aria-required="true"
-            value={formData.phone}
-            onChange={handleChange}
-            className="w-full mt-1 p-2 border rounded focus:ring focus:ring-blue-500"
-            placeholder="e.g. 07123 456789"
-          />
-          {errors.phone && <p className="text-red-600 text-sm mt-1">{errors.phone}</p>}
-        </div>
+        <TextInput id="name" label="Full Name" value={formData.name} onChange={handleChange} error={errors.name} />
+        <SelectInput
+          id="vehicleType"
+          label="Vehicle Type"
+          value={formData.vehicleType}
+          onChange={handleChange}
+          options={[
+            { label: "Select vehicle type", value: "" },
+            { label: "Car", value: "CAR" },
+            { label: "Wheelchair Accessible Vehicle", value: "WAV" },
+            { label: "Minibus", value: "MINIBUS" },
+          ]}
+          error={errors.vehicleType}
+        />
+        <TextInput id="vehicleReg" label="Vehicle Reg Number" value={formData.vehicleReg} onChange={handleChange} error={errors.vehicleReg} />
+        <TextInput id="licenceNumber" label="Licence Number" value={formData.licenceNumber} onChange={handleChange} error={errors.licenceNumber} />
+        <TextInput id="localPostcode" label="Base Postcode" value={formData.localPostcode} onChange={handleChange} error={errors.localPostcode} />
+        <NumberInput id="radiusMiles" label="Operating Radius (miles)" value={formData.radiusMiles} onChange={handleChange} error={errors.radiusMiles} />
+        <TextInput id="phone" label="Contact Phone" value={formData.phone} onChange={handleChange} error={errors.phone} />
       </fieldset>
 
       {/* Compliance */}
-      <fieldset
-        className="border border-gray-200 p-4 rounded space-y-2"
-        aria-labelledby="compliance-section"
-      >
-        <legend id="compliance-section" className="font-semibold text-gray-700">
-          Compliance Requirements
-        </legend>
-
-       {[
-  { name: "ukDrivingLicence", label: "I hold a full and clean UK driving licence" },
-  { name: "localAuthorityRegistered", label: "Registered with local authority" },
-  { name: "dbsChecked", label: "I hold a valid enhanced DBS certificate and am registered with the DBS Update Service" },
-  { name: "publicLiabilityInsurance", label: "Public liability insurance" },
-  { name: "fullyCompInsurance", label: "Fully comprehensive insurance" },
-  { name: "healthCheckPassed", label: "Health check passed" },
-  { name: "englishProficiency", label: "I can communicate effectively in English" },
-].map((field) => (
-  <div key={field.name} className="flex flex-col space-y-1">
-    <label className="flex items-center space-x-2">
-      <input
-        type="checkbox"
-        id={field.name}
-        name={field.name}
-        checked={formData[field.name]}
-        onChange={handleChange}
-        className="mr-2"
-      />
-      <span className="text-gray-700">{field.label}</span>
-    </label>
-    {errors[field.name] && (
-      <p className="text-red-600 text-sm">{errors[field.name]}</p>
-    )}
-  </div>
-))}
+      <fieldset className="border p-4 rounded space-y-2">
+        <legend className="font-semibold text-gray-700">Compliance Requirements</legend>
+        {requiredBooleans.map((field) => (
+          <CheckboxInput
+            key={field}
+            id={field}
+            label={prettyLabel(field)}
+            checked={formData[field] || false}
+            onChange={handleChange}
+            error={errors[field]}
+          />
+        ))}
       </fieldset>
- <h4 className="text-md font-semibold text-blue-800 mb-6 bg-blue-50 p-3 rounded">
-  Please answer the questions below accurately.  
-  This ensures the right journeys are matched to your vehicle’s capabilities  
-  and your personal compliance requirements.
+
+      {/* Vehicle Amenities */}
+      {/* <fieldset className="border p-4 rounded space-y-2">
+        <legend className="font-semibold text-gray-700">Vehicle Amenities</legend>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {amenityOptions.map((a) => (
+            <CheckboxInput
+              key={a}
+              id={a}
+              label={a}
+              checked={formData.amenities?.includes(a)}
+              onChange={handleAmenityChange}
+              isCustomValue={true}
+            />
+          ))}
+        </div>
+      </fieldset> */}
+
+      {/* Accessibility Options */}
+ <div className='mb-6'>
+
+<h4 className="text-md font-semibold text-blue-800 mb-6 bg-blue-50 p-3 rounded">
+Please answer the questions below accurately.  
+  This ensures the right journeys are matched to your vehicle’s capabilities
 </h4>
+</div>
 
       {/* Amenities */}
       <fieldset
@@ -346,7 +195,7 @@ export default function DriverOnboardingForm() {
                 type="checkbox"
                 id={a}
                 value={a}
-                checked={formData.amenities.includes(a)}
+                checked={formData.amenities?.includes(a) || false}
                 onChange={handleAmenityChange}
                 className="mr-2"
               />
@@ -357,7 +206,8 @@ export default function DriverOnboardingForm() {
           ))}
         </div>
       </fieldset>
-      <fieldset
+  
+  <fieldset
   className="space-y-4 mt-6"
   aria-labelledby="driver-accessibility-label"
 >
@@ -493,12 +343,14 @@ export default function DriverOnboardingForm() {
       <label className="flex items-center">
         <input
           type="checkbox"
-          name="textOnlyComm"
-          checked={formData.textOnlyComm || false}
+          name="textOnlyCommunication"
+          checked={formData.textOnlyCommunication
+             || false}
           onChange={handleChange}
           className="mr-2"
         />
         Text-only communication
+        
       </label>
       <label className="flex items-center">
         <input
@@ -557,16 +409,102 @@ export default function DriverOnboardingForm() {
       </label>
     </div>
   </fieldset>
+  <fieldset className="border border-gray-200 p-4 rounded" aria-labelledby="female-only-legend">
+  <legend id="female-only-legend" className="text-md font-semibold text-gray-700 mb-2">
+    Additional Preferences
+  </legend>
+  <label className="flex items-center">
+    <input
+      type="checkbox"
+      name="femaleDriverOnly"
+      checked={formData.femaleDriverOnly || false}
+      onChange={handleChange}
+      className="mr-2"
+    />
+    I prefer support from female drivers only
+  </label>
+</fieldset>
 </fieldset>
 
-      <Button
-        type="submit"
-        className="w-full bg-blue-700 text-white"
-        aria-label="Submit driver onboarding form"
-      >
-        Submit Application
+      <Button type="submit" className="w-full bg-blue-700 text-white">
+        Save Changes
       </Button>
     </form>
   );
-};
+}
 
+// Reusable input components
+const TextInput = ({ id, label, value, onChange, error }) => (
+  <div>
+    <label htmlFor={id} className="block font-medium text-gray-700">
+      {label}
+    </label>
+    <input
+      type="text"
+      id={id}
+      name={id}
+      value={value}
+      onChange={onChange}
+      className="w-full mt-1 p-2 border rounded focus:ring focus:ring-blue-500"
+    />
+    {error && <p className="text-red-600 text-sm">{error}</p>}
+  </div>
+);
+
+const NumberInput = ({ id, label, value, onChange, error }) => (
+  <div>
+    <label htmlFor={id} className="block font-medium text-gray-700">
+      {label}
+    </label>
+    <input
+      type="number"
+      id={id}
+      name={id}
+      value={value}
+      onChange={onChange}
+      className="w-full mt-1 p-2 border rounded focus:ring focus:ring-blue-500"
+    />
+    {error && <p className="text-red-600 text-sm">{error}</p>}
+  </div>
+);
+
+const SelectInput = ({ id, label, value, onChange, options, error }) => (
+  <div>
+    <label htmlFor={id} className="block font-medium text-gray-700">
+      {label}
+    </label>
+    <select
+      id={id}
+      name={id}
+      value={value}
+      onChange={onChange}
+      className="w-full mt-1 p-2 border rounded focus:ring focus:ring-blue-500"
+    >
+      {options.map(({ value, label }) => (
+        <option key={value} value={value}>{label}</option>
+      ))}
+    </select>
+    {error && <p className="text-red-600 text-sm">{error}</p>}
+  </div>
+);
+
+const CheckboxInput = ({ id, label, checked, onChange, error, isCustomValue }) => (
+  <div className="flex items-center">
+    <input
+      type="checkbox"
+      id={id}
+      name={isCustomValue ? undefined : id}
+      value={id}
+      checked={checked}
+      onChange={onChange}
+      className="mr-2"
+    />
+    <label htmlFor={id} className="text-gray-700">{label}</label>
+    {error && <p className="text-red-600 text-sm">{error}</p>}
+  </div>
+);
+
+const prettyLabel = (field) =>
+  field
+    .replace(/([A-Z])/g, " $1")
+    .replace(/^./, (s) => s.toUpperCase());

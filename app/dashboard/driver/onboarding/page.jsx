@@ -1,5 +1,5 @@
 import React from 'react'
-import DriverOnboardingForm from '@/components/forms/DriverOnboardingForm'
+import DriverOnboardingForm from '@/components/forms/driver/DriverOnboardingForm'
 
 const DriverOnboarding = () => {
   return (

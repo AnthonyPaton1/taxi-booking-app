@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { createPublicBooking } from "@/app/actions/bookings/createPublicBooking";
 import RideAccessibilityOptions from "./RideAccessibilityOptions";
-import PhysicalRequirementsCheckboxes from "./PhysicalRequirementsCheckBoxes";
+import PhysicalRequirementsCheckboxes from "./driver/PhysicalRequirementsCheckBoxes";
 import StatusMessage from "../shared/statusMessage";
 
 

@@ -162,7 +162,38 @@ user   User   @relation("UserDriver", fields: [userId], references: [id], onDele
   healthCheckPassed        Boolean @default(false)
   englishProficiency       Boolean @default(false)
 
- //compliance
+  // Accessibility
+  wheelchairAccess       Boolean @default(false) 
+  doubleWheelchairAccess Boolean @default(false) 
+  highRoof               Boolean @default(false)
+  carerPresent           Boolean @default(false)
+  passengerCount         Int     @default(0)
+  wheelchairUsers        Int     @default(0)
+  nonWAVvehicle          Boolean @default(false)
+  femaleDriverOnly       Boolean @default(false)
+  quietEnvironment       Boolean @default(false)
+  assistanceRequired     Boolean @default(false)
+  noConversation         Boolean @default(false)
+  specificMusic          Boolean @default(false)
+  electricScooterStorage Boolean @default(false)
+  visualSchedule         Boolean @default(false)
+  assistanceAnimal       Boolean @default(false)
+  familiarDriverOnly     Boolean @default(false)
+  ageOfPassenger         Int?
+  escortRequired         Boolean @default(false)
+  preferredLanguage      String?
+  signLanguageRequired   Boolean @default(false)
+  textOnlyCommunication  Boolean @default(false)
+  medicalConditions      String?
+  medicationOnBoard     Boolean @default(false)
+  additionalNeeds        String?
+ 
+seatTransferHelp       Boolean @default(false)
+mobilityAidStorage     Boolean @default(false)
+noScents               Boolean @default(false)
+translationSupport     Boolean @default(false)
+firstAidTrained        Boolean @default(false)
+conditionAwareness     Boolean @default(false)
 
   
   vehicleType    String   // e.g. Car, WAV, Minibus

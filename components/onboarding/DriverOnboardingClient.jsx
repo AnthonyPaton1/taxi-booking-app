@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { completeOnboarding } from "@/app/actions/completeOnboarding";
-import DriverOnboardingForm from "@/components/forms/DriverOnboardingForm";
+import DriverOnboardingForm from "@/components/forms/driver/DriverOnboardingForm";
 
 export default function DriverOnboardingClient() {
   const searchParams = useSearchParams();

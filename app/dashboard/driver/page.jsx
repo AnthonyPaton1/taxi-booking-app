@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/db";
 import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
-import DriverDashboardClient from "@/components/dashboard/DriverDashboardClient";
+import DriverDashboardClient from "@/components/dashboard/driver/DriverDashboardClient";
 
 export default async function DriverDashboardPage() {
   const session = await getServerSession(authOptions);
