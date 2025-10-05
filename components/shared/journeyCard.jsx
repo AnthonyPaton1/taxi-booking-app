@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import BidCard from "@/components/shared/bidCard"; 
 
-// Shared formatter (consistent across SSR & client)
 const formatter = new Intl.DateTimeFormat("en-GB", {
   day: "2-digit",
   month: "short",
@@ -12,6 +13,17 @@ const formatter = new Intl.DateTimeFormat("en-GB", {
 });
 
 export default function JourneyCard({ booking }) {
+  const [showBidForm, setShowBidForm] = useState(false);
+
+  const handleBidSubmit = async (formData) => {
+    // 🔧 You'll handle the actual bid submission here
+    console.log("🟦 Bid Submitted:", formData, "for booking:", booking.id);
+
+    // TODO: Call server action to save bid in DB
+
+    setShowBidForm(false);
+  };
+
   return (
     <div
       className="bg-white shadow rounded-lg p-4 flex flex-col justify-between"
@@ -48,19 +60,28 @@ export default function JourneyCard({ booking }) {
         )}
       </div>
 
-      <div className="mt-4 flex gap-2">
-        {/* For instant bookings */}
-        {booking.status === "PENDING" && (
+      <div className="mt-4 flex flex-col gap-2">
+        {/* Instant Booking */}
+        {booking.status === "PENDING" && booking.type === "INSTANT" && (
           <Button className="bg-green-600 hover:bg-green-700 text-white">
             Accept
           </Button>
         )}
 
-        {/* For advanced bookings (bidding) */}
+        {/* Advanced Booking */}
         {booking.type === "ADVANCED" && (
-          <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-            Place Bid
-          </Button>
+          <>
+            {!showBidForm ? (
+              <Button
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={() => setShowBidForm(true)}
+              >
+                Place Bid
+              </Button>
+            ) : (
+              <BidCard onSubmit={handleBidSubmit} />
+            )}
+          </>
         )}
       </div>
     </div>

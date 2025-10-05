@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import PublicBookingForm from "@/components/forms/publicBookingForm";
+import PublicBookingForm from "@/components/forms/journeyBookingForm";
 
 const mockJourneys = [
   {

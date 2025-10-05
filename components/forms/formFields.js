@@ -24,12 +24,12 @@ const formFields = [
     type: "tel",
     required: true,
   },
-  {
-    id: "message",
-    label: "Message",
-    type: "textarea",
-    required: true,
-  },
+  // {
+  //   id: "message",
+  //   label: "Message",
+  //   type: "textarea",
+  //   required: true,
+  // },
 ];
 
 export default formFields;

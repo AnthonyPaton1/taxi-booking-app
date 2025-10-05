@@ -1,5 +1,11 @@
+import BusinessBookingForm from "@/components/forms/business/RideRequestForm";
+
 const createBookingsPage = () => {
-  return <>Show all bookings</>;
+  return (
+    <>
+    <BusinessBookingForm />
+    </>
+  )
 };
 
 export default createBookingsPage;

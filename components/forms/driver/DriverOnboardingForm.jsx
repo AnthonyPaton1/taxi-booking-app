@@ -66,6 +66,9 @@ const defaultFormData = {
   signLanguageRequired: false,
   textOnlyCommunication: false,
   medicalConditions: "",
+  firstAidTrained: false,
+  conditionAwareness: false,
+visualSchedule: false,
   medicationOnBoard: false,
   additionalNeeds: "",
 

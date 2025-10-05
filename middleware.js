@@ -25,8 +25,8 @@ export async function middleware(req) {
   }
 
 const onboardingRoutes = {
-  DRIVER: "/onboarding/driver",
-  ADMIN: "/onboarding/admin",
+  DRIVER: "/dashboard/driver/onboarding",
+  ADMIN: "/dashboard/admin/onboarding",
 };
 
 const needsDriverOnboarding =

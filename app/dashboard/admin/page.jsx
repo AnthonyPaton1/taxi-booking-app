@@ -5,7 +5,7 @@ import { getSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import CheckoutSteps from "@/components/shared/header/checkoutSteps";
-import AdminStats from "@/components/dashboard/admin/admin-stats";
+import AdminStats from "@/components/dashboard/business/admin-stats";
 import { hasAdminAccess } from "@/lib/roles";
 
 export default function AdminPage() {

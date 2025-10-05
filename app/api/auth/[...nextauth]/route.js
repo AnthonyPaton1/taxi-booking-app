@@ -8,6 +8,7 @@ import bcrypt from "bcryptjs";
 function getDashboardByRole(role) {
   switch (role) {
     case "SUPER_ADMIN":
+      return "/dashboard/super-admin/mainPage";
     case "ADMIN":
       return "/dashboard/admin";
     case "MANAGER":

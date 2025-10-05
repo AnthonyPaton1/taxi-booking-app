@@ -31,6 +31,18 @@ export async function completeOnboarding(role) {
         data: { adminOnboarded: true }, 
       });
     }
+    if (role === "COORDINATOR") {
+      await prisma.user.update({
+        where: { email: session.user.email },
+        data: { coordinatorOnboarded: true }, 
+      });
+    }
+    if (role === "MANAGER") {
+      await prisma.user.update({
+        where: { email: session.user.email },
+        data: { managerOnboarded: true }, 
+      });
+    }
 
     return { success: true };
   } catch (err) {

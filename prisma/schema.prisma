@@ -24,6 +24,10 @@ enum Role {
 enum BusinessType {
   CARE
   TAXI
+  EDUCATION
+  DELIVERY
+  SUPPORT
+  OTHER
 }
 
 enum BusinessMembershipRole {
@@ -59,6 +63,8 @@ enum AdvancedBookingStatus {
   SCHEDULED
   COMPLETED
   CANCELED
+  WON
+  LOST
 }
 
 enum InstantBookingStatus {
@@ -98,6 +104,7 @@ model User {
   image         String?
   emailVerified DateTime?
   isApproved    Boolean   @default(false)
+  
   driverOnboarded      Boolean   @default(false)
   managerOnboarded     Boolean   @default(false)
   coordinatorOnboarded Boolean   @default(false)
@@ -127,6 +134,7 @@ driver Driver? @relation("UserDriver")
   incidents           Incident[]
   instantBookings     InstantBooking[]     @relation("CreatorInstantBookings")
   advancedBookings    AdvancedBooking[]    @relation("CreatorAdvancedBookings")
+  houses House[]
 
   adminOfBusiness         Business?        @relation("BusinessAdminUser")
   acceptedInstantBookings InstantBooking[] @relation("UserAcceptedInstant")
@@ -174,7 +182,7 @@ user   User   @relation("UserDriver", fields: [userId], references: [id], onDele
   quietEnvironment       Boolean @default(false)
   assistanceRequired     Boolean @default(false)
   noConversation         Boolean @default(false)
-  specificMusic          Boolean @default(false)
+  specificMusic          String? 
   electricScooterStorage Boolean @default(false)
   visualSchedule         Boolean @default(false)
   assistanceAnimal       Boolean @default(false)
@@ -216,7 +224,7 @@ conditionAwareness     Boolean @default(false)
 
 model Business {
   id       String       @id @default(cuid())
-  type     BusinessType
+  type     String
   name     String
   phone    String?
   email    String?
@@ -283,6 +291,7 @@ model Area {
   name String @unique
 
   users User[] @relation("UserArea")
+  house House[]
 }
 
 model House {
@@ -296,6 +305,7 @@ model House {
   postcode String
   notes    String?
 
+companyId String?
   internalId String @unique
   pin        String
   loginName  String @unique
@@ -305,9 +315,15 @@ model House {
   createdAt DateTime  @default(now())
   deletedAt DateTime?
 
+  managerId String
+  manager User @relation(fields: [managerId], references: [id], onDelete: Cascade)
+  areaId String
+  area Area @relation(fields: [areaId], references: [id])
+
   @@index([businessId, label])
   @@index([deletedAt])
 }
+
 
 /**
  * ======================
@@ -326,6 +342,7 @@ model AdvancedBooking {
   returnTime      DateTime?
   pickupLocation  String
   dropoffLocation String
+  initials String[]
 
   // Accessibility
   wheelchairAccess       Boolean @default(false)
@@ -390,6 +407,7 @@ model InstantBooking {
   returnTime      DateTime?
   pickupLocation  String
   dropoffLocation String
+  initials String[]
 
    driverId String?
   driver   Driver? @relation("DriverInstantBookings", fields: [driverId], references: [id], onDelete: SetNull)
@@ -646,13 +664,4 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-model RegisterInterest {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  phone     String?
-  type      String   // DRIVER | BUSINESS
-  message   String?
-  approved  Boolean  @default(false)
-  createdAt DateTime @default(now())
-}
+

@@ -11,7 +11,7 @@ const EditDetailsPage = () => {
  const [formData, setFormData] = useState({
   companyId: "",
   businessName: "",
-  addressLine1: "",
+  address1: "",
   city: "",
   postcode: "",
   website: "",
@@ -28,7 +28,7 @@ const EditDetailsPage = () => {
       setFormData({
         companyId: data.companyId || "",
         businessName: data.businessName || "",
-        addressLine1: data.addressLine1 || "",
+        address1: data.address1 || "",
         city: data.city || "",
         postcode: data.postcode || "",
         website: data.website || "",
@@ -99,10 +99,10 @@ const EditDetailsPage = () => {
             aria-label="Business Name"
           />
           <Input
-            id="addressLine1"
+            id="address1"
             placeholder="Address Line 1"
             required
-            value={formData.addressLine1}
+            value={formData.address1}
             onChange={handleChange}
             aria-label="Address Line 1"
           />

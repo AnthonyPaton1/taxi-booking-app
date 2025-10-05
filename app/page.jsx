@@ -4,7 +4,7 @@ import React from "react";
 import Cards from "@/components/layout/Cards";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import WaitlistForm from "@/components/forms/WaitListForm";
-import FaqSection from "@/components/sections/FrequentlyAskedQuestion";
+import FaqSection from "@/components/layout/FrequentlyAskedQuestion";
 import {
   ScrollText,
   Gavel,

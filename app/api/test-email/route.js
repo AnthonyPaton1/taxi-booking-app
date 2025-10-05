@@ -6,7 +6,7 @@ import { sendEmail } from "@/lib/email";
 export async function POST(req) {
   const body = await req.json();
 
-  const { name, email, phone, companyName, message, type } = body;
+  const { name, email, phone, businessName, message, type } = body;
 
   try {
     // Save to DB
@@ -15,7 +15,7 @@ export async function POST(req) {
         name,
         email,
         phone,
-        companyName,
+        businessName,
         message,
         type, // e.g., "TAXI" or "BUSINESS"
       },
@@ -30,7 +30,7 @@ export async function POST(req) {
         <p><strong>Name:</strong> ${name}</p>
         <p><strong>Email:</strong> ${email}</p>
         <p><strong>Phone:</strong> ${phone}</p>
-        <p><strong>Company:</strong> ${companyName}</p>
+        <p><strong>Company:</strong> ${businessName}</p>
         <p><strong>Type:</strong> ${type}</p>
         <p><strong>Message:</strong><br>${message}</p>
       `,

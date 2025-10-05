@@ -2,8 +2,8 @@
 
 import React, { useState } from "react";
 import formFields from "./formFields";
-import { Button } from "@/components/ui/button";
-import { sendContactEmail } from "@/app/actions/messaging/sendContactEmail";
+import { Button } from "@/components/ui/button";;
+import { registerAndInviteUser } from "@/app/actions/auth/registerAndInviteUser";
 
 const WaitlistForm = () => {
   const [formData, setFormData] = useState(
@@ -29,8 +29,8 @@ const WaitlistForm = () => {
       setStatus("Please select Business or Taxi.");
       return;
     }
-
-    const res = await sendContactEmail(formData);
+const res = await registerAndInviteUser(formData);
+    
     if (res.success) {
       setStatus("Message sent successfully! Please check your Email.");
       setFormData(
@@ -64,8 +64,8 @@ const WaitlistForm = () => {
             <input
               type="radio"
               name="type"
-              value="BUSINESS"
-              checked={formData.type === "BUSINESS"}
+              value="ADMIN"
+              checked={formData.type === "ADMIN"}
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, type: e.target.value }))
               }
@@ -77,8 +77,8 @@ const WaitlistForm = () => {
             <input
               type="radio"
               name="type"
-              value="TAXI"
-              checked={formData.type === "TAXI"}
+              value="DRIVER"
+              checked={formData.type === "DRIVER"}
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, type: e.target.value }))
               }
@@ -125,7 +125,7 @@ const WaitlistForm = () => {
 
       <Button
         type="submit"
-        className="w-full bg-blue-700 text-white py-2 px-4 rounded hover:bg-blue-800 transition"
+        className="w-full bg-blue-700 text-white py-2 px-4 rounded hover:bg-blue-800 transition mt-8"
         aria-label="Submit your registration form"
       >
         Register

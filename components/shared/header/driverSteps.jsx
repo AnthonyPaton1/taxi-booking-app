@@ -6,7 +6,7 @@ import Link from "next/link";
 const steps = [
   { name: "Driver Dashboard", href: "/dashboard/driver" },
   { name: "Daily Job Sheet", href: "/dashboard/driver/daily-job-sheet" },
-  { name: "Advanced Job Sheet", href: "/dashboard/driver/advanced" },
+  { name: "Advanced Bookings", href: "/dashboard/driver/advanced" },
   { name: "Active Bids", href: "/dashboard/driver/active-bids" },
   { name: "Messages", href: "/dashboard/driver/messages" }, 
   { name: "Ratings & Feedback", href: "/dashboard/driver/feedback" }, 
