@@ -1,9 +1,11 @@
 'use client'
+import { useEffect } from "react";
 import { Suspense } from "react";
 import SetPasswordClient from "@/components/set-password/setPasswordClient";
 import { useRouter } from "next/navigation";
 import { getSession } from "next-auth/react";
 
+export default function SetPasswordPage() {
 const router = useRouter();
 
 useEffect(() => {
@@ -21,9 +23,8 @@ useEffect(() => {
   };
 
   checkUserRole();
-}, []);
+}, [router]);
 
-export default function SetPasswordPage() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
       <SetPasswordClient />

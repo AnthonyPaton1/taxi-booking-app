@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { getSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import CheckoutSteps from "@/components/shared/header/checkoutSteps";
-import AdminOnboardingForm from "@/components/forms/business/adminOnboardingForm";
+import BusinessOnboardingForm from "@/components/forms/business/BusinessOnboardingForm";
 import AdminStats from "@/components/dashboard/business/admin-stats";
 import { hasAdminAccess } from "@/lib/roles";
 
@@ -57,7 +57,7 @@ export default function AdminPage() {
       <CheckoutSteps current={0} />
 
       {!hasOnboarded ? (
-        <AdminOnboardingForm />
+        <BusinessOnboardingForm />
       ) : (
         <>
           <div className="flex justify-between items-center">

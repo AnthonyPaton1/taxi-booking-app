@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { OnboardingSchema } from "@/lib/validators";
+import { AdminOnboardingSchema } from "@/lib/validators";
 import { z } from "zod";
 
 export async function GET() {
@@ -46,7 +46,7 @@ export async function GET() {
 export async function PUT(req) {
   try {
     const body = await req.json();
-    const validated = OnboardingSchema.parse(body);
+    const validated = AdminOnboardingSchema.parse(body);
 
     const businessId = body.businessId; // Make sure this is being sent from the form
 
