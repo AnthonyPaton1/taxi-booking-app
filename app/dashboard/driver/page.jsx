@@ -13,18 +13,25 @@ export default async function DriverDashboardPage() {
     include: { driver: true },
   });
 
-  if (!user?.driver) {
-    redirect("/onboarding/driver?from=/dashboard/driver");
+  const hasOnboarded = !!user?.driver;
+
+  if (!session || !user) {
+    redirect("/auth/login");
   }
 
-  // You can fetch mock jobs, notifications, messages here if needed
-  const mockData = {
-    user,
-    jobsToday: [],
-    advancedJobs: [],
-    notifications: [],
-    messages: [],
-  };
-
-  return <DriverDashboardClient {...mockData} />;
+  return (
+    <>
+      {!hasOnboarded ? (
+        <DriverOnboardingForm />
+      ) : (
+        <DriverDashboardClient
+          user={user}
+          jobsToday={[]} // or await prisma.jobs.findMany(...)
+          advancedJobs={[]}
+          notifications={[]}
+          messages={[]}
+        />
+      )}
+    </>
+  );
 }

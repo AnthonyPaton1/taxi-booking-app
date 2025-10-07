@@ -182,7 +182,7 @@ user   User   @relation("UserDriver", fields: [userId], references: [id], onDele
   quietEnvironment       Boolean @default(false)
   assistanceRequired     Boolean @default(false)
   noConversation         Boolean @default(false)
-  specificMusic          String? 
+  specificMusic          Boolean 
   electricScooterStorage Boolean @default(false)
   visualSchedule         Boolean @default(false)
   assistanceAnimal       Boolean @default(false)

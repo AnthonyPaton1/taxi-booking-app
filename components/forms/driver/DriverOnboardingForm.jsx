@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { completeDriverOnboarding } from "@/app/actions/driver/driverDetails";
+import { DriverOnboardingSchema } from "@/lib/validators";
 
 // Required fields
 const requiredFields = [
@@ -120,6 +121,9 @@ export default function DriverOnboardingForm( {onSubmit}) {
     e.preventDefault();
 
     const newErrors = {};
+ 
+
+
 
     requiredFields.forEach((field) => {
       if (!formData[field] || formData[field].toString().trim() === "") {
@@ -144,13 +148,14 @@ export default function DriverOnboardingForm( {onSubmit}) {
     setFirstErrorKey(null);
 
     try {
-      await completeDriverOnboarding(formData);
-      alert("Onboarding completed!");
-      window.location.href = "/dashboard/driver";
-    } catch (err) {
-      console.error(err);
-      alert("Something went wrong");
-    }
+       const payload = DriverOnboardingSchema.parse(formData);
+       await completeDriverOnboarding(payload); 
+  alert("Onboarding completed!");
+  window.location.href = "/dashboard/driver";
+} catch (err) {
+  console.error(err);
+  alert("Something went wrong");
+}
   };
 
 
@@ -269,16 +274,30 @@ export default function DriverOnboardingForm( {onSubmit}) {
           <label htmlFor="radiusMiles" className="block font-medium text-gray-700">
             Operating Radius (miles)
           </label>
-          <input
-            type="number"
-            id="radiusMiles"
-            name="radiusMiles"
-            min={1}
-            max={100}
-            value={formData.radiusMiles}
-            onChange={handleChange}
-            className="w-full mt-1 p-2 border rounded focus:ring focus:ring-blue-500"
-          />
+  <input
+  type="number"
+  id="radiusMiles"
+  name="radiusMiles"
+  min={5}
+  max={100}
+  inputMode="numeric"
+  value={formData.radiusMiles?.toString() || ""}
+  onChange={(e) => {
+    let val = e.target.value;
+
+    // Remove leading zeros
+    if (val.length > 1 && val.startsWith("0")) {
+      val = val.replace(/^0+/, "");
+    }
+
+    // Convert cleaned value to number
+    setFormData((prev) => ({
+      ...prev,
+      radiusMiles: Number(val),
+    }));
+  }}
+  className="w-full mt-1 p-2 border rounded focus:ring focus:ring-blue-500"
+/>
           {errors.radiusMiles && <p className="text-red-600 text-sm mt-1">{errors.radiusMiles}</p>}
         </div>
 
@@ -478,7 +497,12 @@ Please answer the questions below accurately.
           type="checkbox"
           name="specificMusic"
           checked={formData.specificMusic || false}
-          onChange={handleChange}
+         onChange={(e) =>
+    setFormData((prev) => ({
+      ...prev,
+      specificMusic: e.target.checked,
+    }))
+  }
           className="mr-2"
         />
         Accommodate music preferences
