@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { CoordinatorOnboardingSchema } from "@/lib/validators";
+import { inviteUserToLogin } from "@/app/actions/inviteUserToLogin";
 
 export async function POST(req) {
   try {
@@ -17,7 +18,7 @@ export async function POST(req) {
           name: manager.name,
           phone: manager.phone,
           role: "MANAGER",
-          businessId: companyId, // ✅ assign businessId directly
+          businessId: companyId,
         },
         create: {
           email: manager.email,
@@ -27,6 +28,17 @@ export async function POST(req) {
           businessId: companyId,
         },
       });
+
+      // ✅ Send invite (do this once per manager)
+      await inviteUserToLogin({
+        email: manager.email,
+        name: manager.name,
+        role: "MANAGER",
+      });
+      await prisma.user.update({
+        where: {id: coordinatorUser.id},
+        data: {hasOnboarded: true},
+      })
     }
 
     return NextResponse.json({ success: true });

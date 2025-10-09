@@ -243,7 +243,8 @@ model Business {
   employees   User[]               @relation("UserBusiness")
 
   // Domain data
-  houses                  House[]
+  housesAsBusiness House[] @relation(name: "HouseBusiness")
+  housesAsCompany  House[] @relation(name: "HouseCompany")
   driverInvites           DriverInvite[]
   incidents               Incident[]
   advancedBookings        AdvancedBooking[] @relation("BusinessAdvancedBookings")
@@ -296,29 +297,34 @@ model Area {
 
 model House {
   id         String   @id @default(cuid())
+
   businessId String
-  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  business   Business @relation(name: "HouseBusiness", fields: [businessId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  label    String
-  line1    String
-  city     String
-  postcode String
-  notes    String?
+  companyId  String?
+  company    Business? @relation(name: "HouseCompany", fields: [companyId], references: [id])
 
-companyId String?
-  internalId String @unique
+  label      String
+  line1      String
+  city       String
+  postcode   String
+  notes      String?
+
+  internalId String   @unique
   pin        String
-  loginName  String @unique
+  loginName  String   @unique
 
-  incidents Incident[]
+  incidents  Incident[]
+  createdAt  DateTime  @default(now())
+  deletedAt  DateTime?
 
-  createdAt DateTime  @default(now())
-  deletedAt DateTime?
+  managerId  String
+  manager    User      @relation(fields: [managerId], references: [id], onDelete: Cascade)
 
-  managerId String
-  manager User @relation(fields: [managerId], references: [id], onDelete: Cascade)
-  areaId String
-  area Area @relation(fields: [areaId], references: [id])
+  areaId     String
+  area       Area      @relation(fields: [areaId], references: [id])
+
+  tenants    String
 
   @@index([businessId, label])
   @@index([deletedAt])

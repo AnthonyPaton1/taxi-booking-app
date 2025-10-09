@@ -8,40 +8,41 @@ export async function POST(req) {
     const body = await req.json();
     const validated = ManagerOnboardingSchema.parse(body);
 
-    const { managers, contactNumber, contactEmail } = validated;
+    const { houses, contactNumber, contactEmail, companyId } = validated;
 
-    for (const manager of managers) {
-      // 1. Upsert the manager user
+    for (const house of houses) {
+      // 1. Upsert the manager
       const user = await prisma.user.upsert({
-        where: { email: manager.email },
+        where: { email: house.managerEmail },
         update: {
-          name: manager.name,
-          phone: manager.phone,
           role: "MANAGER",
         },
         create: {
-          email: manager.email,
-          name: manager.name,
-          phone: manager.phone,
+          email: house.managerEmail,
           role: "MANAGER",
         },
       });
 
-      // 2. Optional: link to a company if needed (based on your system)
-
-      // 3. Create houses linked to manager
-      for (const house of manager.houses) {
-        await prisma.house.create({
-          data: {
-            label: house.label,
-            line1: house.line1,
-            city: house.city,
-            postcode: house.postcode,
-            contactNumber: house.contactNumber,
-            manager: { connect: { id: user.id } },
-          },
-        });
-      }
+      // 2. Create house
+      await prisma.house.create({
+        data: {
+          label: house.label,
+          line1: house.line1,
+          city: house.city,
+          postcode: house.postcode,
+          notes: house.notes || null,
+          internalId: house.internalId,
+          pin: house.pin,
+          loginName: house.loginName,
+          manager: { connect: { id: user.id } },
+          tenants: house.tenants,
+          business: { connect: { id: companyId } }, // assuming it's a required relation
+        },
+      });
+      await prisma.user.update({
+        where: {id:managerUser.id},
+        data: {hasOnboarded: true},
+      })
     }
 
     return NextResponse.json({ success: true });

@@ -6,20 +6,20 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import CheckoutSteps from "@/components/shared/header/checkoutSteps";
 import { toast } from "sonner";
 
-const BusinessOnboardingForm = ({ prefillData }) => {
-  const [formData, setFormData] = useState({
-    businessName: prefillData.businessName || "",
-    contactEmail: prefillData.contactEmail || "",
-    contactNumber: prefillData.contactNumber || "",
-    type: "CARE",
-    address1: prefillData.address1 || "",
-    city: prefillData.city || "",
-    postcode: prefillData.postcode || "",
-    website: prefillData.website || "",
-  });
+export default function BusinessOnboardingForm({ prefillData = {} }) {
+  const {
+    businessName = "",
+    contactEmail = "",
+    contactNumber = "",
+    name = "",
+    type = "",
+    address1 = "",
+    city = "",
+    postcode = "",
+    website = "",
+  } = prefillData;
 
   const [coordinators, setCoordinators] = useState([
     {
@@ -32,6 +32,17 @@ const BusinessOnboardingForm = ({ prefillData }) => {
 
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+  businessName,
+  contactEmail,
+  contactNumber,
+  name,
+  type,
+  address1,
+  city,
+  postcode,
+  website,
+});
 
   const handleCoordinatorChange = (index, field, value) => {
     const updated = [...coordinators];
@@ -86,7 +97,7 @@ const BusinessOnboardingForm = ({ prefillData }) => {
 
   return (
     <>
-      <CheckoutSteps current={1} />
+      
       <div className="max-w-3xl mx-auto p-6 bg-white rounded-lg shadow">
         <h2 className="text-xl font-bold text-blue-700 mb-6">
           Welcome, {prefillData.businessName || ""}! Let’s get your business set up.
@@ -131,4 +142,3 @@ const BusinessOnboardingForm = ({ prefillData }) => {
   );
 };
 
-export default BusinessOnboardingForm;

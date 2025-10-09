@@ -56,9 +56,7 @@ export const authOptions = {
           throw new Error("Invalid credentials");
         }
 
-        if (!user.isApproved) {
-          throw new Error("Your account is pending approval");
-        }
+       
 
         return {
           id: user.id,

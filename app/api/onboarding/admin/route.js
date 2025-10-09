@@ -5,10 +5,12 @@ import { AdminOnboardingSchema } from "@/lib/validators";
 import { z } from "zod";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { inviteUserToLogin } from "@/app/actions/inviteUserToLogin";
 
 export async function POST(req) {
   try {
     const session = await getServerSession(authOptions);
+    const role = session?.user?.role;
 
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -16,6 +18,7 @@ export async function POST(req) {
 
     const adminUser = await prisma.user.findUnique({
       where: { email: session.user.email },
+      include: {adminOfBusiness: true},
     });
 
     if (!adminUser) {
@@ -23,7 +26,10 @@ export async function POST(req) {
     }
 
     const body = await req.json();
-    const validated = AdminOnboardingSchema.parse(body);
+    const inferredType = role === "ADMIN" ? "CARE" : "TAXI";
+    const validated = AdminOnboardingSchema.parse({...body,
+      type: body.type || inferredType,
+    });
     console.log("Validated body:", validated);
 
     const existingBusiness = await prisma.business.findUnique({
@@ -64,6 +70,7 @@ export async function POST(req) {
       await prisma.user.update({
         where: { id: adminUser.id },
         data: { businessId: business.id },
+        
       });
     }
 
@@ -98,6 +105,16 @@ export async function POST(req) {
           role: "COORDINATOR",
         },
       });
+       // Send invite after upsert
+  await inviteUserToLogin({
+    email: coord.email,
+    name: coord.name,
+    role: "COORDINATOR",
+  });
+  await prisma.user.update({
+  where: { id: adminUser.id },
+  data: { adminOnboarded: true },
+});
     }
 
     return NextResponse.json({ success: true, businessId: business.id });

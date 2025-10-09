@@ -6,9 +6,10 @@ import Link from "next/link";
 const steps = [
   { name: "House Manager Dashboard", href: "/dashboard/manager" },
   { name: "Book a taxi", href: "/dashboard/manager/create-booking" },
-  { name: "Feedback", href: "/dashboard/manager/feedback" },
-  { name: "Bid/ride view", href: "/dashboard/manager/viewbids" },
-  { name: "History", href: "/dashboard/manager/history" },
+  { name: "Bids/ride view", href: "/dashboard/manager/viewbids" },
+  { name: "Feedback and Incidents", href: "/dashboard/manager/feedback" },
+  { name: "History", href: "/dashboard/manager/historical-trips" },
+  {name: "Report an Incident", href: "/dashboard/manager/incident-form"}
 ];
 
 const CheckoutSteps = ({ current = 0 }) => {

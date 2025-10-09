@@ -2,15 +2,18 @@
 
 import React, { useState } from "react";
 import formFields from "./formFields";
-import { Button } from "@/components/ui/button";;
+import { Button } from "@/components/ui/button";
 import { registerAndInviteUser } from "@/app/actions/auth/registerAndInviteUser";
 
 const WaitlistForm = () => {
   const [formData, setFormData] = useState(
-    formFields.reduce((acc, field) => {
-      acc[field.id] = "";
-      return acc;
-    }, { type: "" }) //  add type field for business/taxi
+    formFields.reduce(
+      (acc, field) => {
+        acc[field.id] = "";
+        return acc;
+      },
+      { type: "" } // adds the type field (CARE or TAXI)
+    )
   );
 
   const [status, setStatus] = useState(null);
@@ -20,8 +23,6 @@ const WaitlistForm = () => {
     setFormData((prev) => ({ ...prev, [id]: value }));
   };
 
-
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -29,15 +30,25 @@ const WaitlistForm = () => {
       setStatus("Please select Business or Taxi.");
       return;
     }
-const res = await registerAndInviteUser(formData);
-    
+
+    // ✅ Map the selected business type to the correct user role
+    const mappedRole =
+      formData.type === "TAXI" ? "DRIVER" : "ADMIN"; // CARE → ADMIN, TAXI → DRIVER
+
+    const payload = { ...formData, role: mappedRole };
+
+    const res = await registerAndInviteUser(payload);
+
     if (res.success) {
-      setStatus("Message sent successfully! Please check your Email.");
+      setStatus("Message sent successfully! Please check your email.");
       setFormData(
-        formFields.reduce((acc, field) => {
-          acc[field.id] = "";
-          return acc;
-        }, { type: "" })
+        formFields.reduce(
+          (acc, field) => {
+            acc[field.id] = "";
+            return acc;
+          },
+          { type: "" }
+        )
       );
     } else {
       setStatus("Something went wrong. Please try again later.");
@@ -64,8 +75,8 @@ const res = await registerAndInviteUser(formData);
             <input
               type="radio"
               name="type"
-              value="ADMIN"
-              checked={formData.type === "ADMIN"}
+              value="CARE"
+              checked={formData.type === "CARE"}
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, type: e.target.value }))
               }
@@ -77,8 +88,8 @@ const res = await registerAndInviteUser(formData);
             <input
               type="radio"
               name="type"
-              value="DRIVER"
-              checked={formData.type === "DRIVER"}
+              value="TAXI"
+              checked={formData.type === "TAXI"}
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, type: e.target.value }))
               }

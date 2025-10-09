@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
 import DriverDashboardClient from "@/components/dashboard/driver/DriverDashboardClient";
+import DriverOnboardingForm from "@/components/forms/driver/DriverOnboardingForm";
 
 export default async function DriverDashboardPage() {
   const session = await getServerSession(authOptions);

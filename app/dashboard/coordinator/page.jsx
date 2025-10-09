@@ -15,6 +15,12 @@ export default function CoordinatorHomePage() {
   const [loading, setLoading] = useState(true);
 
   const router = useRouter();
+  const groupedData = coordinator?.houses?.reduce((acc, house) => {
+  const area = house.area?.label || "Unassigned";
+  if (!acc[area]) acc[area] = [];
+  acc[area].push(house);
+  return acc;
+}, {}) || {};
 
   useEffect(() => {
     const load = async () => {

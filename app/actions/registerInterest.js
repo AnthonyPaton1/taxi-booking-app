@@ -8,7 +8,7 @@ export async function registerInterest(formData) {
   
 
   // 👇 Assign the role based on the "type" selected
-  const role = type === "BUSINESS" ? Role.ADMIN : Role.DRIVER;
+  const role = type === "CARE" ? Role.ADMIN : Role.DRIVER;
 
   // Save to DB
   const user = await db.user.create({
@@ -26,9 +26,6 @@ export async function registerInterest(formData) {
       
     },
   });
-
-  
-  
 
   return { success: true, user };
 }

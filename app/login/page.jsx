@@ -12,10 +12,24 @@ export default function LoginPage() {
   const router = useRouter();
   const { data: session } = useSession();
 
-  // Redirect after successful login
+  // ✅ Role-based redirection after successful login
   useEffect(() => {
-    if (session?.user?.dashboardUrl) {
-      router.push(session.user.dashboardUrl);
+    if (session?.user?.role) {
+      const role = session.user.role;
+
+      if (role === "SUPER_ADMIN") {
+        router.push("/dashboard/super-admin");
+      } else if (role === "ADMIN" || role === "COMPANY_ADMIN") {
+        router.push("/dashboard/admin");
+      } else if (role === "COORDINATOR") {
+        router.push("/dashboard/coordinator");
+      } else if (role === "MANAGER") {
+        router.push("/dashboard/manager");
+      } else if (role === "DRIVER") {
+        router.push("/dashboard/driver");
+      } else {
+        router.push("/dashboard"); // fallback
+      }
     }
   }, [session, router]);
 
@@ -36,10 +50,7 @@ export default function LoginPage() {
 
   return (
     <main className="max-w-md mx-auto mt-20 p-8 mb-30 bg-white shadow rounded">
-      <h1
-        className="text-xl font-bold mb-6 text-center"
-        id="login-heading"
-      >
+      <h1 className="text-xl font-bold mb-6 text-center" id="login-heading">
         Login
       </h1>
 
@@ -61,10 +72,7 @@ export default function LoginPage() {
         )}
 
         <div>
-          <label
-            htmlFor="email"
-            className="block text-sm font-medium text-gray-700"
-          >
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
             Email <span className="text-red-500">*</span>
           </label>
           <input
@@ -81,10 +89,7 @@ export default function LoginPage() {
         </div>
 
         <div>
-          <label
-            htmlFor="password"
-            className="block text-sm font-medium text-gray-700"
-          >
+          <label htmlFor="password" className="block text-sm font-medium text-gray-700">
             Password <span className="text-red-500">*</span>
           </label>
           <input
@@ -98,7 +103,7 @@ export default function LoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-              <div className="text-right mt-2">
+          <div className="text-right mt-2">
             <Link
               href="/forgot-password"
               className="text-sm text-blue-600 hover:underline"
@@ -107,7 +112,6 @@ export default function LoginPage() {
             </Link>
           </div>
         </div>
-       
 
         <button
           type="submit"

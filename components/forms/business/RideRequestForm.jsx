@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { createBusinessBooking } from "@/app/actions/bookings/createBusinessBooking";
-import RideAccessibilityOptions from "./RideAccessibilityOptions";
+import RideAccessibilityOptions from ".RideAccessibilityOptions";
 import PhysicalRequirementsCheckboxes from "./driver/PhysicalRequirementsCheckBoxes";
 import StatusMessage from "../shared/statusMessage";
 

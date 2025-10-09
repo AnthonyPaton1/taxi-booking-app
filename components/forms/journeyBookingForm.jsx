@@ -49,7 +49,8 @@ const defaultFormData = {
 };
 
 
-const PublicBookingForm = () => {
+const JourneyBookingForm
+ = () => {
   const [status, setStatus] = useState("");
   const router = useRouter();
   const [formData, setFormData] = useState(defaultFormData);
@@ -427,4 +428,5 @@ const handleSubmit = async (e) => {
   );
 };
 
-export default PublicBookingForm;
+export default JourneyBookingForm
+;

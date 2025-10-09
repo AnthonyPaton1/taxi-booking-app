@@ -35,15 +35,13 @@ const needsDriverOnboarding =
 const needsAdminOnboarding =
   token.role === "ADMIN" && !token.adminOnboarded;
 
-if (needsDriverOnboarding && !url.pathname.startsWith(onboardingRoutes.DRIVER)) {
-  const dest = new URL(onboardingRoutes.DRIVER, req.url);
-  dest.searchParams.set("from", url.pathname);
+if (needsDriverOnboarding && !url.pathname.startsWith("/dashboard/driver")) {
+  const dest = new URL("/dashboard/driver", req.url);
   return NextResponse.redirect(dest);
 }
 
-if (needsAdminOnboarding && !url.pathname.startsWith(onboardingRoutes.ADMIN)) {
-  const dest = new URL(onboardingRoutes.ADMIN, req.url);
-  dest.searchParams.set("from", url.pathname);
+if (needsAdminOnboarding && !url.pathname.startsWith("/dashboard/admin")) {
+  const dest = new URL("/dashboard/admin", req.url);
   return NextResponse.redirect(dest);
 }
 

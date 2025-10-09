@@ -1,7 +1,6 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { sendVerificationRequest } from "next-auth/providers/email";
 
 export async function inviteUserToLogin({ email, name, role }) {
   try {
@@ -14,15 +13,14 @@ export async function inviteUserToLogin({ email, name, role }) {
       create: { email, name, role },
     });
 
-    // 2. Send login email
-    await sendVerificationRequest({
-      identifier: email,
-      url: `${process.env.NEXTAUTH_URL}/api/auth/callback/email?email=${email}`,
-      provider: {
-        server: process.env.EMAIL_SERVER,
-        from: process.env.EMAIL_FROM,
-      },
-    });
+  await fetch(`${process.env.NEXTAUTH_URL}/api/auth/signin/email`, {
+  method: "POST",
+  headers: { "Content-Type": "application/x-www-form-urlencoded" },
+  body: new URLSearchParams({
+    callbackUrl: `${process.env.NEXTAUTH_URL}/set-password`,
+    email,
+  }),
+});
 
     return { success: true, message: `Invite sent to ${email}` };
   } catch (err) {
