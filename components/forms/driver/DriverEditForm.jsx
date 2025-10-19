@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { completeDriverOnboarding } from "@/app/actions/driver/driverDetails";
+import { updateDriverDetails } from "@/app/actions/driver/driverDetails"; // New action for updates
 
 const requiredFields = [
   "name",
@@ -35,11 +35,54 @@ const amenityOptions = [
   "Electric scooter storage",
 ];
 
-export default function DriverEditForm({ formData: initialData }) {
-  const [formData, setFormData] = useState(initialData || {});
+export default function DriverEditForm({ driver, accessibilityProfile, compliance }) {
+  // Merge all data into one form state
+  const [formData, setFormData] = useState({
+    // Driver fields
+    name: driver?.name || "",
+    vehicleType: driver?.vehicleType || "",
+    vehicleReg: driver?.vehicleReg || "",
+    localPostcode: driver?.localPostcode || "",
+    radiusMiles: driver?.radiusMiles || 5,
+    phone: driver?.phone || "",
+    amenities: driver?.amenities || [],
+
+    // Compliance fields
+    licenceNumber: compliance?.licenceNumber || "",
+    ukDrivingLicence: compliance?.ukDrivingLicence || false,
+    localAuthorityRegistered: compliance?.localAuthorityRegistered || false,
+    dbsChecked: compliance?.dbsChecked || false,
+    publicLiabilityInsurance: compliance?.publicLiabilityInsurance || false,
+    fullyCompInsurance: compliance?.fullyCompInsurance || false,
+    healthCheckPassed: compliance?.healthCheckPassed || false,
+    englishProficiency: compliance?.englishProficiency || false,
+
+    // Accessibility fields (CORRECTED NAMES)
+    wheelchairAccess: accessibilityProfile?.wheelchairAccess || false,
+    doubleWheelchairAccess: accessibilityProfile?.doubleWheelchairAccess || false,
+    highRoof: accessibilityProfile?.highRoof || false,
+    seatTransferHelp: accessibilityProfile?.seatTransferHelp || false,
+    mobilityAidStorage: accessibilityProfile?.mobilityAidStorage || false,
+    electricScooterStorage: accessibilityProfile?.electricScooterStorage || false,
+    
+    quietEnvironment: accessibilityProfile?.quietEnvironment || false,
+    noConversation: accessibilityProfile?.noConversation || false,
+    noScents: accessibilityProfile?.noScents || false,
+    specificMusic: accessibilityProfile?.specificMusic || "",
+    visualSchedule: accessibilityProfile?.visualSchedule || false,
+    
+    signLanguageRequired: accessibilityProfile?.signLanguageRequired || false,
+    textOnlyCommunication: accessibilityProfile?.textOnlyCommunication || false,
+    translationSupport: accessibilityProfile?.translationSupport || false,
+    
+    femaleDriverOnly: accessibilityProfile?.femaleDriverOnly || false,
+    firstAidTrained: accessibilityProfile?.firstAidTrained || false,
+    medicationOnBoard: accessibilityProfile?.medicationOnBoard || false,
+    conditionAwareness: accessibilityProfile?.conditionAwareness || false,
+  });
+
   const [errors, setErrors] = useState({});
   const [firstErrorKey, setFirstErrorKey] = useState(null);
-  
 
   useEffect(() => {
     if (firstErrorKey) {
@@ -65,7 +108,6 @@ export default function DriverEditForm({ formData: initialData }) {
         : prev.amenities.filter((a) => a !== value),
     }));
   };
- 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -94,9 +136,13 @@ export default function DriverEditForm({ formData: initialData }) {
     setFirstErrorKey(null);
 
     try {
-      await completeDriverOnboarding(formData);
-      alert("Driver details updated!");
-      window.location.href = "/dashboard/driver";
+      const result = await updateDriverDetails(formData, driver.id);
+      if (result.success) {
+        alert("Driver details updated!");
+        window.location.href = "/dashboard/driver";
+      } else {
+        alert(result.error || "Failed to update");
+      }
     } catch (err) {
       console.error(err);
       alert("Something went wrong");
@@ -108,7 +154,9 @@ export default function DriverEditForm({ formData: initialData }) {
       onSubmit={handleSubmit}
       className="bg-white p-6 rounded-lg shadow-md space-y-6 max-w-3xl mx-auto mt-8"
     >
-      <h2 className="text-xl font-bold text-blue-800">Update and Edit your Personal or Vehicle Details </h2>
+      <h2 className="text-xl font-bold text-blue-800">
+        Update Personal or Vehicle Details
+      </h2>
 
       {/* Personal Information */}
       <fieldset className="space-y-4">
@@ -116,7 +164,13 @@ export default function DriverEditForm({ formData: initialData }) {
           Personal Information
         </legend>
 
-        <TextInput id="name" label="Full Name" value={formData.name} onChange={handleChange} error={errors.name} />
+        <TextInput
+          id="name"
+          label="Full Name"
+          value={formData.name}
+          onChange={handleChange}
+          error={errors.name}
+        />
         <SelectInput
           id="vehicleType"
           label="Vehicle Type"
@@ -130,64 +184,71 @@ export default function DriverEditForm({ formData: initialData }) {
           ]}
           error={errors.vehicleType}
         />
-        <TextInput id="vehicleReg" label="Vehicle Reg Number" value={formData.vehicleReg} onChange={handleChange} error={errors.vehicleReg} />
-        <TextInput id="licenceNumber" label="Licence Number" value={formData.licenceNumber} onChange={handleChange} error={errors.licenceNumber} />
-        <TextInput id="localPostcode" label="Base Postcode" value={formData.localPostcode} onChange={handleChange} error={errors.localPostcode} />
-        <NumberInput id="radiusMiles" label="Operating Radius (miles)" value={formData.radiusMiles} onChange={handleChange} error={errors.radiusMiles} />
-        <TextInput id="phone" label="Contact Phone" value={formData.phone} onChange={handleChange} error={errors.phone} />
+        <TextInput
+          id="vehicleReg"
+          label="Vehicle Reg Number"
+          value={formData.vehicleReg}
+          onChange={handleChange}
+          error={errors.vehicleReg}
+        />
+        <TextInput
+          id="licenceNumber"
+          label="Licence Number"
+          value={formData.licenceNumber}
+          onChange={handleChange}
+          error={errors.licenceNumber}
+        />
+        <TextInput
+          id="localPostcode"
+          label="Base Postcode"
+          value={formData.localPostcode}
+          onChange={handleChange}
+          error={errors.localPostcode}
+        />
+        <NumberInput
+          id="radiusMiles"
+          label="Operating Radius (miles)"
+          value={formData.radiusMiles}
+          onChange={handleChange}
+          error={errors.radiusMiles}
+        />
+        <TextInput
+          id="phone"
+          label="Contact Phone"
+          value={formData.phone}
+          onChange={handleChange}
+          error={errors.phone}
+        />
       </fieldset>
 
       {/* Compliance */}
       <fieldset className="border p-4 rounded space-y-2">
-        <legend className="font-semibold text-gray-700">Compliance Requirements</legend>
-        {requiredBooleans.map((field) => (
+        <legend className="font-semibold text-gray-700">
+          Compliance Requirements
+        </legend>
+        {[
+          { name: "ukDrivingLicence", label: "UK Driving Licence" },
+          { name: "localAuthorityRegistered", label: "Local Authority Registered" },
+          { name: "dbsChecked", label: "DBS Checked" },
+          { name: "publicLiabilityInsurance", label: "Public Liability Insurance" },
+          { name: "fullyCompInsurance", label: "Fully Comprehensive Insurance" },
+          { name: "healthCheckPassed", label: "Health Check Passed" },
+          { name: "englishProficiency", label: "English Proficiency" },
+        ].map((field) => (
           <CheckboxInput
-            key={field}
-            id={field}
-            label={prettyLabel(field)}
-            checked={formData[field] || false}
+            key={field.name}
+            id={field.name}
+            label={field.label}
+            checked={formData[field.name]}
             onChange={handleChange}
-            error={errors[field]}
+            error={errors[field.name]}
           />
         ))}
       </fieldset>
 
       {/* Vehicle Amenities */}
-      {/* <fieldset className="border p-4 rounded space-y-2">
+      <fieldset className="border p-4 rounded space-y-2">
         <legend className="font-semibold text-gray-700">Vehicle Amenities</legend>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {amenityOptions.map((a) => (
-            <CheckboxInput
-              key={a}
-              id={a}
-              label={a}
-              checked={formData.amenities?.includes(a)}
-              onChange={handleAmenityChange}
-              isCustomValue={true}
-            />
-          ))}
-        </div>
-      </fieldset> */}
-
-      {/* Accessibility Options */}
- <div className='mb-6'>
-
-<h4 className="text-md font-semibold text-blue-800 mb-6 bg-blue-50 p-3 rounded">
-Please answer the questions below accurately.  
-  This ensures the right journeys are matched to your vehicle’s capabilities
-</h4>
-</div>
-
-      {/* Amenities */}
-      <fieldset
-        className="border border-gray-200 p-4 rounded space-y-2"
-        aria-labelledby="amenities-section"
-      >
-  
-        <legend id="amenities-section" className="font-semibold text-gray-700">
-          Vehicle Amenities
-        </legend>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {amenityOptions.map((a) => (
             <div key={a} className="flex items-center">
@@ -206,225 +267,148 @@ Please answer the questions below accurately.
           ))}
         </div>
       </fieldset>
-  
-  <fieldset
-  className="space-y-4 mt-6"
-  aria-labelledby="driver-accessibility-label"
->
-  <legend
-    id="driver-accessibility-label"
-    className="text-lg font-semibold text-blue-900"
-  >
-    Accessibility & Support Options
-  </legend>
 
-  {/* Mobility */}
-  <fieldset
-    className="border border-gray-200 p-4 rounded"
-    aria-labelledby="driver-mobility-legend"
-  >
-    <legend
-      id="driver-mobility-legend"
-      className="text-md font-semibold text-gray-700 mb-2"
-    >
-      Mobility Support
-    </legend>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-      <label className="flex items-center">
-        <input
-          type="checkbox"
-          name="wheelchairAssistance"
-          checked={formData.wheelchairAssistance || false}
-          onChange={handleChange}
-          className="mr-2"
-        />
-        Wheelchair assistance offered
-      </label>
-      <label className="flex items-center">
-        <input
-          type="checkbox"
-          name="seatTransferHelp"
-          checked={formData.seatTransferHelp || false}
-          onChange={handleChange}
-          className="mr-2"
-        />
-        Help with seat transfers
-      </label>
-      <label className="flex items-center">
-        <input
-          type="checkbox"
-          name="mobilityAidStorage"
-          checked={formData.mobilityAidStorage || false}
-          onChange={handleChange}
-          className="mr-2"
-        />
-        Assistance storing mobility aids
-      </label>
-    </div>
-  </fieldset>
+      {/* Accessibility Options */}
+      <fieldset className="space-y-4 mt-6">
+        <legend className="text-lg font-semibold text-blue-900">
+          Accessibility & Support Options
+        </legend>
 
-  {/* Sensory */}
-  <fieldset
-    className="border border-gray-200 p-4 rounded"
-    aria-labelledby="driver-sensory-legend"
-  >
-    <legend
-      id="driver-sensory-legend"
-      className="text-md font-semibold text-gray-700 mb-2"
-    >
-      Sensory Preferences
-    </legend>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-      <label className="flex items-center">
-        <input
-          type="checkbox"
-          name="quietRide"
-          checked={formData.quietRide || false}
-          onChange={handleChange}
-          className="mr-2"
-        />
-        Quiet ride / no conversation
-      </label>
-      <label className="flex items-center">
-        <input
-          type="checkbox"
-          name="noScents"
-          checked={formData.noScents || false}
-          onChange={handleChange}
-          className="mr-2"
-        />
-        No perfume or strong scents
-      </label>
-      <label className="flex items-center">
-        <input
-          type="checkbox"
-          name="specificMusic"
-          checked={formData.specificMusic || false}
-          onChange={handleChange}
-          className="mr-2"
-        />
-        Accommodate music preferences
-      </label>
-      <label className="flex items-center">
-        <input
-          type="checkbox"
-          name="visualSchedule"
-          checked={formData.visualSchedule || false}
-          onChange={handleChange}
-          className="mr-2"
-        />
-        Provide visual schedule
-      </label>
-    </div>
-  </fieldset>
+        {/* Mobility */}
+        <fieldset className="border p-4 rounded">
+          <legend className="text-md font-semibold text-gray-700 mb-2">
+            Mobility Support
+          </legend>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <CheckboxInput
+              id="wheelchairAccess"
+              label="Wheelchair assistance offered"
+              checked={formData.wheelchairAccess}
+              onChange={handleChange}
+            />
+            <CheckboxInput
+              id="seatTransferHelp"
+              label="Help with seat transfers"
+              checked={formData.seatTransferHelp}
+              onChange={handleChange}
+            />
+            <CheckboxInput
+              id="mobilityAidStorage"
+              label="Assistance storing mobility aids"
+              checked={formData.mobilityAidStorage}
+              onChange={handleChange}
+            />
+          </div>
+        </fieldset>
 
-  {/* Communication */}
-  <fieldset
-    className="border border-gray-200 p-4 rounded"
-    aria-labelledby="driver-comm-legend"
-  >
-    <legend
-      id="driver-comm-legend"
-      className="text-md font-semibold text-gray-700 mb-2"
-    >
-      Communication
-    </legend>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-      <label className="flex items-center">
-        <input
-          type="checkbox"
-          name="signLanguage"
-          checked={formData.signLanguage || false}
-          onChange={handleChange}
-          className="mr-2"
-        />
-        Sign language support
-      </label>
-      <label className="flex items-center">
-        <input
-          type="checkbox"
-          name="textOnlyCommunication"
-          checked={formData.textOnlyCommunication
-             || false}
-          onChange={handleChange}
-          className="mr-2"
-        />
-        Text-only communication
-        
-      </label>
-      <label className="flex items-center">
-        <input
-          type="checkbox"
-          name="translationSupport"
-          checked={formData.translationSupport || false}
-          onChange={handleChange}
-          className="mr-2"
-        />
-        Translation support available
-      </label>
-    </div>
-  </fieldset>
+        {/* Sensory */}
+        <fieldset className="border p-4 rounded">
+          <legend className="text-md font-semibold text-gray-700 mb-2">
+            Sensory Preferences
+          </legend>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <CheckboxInput
+              id="quietEnvironment"
+              label="Quiet ride / no conversation"
+              checked={formData.quietEnvironment}
+              onChange={handleChange}
+            />
+            <CheckboxInput
+              id="noScents"
+              label="No perfume or strong scents"
+              checked={formData.noScents}
+              onChange={handleChange}
+            />
+            <div className="col-span-2">
+              <label htmlFor="specificMusic" className="block text-sm font-medium text-gray-700 mb-1">
+                Music Preferences
+              </label>
+              <input
+                type="text"
+                id="specificMusic"
+                name="specificMusic"
+                value={formData.specificMusic}
+                onChange={handleChange}
+                placeholder="e.g., Classical, No music, Passenger choice"
+                className="w-full p-2 border rounded focus:ring focus:ring-blue-500"
+              />
+            </div>
+            <CheckboxInput
+              id="visualSchedule"
+              label="Provide visual schedule"
+              checked={formData.visualSchedule}
+              onChange={handleChange}
+            />
+          </div>
+        </fieldset>
 
-  {/* Safety & Health */}
-  <fieldset
-    className="border border-gray-200 p-4 rounded"
-    aria-labelledby="driver-safety-legend"
-  >
-    <legend
-      id="driver-safety-legend"
-      className="text-md font-semibold text-gray-700 mb-2"
-    >
-      Safety & Health
-    </legend>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-      <label className="flex items-center">
-        <input
-          type="checkbox"
-          name="firstAidTrained"
-          checked={formData.firstAidTrained || false}
-          onChange={handleChange}
-          className="mr-2"
-        />
-        First Aid trained
-      </label>
-      <label className="flex items-center">
-        <input
-          type="checkbox"
-          name="medicationSupport"
-          checked={formData.medicationSupport || false}
-          onChange={handleChange}
-          className="mr-2"
-        />
-        Can carry/store medication safely
-      </label>
-      <label className="flex items-center">
-        <input
-          type="checkbox"
-          name="conditionAwareness"
-          checked={formData.conditionAwareness || false}
-          onChange={handleChange}
-          className="mr-2"
-        />
-        Experience with autism / dementia
-      </label>
-    </div>
-  </fieldset>
-  <fieldset className="border border-gray-200 p-4 rounded" aria-labelledby="female-only-legend">
-  <legend id="female-only-legend" className="text-md font-semibold text-gray-700 mb-2">
-    Additional Preferences
-  </legend>
-  <label className="flex items-center">
-    <input
-      type="checkbox"
-      name="femaleDriverOnly"
-      checked={formData.femaleDriverOnly || false}
-      onChange={handleChange}
-      className="mr-2"
-    />
-    I prefer support from female drivers only
-  </label>
-</fieldset>
-</fieldset>
+        {/* Communication */}
+        <fieldset className="border p-4 rounded">
+          <legend className="text-md font-semibold text-gray-700 mb-2">
+            Communication
+          </legend>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <CheckboxInput
+              id="signLanguageRequired"
+              label="Sign language support"
+              checked={formData.signLanguageRequired}
+              onChange={handleChange}
+            />
+            <CheckboxInput
+              id="textOnlyCommunication"
+              label="Text-only communication"
+              checked={formData.textOnlyCommunication}
+              onChange={handleChange}
+            />
+            <CheckboxInput
+              id="translationSupport"
+              label="Translation support available"
+              checked={formData.translationSupport}
+              onChange={handleChange}
+            />
+          </div>
+        </fieldset>
+
+        {/* Safety & Health */}
+        <fieldset className="border p-4 rounded">
+          <legend className="text-md font-semibold text-gray-700 mb-2">
+            Safety & Health
+          </legend>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <CheckboxInput
+              id="firstAidTrained"
+              label="First Aid trained"
+              checked={formData.firstAidTrained}
+              onChange={handleChange}
+            />
+            <CheckboxInput
+              id="medicationOnBoard"
+              label="Can carry/store medication safely"
+              checked={formData.medicationOnBoard}
+              onChange={handleChange}
+            />
+            <CheckboxInput
+              id="conditionAwareness"
+              label="Experience with autism / dementia"
+              checked={formData.conditionAwareness}
+              onChange={handleChange}
+            />
+          </div>
+        </fieldset>
+
+        {/* Additional */}
+        <fieldset className="border p-4 rounded">
+          <legend className="text-md font-semibold text-gray-700 mb-2">
+            Additional Preferences
+          </legend>
+          <CheckboxInput
+            id="femaleDriverOnly"
+            label="This vehicle is driven by female drivers only"
+            checked={formData.femaleDriverOnly}
+            onChange={handleChange}
+          />
+        </fieldset>
+      </fieldset>
 
       <Button type="submit" className="w-full bg-blue-700 text-white">
         Save Changes
@@ -433,7 +417,7 @@ Please answer the questions below accurately.
   );
 }
 
-// Reusable input components
+// Reusable components
 const TextInput = ({ id, label, value, onChange, error }) => (
   <div>
     <label htmlFor={id} className="block font-medium text-gray-700">
@@ -443,7 +427,7 @@ const TextInput = ({ id, label, value, onChange, error }) => (
       type="text"
       id={id}
       name={id}
-      value={value}
+      value={value || ""}
       onChange={onChange}
       className="w-full mt-1 p-2 border rounded focus:ring focus:ring-blue-500"
     />
@@ -460,7 +444,7 @@ const NumberInput = ({ id, label, value, onChange, error }) => (
       type="number"
       id={id}
       name={id}
-      value={value}
+      value={value || 5}
       onChange={onChange}
       className="w-full mt-1 p-2 border rounded focus:ring focus:ring-blue-500"
     />
@@ -476,35 +460,33 @@ const SelectInput = ({ id, label, value, onChange, options, error }) => (
     <select
       id={id}
       name={id}
-      value={value}
+      value={value || ""}
       onChange={onChange}
       className="w-full mt-1 p-2 border rounded focus:ring focus:ring-blue-500"
     >
       {options.map(({ value, label }) => (
-        <option key={value} value={value}>{label}</option>
+        <option key={value} value={value}>
+          {label}
+        </option>
       ))}
     </select>
     {error && <p className="text-red-600 text-sm">{error}</p>}
   </div>
 );
 
-const CheckboxInput = ({ id, label, checked, onChange, error, isCustomValue }) => (
-  <div className="flex items-center">
-    <input
-      type="checkbox"
-      id={id}
-      name={isCustomValue ? undefined : id}
-      value={id}
-      checked={checked}
-      onChange={onChange}
-      className="mr-2"
-    />
-    <label htmlFor={id} className="text-gray-700">{label}</label>
+const CheckboxInput = ({ id, label, checked, onChange, error }) => (
+  <div className="flex flex-col">
+    <label className="flex items-center">
+      <input
+        type="checkbox"
+        id={id}
+        name={id}
+        checked={checked || false}
+        onChange={onChange}
+        className="mr-2"
+      />
+      <span className="text-gray-700">{label}</span>
+    </label>
     {error && <p className="text-red-600 text-sm">{error}</p>}
   </div>
 );
-
-const prettyLabel = (field) =>
-  field
-    .replace(/([A-Z])/g, " $1")
-    .replace(/^./, (s) => s.toUpperCase());

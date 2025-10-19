@@ -1,90 +1,146 @@
-"use client";
+// app/dashboard/manager/page.jsx
+import { getServerSession } from "next-auth";
+import { prisma } from "@/lib/db";
+import { authOptions } from "@/lib/authOptions";
+import { redirect } from "next/navigation";
+import ManagerDashboardClient from "@/components/dashboard/business/managerdashboardClient";
+import OnboardingManager from "@/components/forms/business/managerOnboardingForm";
 
-import { useEffect, useState } from "react";
-import { getSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import CheckoutSteps from "@/components/shared/header/managerSteps";
-import ManagerDashboard from "@/components/dashboard/business/managerDashboard";
-import ManagerOnboardingForm from "@/components/forms/business/managerOnboardingForm";
-import { hasManagerAccess } from "@/lib/roles";
-import ManagerStats from "@/components/dashboard/business/manager-stats";
+export default async function ManagerDashboardPage() {
+  const session = await getServerSession(authOptions);
 
-export default function ManagerHomePage() {
-  const [session, setSession] = useState(null);
-  const [manager, setManager] = useState(null);
-  const [loading, setLoading] = useState(true);
+  if (!session) {
+    redirect("/auth/login");
+  }
 
-  const router = useRouter();
-  const groupedData = manager?.houses?.reduce((acc, house) => {
-  const area = house.area?.label || "Unassigned";
-  if (!acc[area]) acc[area] = [];
-  acc[area].push(house);
-  return acc;
-}, {}) || {};
+  // Get user with houses
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    include: {
+      houses: {
+        include: {
+          area: true,
+        },
+      },
+    },
+  });
 
-  useEffect(() => {
-    const load = async () => {
-      const session = await getSession();
+  if (!user) {
+    redirect("/auth/login");
+  }
 
-      if (!session || !hasManagerAccess(session.user.role)) {
-        router.push("/unauthorised");
-        return;
-      }
+  // Check if manager has onboarded (has houses)
+  if (!user.managerOnboarded || user.houses.length === 0) {
+    // Show onboarding form instead of redirecting
+    const area = user.areaId ? await prisma.area.findUnique({
+      where: { id: user.areaId }
+    }) : null;
 
-      setSession(session);
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Welcome, {user.name}!
+            </h1>
+            <p className="text-gray-600">
+              Let's get your properties set up in the system
+            </p>
+          </div>
 
-      try {
-        const userRes = await fetch(`/api/user/${session.user.id}`);
-        const user = await userRes.json();
-        setManager(user);
-      } catch (err) {
-        console.error("Error fetching manager data:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+          <OnboardingManager 
+            managerEmail={user.email}
+            name={user.name}
+            area={area?.name || ""}
+          />
+        </div>
+      </div>
+    );
+  }
 
-    load();
-  }, []);
+  // Get manager's bookings (advanced bookings they created)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  if (loading) return <div className="p-6">Loading...</div>;
+  const [upcomingBookings, pendingBids, completedCount] = await Promise.all([
+    // Upcoming bookings
+    prisma.advancedBooking.findMany({
+      where: {
+        createdById: user.id,
+        pickupTime: {
+          gte: today,
+        },
+        status: {
+          in: ["OPEN", "ACCEPTED"],
+        },
+      },
+      include: {
+        accessibilityProfile: true,
+        bids: {
+          include: {
+            driver: {
+              select: {
+                name: true,
+                vehicleType: true,
+                phone: true,
+              },
+            },
+          },
+          orderBy: {
+            amountCents: "asc",
+          },
+        },
+        acceptedBid: {
+          include: {
+            driver: {
+              select: {
+                name: true,
+                vehicleType: true,
+                phone: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        pickupTime: "asc",
+      },
+      take: 10,
+    }),
 
-  const hasOnboarded = manager?.hasOnboarded;
+    // Count bookings needing attention (have bids but not accepted)
+    prisma.advancedBooking.count({
+      where: {
+        createdById: user.id,
+        status: "OPEN",
+        bids: {
+          some: {},
+        },
+      },
+    }),
+
+    // Count completed bookings
+    prisma.advancedBooking.count({
+      where: {
+        createdById: user.id,
+        status: "COMPLETED",
+      },
+    }),
+  ]);
+
+  const stats = {
+    totalHouses: user.houses.length,
+    upcomingRides: upcomingBookings.length,
+    pendingBids,
+    completedRides: completedCount,
+  };
 
   return (
-    <>
-      <CheckoutSteps current={0} />
-      <div className="max-w-3xl mx-auto mt-10">
-        {!hasOnboarded ? (
-          <ManagerOnboardingForm companyId={manager?.businessId} />
-        ) : (
-          <ManagerDashboard manager={manager} />
-        )}
-      </div>
-      {hasOnboarded && (
-  <ManagerStats groupedData={groupedData} />
-)}
-
-          {Object.entries(groupedData).map(([area, houses]) => (
-            <div key={area} className="mb-8">
-              <h2 className="text-xl font-bold text-blue-800 mb-4">📍 {area}</h2>
-              <div className="space-y-4">
-                {houses.map((house) => (
-                  <div key={house.id} className="p-4 bg-white rounded-lg shadow-sm border border-gray-200">
-  <p className="font-semibold text-gray-800">
-    🏠 {house.label} — {house.line1}, {house.postcode}
-  </p>
-  <p className="text-sm text-gray-600">
-    Internal ID: {house.internalId} | PIN: {house.pin}
-  </p>
-  <p className="text-sm text-gray-500 italic">
-    Tenants: {house.tenants || "None listed"}
-  </p>
-</div>
-                ))}
-              </div>
-            </div>
-          ))}
-    </>
+    <ManagerDashboardClient
+      user={user}
+      houses={user.houses}
+      upcomingBookings={upcomingBookings}
+      stats={stats}
+    />
   );
 }

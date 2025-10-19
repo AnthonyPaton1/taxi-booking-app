@@ -12,7 +12,7 @@ const WaitlistForm = () => {
         acc[field.id] = "";
         return acc;
       },
-      { type: "" } // adds the type field (CARE or TAXI)
+      { type: "" } 
     )
   );
 
@@ -144,7 +144,7 @@ const WaitlistForm = () => {
 
       {status && (
         <p
-          className="text-sm mt-2 text-center text-gray-700"
+          className="text-sm mt-2 text-center text-gray-900"
           role="status"
           aria-live="polite"
         >

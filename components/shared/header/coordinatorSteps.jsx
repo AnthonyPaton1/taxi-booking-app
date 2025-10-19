@@ -4,8 +4,7 @@ import React from "react";
 import Link from "next/link";
 
 const steps = [
-  { name: "Admin Dashboard", href: "/dashboard/coordinator" },
-  
+  { name: "Coordinator Dashboard", href: "/dashboard/coordinator" },
   { name: "Edit details", href: "/dashboard/admin/edit" },
   { name: "Feedback", href: "/dashboard/admin/feedback" },
 ];

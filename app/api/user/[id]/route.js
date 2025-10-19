@@ -1,12 +1,20 @@
 // app/api/user/[id]/route.js
 import { prisma } from "@/lib/db";
 
-export async function GET(req, { params }) {
-  const { id } = (await params);
+export async function GET(req, context) {
+  const { id } = await context.params;
 
   const user = await prisma.user.findUnique({
     where: { id },
-    include: { adminOfBusiness: true }, // make sure this is correct
+    include: {
+      adminOfBusiness: true,
+      business: true, // for businessId
+      houses: {
+        include: {
+          area: true, // for area.label
+        },
+      },
+    },
   });
 
   if (!user) {

@@ -1,5 +1,3 @@
-
-
 import CheckoutSteps from "@/components/shared/header/SuperAdminCheckoutSteps";
 
 const SuperAdminMainPage = async () => {

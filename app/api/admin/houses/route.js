@@ -13,7 +13,7 @@ export async function GET() {
   try {
     const houses = await prisma.house.findMany({
       include: {
-        company: true,
+        
         // You can expand this to include coordinator/manager assignments if stored separately
       },
     });

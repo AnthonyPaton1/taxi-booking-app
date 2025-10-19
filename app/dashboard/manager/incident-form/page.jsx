@@ -1,5 +1,5 @@
 'use client'
-import NewIncidentForm from "@/components/forms/incidentForm";
+import NewIncidentForm from "@/components/forms/business/incidentForm";
 import CheckoutSteps from "@/components/shared/header/managerSteps";
 
 const NewIncidentReporting = () => {

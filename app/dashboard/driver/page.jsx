@@ -5,34 +5,57 @@ import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
 import DriverDashboardClient from "@/components/dashboard/driver/DriverDashboardClient";
 import DriverOnboardingForm from "@/components/forms/driver/DriverOnboardingForm";
+import { getDriverStats } from "@/app/actions/driver/getDriverProfile";
+import { getDriverBookingsForToday } from "@/app/actions/driver/getDriverBookings";
+import { getAvailableInstantBookings, getAvailableAdvancedBookings } from "@/app/actions/bookings/getBookings";
 
 export default async function DriverDashboardPage() {
   const session = await getServerSession(authOptions);
 
-  const user = await prisma.user.findUnique({
-    where: { email: session?.user?.email },
-    include: { driver: true },
-  });
-
-  const hasOnboarded = !!user?.driver;
-
-  if (!session || !user) {
+  if (!session) {
     redirect("/auth/login");
   }
 
+  // Fetch user with driver profile
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    include: {
+      driver: {
+        include: {
+          accessibilityProfile: true,
+          compliance: true,
+        },
+      },
+    },
+  });
+
+  if (!user) {
+    redirect("/auth/login");
+  }
+
+  const hasOnboarded = !!user.driver;
+
+  // If not onboarded, show onboarding form
+  if (!hasOnboarded) {
+    return <DriverOnboardingForm />;
+  }
+
+  // Fetch dashboard data
+  const [statsResult, todaysBookings, availableInstant, availableAdvanced] = await Promise.all([
+    getDriverStats(),
+    getDriverBookingsForToday(),
+    getAvailableInstantBookings(),
+    getAvailableAdvancedBookings(),
+  ]);
+
   return (
-    <>
-      {!hasOnboarded ? (
-        <DriverOnboardingForm />
-      ) : (
-        <DriverDashboardClient
-          user={user}
-          jobsToday={[]} // or await prisma.jobs.findMany(...)
-          advancedJobs={[]}
-          notifications={[]}
-          messages={[]}
-        />
-      )}
-    </>
+    <DriverDashboardClient
+      user={user}
+      driver={user.driver}
+      stats={statsResult.success ? statsResult.stats : null}
+      todaysBookings={todaysBookings.success ? todaysBookings : { instant: [], advanced: [] }}
+      availableInstant={availableInstant.success ? availableInstant.bookings : []}
+      availableAdvanced={availableAdvanced.success ? availableAdvanced.bookings : []}
+    />
   );
 }

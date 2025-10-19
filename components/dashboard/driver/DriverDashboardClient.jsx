@@ -1,119 +1,254 @@
-// components/dashboard/DriverDashboardClient.jsx
+// components/dashboard/driver/DriverDashboardClient.jsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import CheckoutSteps from "@/components/shared/header/driverSteps";
+import Link from "next/link";
 
-export default function DriverDashboardClient({ user, jobsToday, advancedJobs, notifications, messages }) {
+export default function DriverDashboardClient({
+  user,
+  driver,
+  stats,
+  todaysBookings,
+  availableInstant,
+  availableAdvanced,
+}) {
   const [isAvailable, setIsAvailable] = useState(true);
+
+  // Extract booking arrays
+  const todaysInstant = todaysBookings?.instant || [];
+  const todaysAdvanced = todaysBookings?.advanced || [];
+  const totalToday = todaysInstant.length + todaysAdvanced.length;
 
   return (
     <>
       <CheckoutSteps />
       <div className="p-6 space-y-6">
+        {/* Welcome Header */}
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Welcome back, {driver?.name || user?.name}!
+          </h1>
+          <ClientDate />
+        </div>
+
         {/* Stat Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          <StatCard title="Today's Jobs" value="4" />
-          <StatCard title="Advanced Bookings" value="7" />
-          <StatCard title="Jobs Completed" value="120" />
-          <StatCard title="Earnings" value="£1,230" />
-          <StatCard title="Subscription" value="12 days left" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            title="Today's Jobs"
+            value={stats?.todaysJobs || totalToday}
+            color="blue"
+          />
+          <StatCard
+            title="Upcoming Jobs"
+            value={stats?.upcomingJobs || 0}
+            color="green"
+          />
+          <StatCard
+            title="Completed"
+            value={stats?.completedJobs || 0}
+            color="purple"
+          />
+          <StatCard
+            title="Earnings"
+            value={`£${((stats?.totalEarnings || 0) / 100).toFixed(2)}`}
+            color="yellow"
+          />
         </div>
 
-        {/* Job Sheets */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <JobSheet title="Today's Job Sheet" jobs={jobsToday} />
-          <JobSheet title="Advanced Job Sheet" jobs={advancedJobs} />
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <QuickActionCard
+            title="Available Instant Bookings"
+            count={availableInstant?.length || 0}
+            href="/dashboard/driver/instant"
+            color="blue"
+          />
+          <QuickActionCard
+            title="Advanced Bookings (Bids)"
+            count={availableAdvanced?.length || 0}
+            href="/dashboard/driver/advanced"
+            color="green"
+          />
+          <QuickActionCard
+            title="Today's Schedule"
+            count={totalToday}
+            href="/dashboard/driver/daily"
+            color="purple"
+          />
         </div>
 
-        {/* Tools */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Notifications items={notifications} />
-          <div className="bg-white p-4 shadow rounded">
-            <h2 className="font-semibold mb-2">Availability</h2>
+        {/* Today's Jobs Preview */}
+        {totalToday > 0 && (
+          <div className="bg-white shadow rounded-lg p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Today's Jobs
+              </h2>
+              <Link
+                href="/dashboard/driver/daily"
+                className="text-sm text-blue-600 hover:underline"
+              >
+                View all
+              </Link>
+            </div>
+            <div className="space-y-2">
+              {todaysInstant.slice(0, 3).map((booking) => (
+                <JobPreview key={booking.id} booking={booking} type="instant" />
+              ))}
+              {todaysAdvanced.slice(0, 3).map((booking) => (
+                <JobPreview key={booking.id} booking={booking} type="advanced" />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Availability Toggle & Settings */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-white shadow rounded-lg p-6">
+            <h2 className="text-lg font-semibold mb-4">Availability</h2>
             <button
               onClick={() => setIsAvailable(!isAvailable)}
-              className={`px-4 py-2 rounded ${
+              className={`w-full px-6 py-3 rounded-lg font-medium transition-colors ${
                 isAvailable
-                  ? "bg-green-600 text-white"
-                  : "bg-gray-400 text-black"
+                  ? "bg-green-600 text-white hover:bg-green-700"
+                  : "bg-gray-400 text-white hover:bg-gray-500"
               }`}
             >
-              {isAvailable ? "Online" : "Offline"}
+              {isAvailable ? "🟢 Online" : "🔴 Offline"}
             </button>
+            <p className="text-xs text-gray-500 mt-2 text-center">
+              {isAvailable
+                ? "You're visible to customers"
+                : "You won't receive new bookings"}
+            </p>
           </div>
-          <Messages messages={messages} />
-        </div>
 
-        {/* Settings */}
-        <div className="bg-white p-4 shadow rounded">
-          <h2 className="font-semibold mb-2">Driver Settings</h2>
-          <p>DBS: ✅</p>
-          <p>PL Insurance: ✅</p>
-          <p>Car Insurance: ✅</p>
-          <button className="mt-2 px-4 py-2 bg-blue-700 text-white rounded">
-            Edit Details
-          </button>
+          <div className="bg-white shadow rounded-lg p-6">
+            <h2 className="text-lg font-semibold mb-4">Compliance Status</h2>
+            <div className="space-y-2 text-sm">
+              <ComplianceItem
+                label="DBS Check"
+                status={driver?.compliance?.dbsChecked}
+              />
+              <ComplianceItem
+                label="Insurance"
+                status={driver?.compliance?.fullyCompInsurance}
+              />
+              <ComplianceItem
+                label="License"
+                status={driver?.compliance?.ukDrivingLicence}
+              />
+            </div>
+            <Link
+              href="/dashboard/driver/edit"
+              className="mt-4 block text-center text-sm text-blue-600 hover:underline"
+            >
+              Edit Details
+            </Link>
+          </div>
         </div>
       </div>
     </>
   );
 }
 
-const StatCard = ({ title, value }) => (
-  <div className="bg-white shadow rounded p-4 text-center">
-    <h3 className="text-gray-600 text-sm">{title}</h3>
-    <p className="text-2xl font-bold">{value}</p>
+// Stat Card Component
+const StatCard = ({ title, value, color }) => {
+  const colors = {
+    blue: "bg-blue-50 text-blue-700 border-blue-200",
+    green: "bg-green-50 text-green-700 border-green-200",
+    purple: "bg-purple-50 text-purple-700 border-purple-200",
+    yellow: "bg-yellow-50 text-yellow-700 border-yellow-200",
+  };
+
+  return (
+    <div className={`${colors[color]} border rounded-lg p-4`}>
+      <h3 className="text-sm font-medium opacity-75">{title}</h3>
+      <p className="text-3xl font-bold mt-2">{value}</p>
+    </div>
+  );
+};
+
+// Quick Action Card
+const QuickActionCard = ({ title, count, href, color }) => {
+  const colors = {
+    blue: "border-blue-200 hover:bg-blue-50",
+    green: "border-green-200 hover:bg-green-50",
+    purple: "border-purple-200 hover:bg-purple-50",
+  };
+
+  return (
+    <Link
+      href={href}
+      className={`block bg-white border-2 ${colors[color]} rounded-lg p-6 transition-colors`}
+    >
+      <h3 className="text-sm font-medium text-gray-600">{title}</h3>
+      <p className="text-4xl font-bold text-gray-900 mt-2">{count}</p>
+      <p className="text-sm text-gray-500 mt-2">Click to view →</p>
+    </Link>
+  );
+};
+
+// Job Preview
+const JobPreview = ({ booking, type }) => {
+  const pickupTime = new Date(booking.pickupTime);
+  return (
+    <div className="flex items-center justify-between p-3 bg-gray-50 rounded border border-gray-200">
+      <div className="flex items-center gap-3">
+        <span className="text-sm font-semibold text-blue-600">
+          {pickupTime.toLocaleTimeString("en-GB", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </span>
+        <span className="text-sm text-gray-700">
+          {booking.pickupLocation} → {booking.dropoffLocation}
+        </span>
+      </div>
+      <span
+        className={`text-xs px-2 py-1 rounded ${
+          type === "instant"
+            ? "bg-blue-100 text-blue-700"
+            : "bg-green-100 text-green-700"
+        }`}
+      >
+        {type === "instant" ? "Instant" : "Advanced"}
+      </span>
+    </div>
+  );
+};
+
+// Compliance Item
+const ComplianceItem = ({ label, status }) => (
+  <div className="flex justify-between items-center">
+    <span className="text-gray-600">{label}</span>
+    <span className={status ? "text-green-600" : "text-red-600"}>
+      {status ? "✓ Valid" : "✗ Missing"}
+    </span>
   </div>
 );
 
-const JobSheet = ({ title, jobs }) => (
-  <div className="bg-white shadow rounded p-4">
-    <h2 className="font-semibold mb-2">{title}</h2>
-    {jobs.length === 0 ? (
-      <p className="text-gray-500">No jobs available.</p>
-    ) : (
-      <ul className="space-y-2">
-        {jobs.map((job, i) => (
-          <li key={i} className="p-2 border rounded">
-            {job.pickup} &rarr; {job.dropoff} at {job.time}
-          </li>
-        ))}
-      </ul>
-    )}
-  </div>
-);
+// Client-only date to avoid hydration mismatch
+function ClientDate() {
+  const [mounted, setMounted] = useState(false);
 
-const Notifications = ({ items }) => (
-  <div className="bg-white shadow rounded p-4">
-    <h2 className="font-semibold mb-2">Notifications</h2>
-    {items.length === 0 ? (
-      <p className="text-gray-500">No notifications</p>
-    ) : (
-      <ul className="space-y-2">
-        {items.map((n, i) => (
-          <li key={i} className="text-sm text-gray-700">
-            {n}
-          </li>
-        ))}
-      </ul>
-    )}
-  </div>
-);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-const Messages = ({ messages }) => (
-  <div className="bg-white shadow rounded p-4">
-    <h2 className="font-semibold mb-2">Messages</h2>
-    {messages.length === 0 ? (
-      <p className="text-gray-500">No messages</p>
-    ) : (
-      <ul className="space-y-2">
-        {messages.map((m, i) => (
-          <li key={i} className="text-sm text-gray-700">
-            {m}
-          </li>
-        ))}
-      </ul>
-    )}
-  </div>
-);
+  if (!mounted) {
+    return <p className="text-gray-600">Loading date...</p>;
+  }
+
+  return (
+    <p className="text-gray-600">
+      {new Date().toLocaleDateString("en-GB", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })}
+    </p>
+  );
+}

@@ -4,6 +4,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
+import EmailProvider from "next-auth/providers/email";
 
 function getDashboardByRole(role) {
   switch (role) {
@@ -30,6 +31,11 @@ export const authOptions = {
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
+     EmailProvider({
+      server: process.env.EMAIL_SERVER,
+      from: process.env.EMAIL_FROM,
+    }),
+    
 
     CredentialsProvider({
       id: "credentials",
@@ -56,7 +62,7 @@ export const authOptions = {
           throw new Error("Invalid credentials");
         }
 
-       
+       console.log(process.env.EMAIL_SERVER)
 
         return {
           id: user.id,

@@ -1,7 +1,7 @@
 // components/dashboard/business/adminDashboard.jsx
 "use client";
 
-import AdminStats from "./adminDashboardStats";
+import AdminStats from "./admin-stats";
 
 export default function AdminDashboard({ groupedData }) {
   return (

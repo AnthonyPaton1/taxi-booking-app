@@ -15,7 +15,7 @@ const Navbar = () => {
   function getDashboardLink(role) {
     switch (role) {
       case "SUPER_ADMIN":
-      case "COMPANY_ADMIN":
+      case "ADMIN":
         return "/dashboard/admin";
       case "COORDINATOR":
         return "/dashboard/coordinator";
@@ -23,7 +23,7 @@ const Navbar = () => {
         return "/dashboard/manager";
       case "DRIVER":
         return "/dashboard/driver";
-      case "PUBLIC": // 👈 New role
+      case "PUBLIC": 
         return "/dashboard/public";
       default:
         return null;

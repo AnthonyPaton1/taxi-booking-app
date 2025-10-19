@@ -30,7 +30,7 @@ export async function POST(req) {
     const validated = AdminOnboardingSchema.parse({...body,
       type: body.type || inferredType,
     });
-    console.log("Validated body:", validated);
+    const { coordinators = [] } = validated;
 
     const existingBusiness = await prisma.business.findUnique({
       where: { adminUserId: adminUser.id },
@@ -70,17 +70,28 @@ export async function POST(req) {
       await prisma.user.update({
         where: { id: adminUser.id },
         data: { businessId: business.id },
-        
       });
     }
 
-    for (const coord of validated.coordinators) {
+    for (const coord of coordinators) {
+      // ✅ CREATE OR GET THE AREA RECORD
+      let areaRecord = null;
+      if (coord.area && coord.area.trim()) {
+        areaRecord = await prisma.area.upsert({
+          where: { name: coord.area.trim() },
+          update: {},
+          create: { name: coord.area.trim() },
+        });
+      }
+
       const user = await prisma.user.upsert({
         where: { email: coord.email },
         update: {
           name: coord.name,
           phone: coord.phone,
           businessId: business.id,
+          // ✅ Link coordinator to their area
+          areaId: areaRecord?.id,
         },
         create: {
           email: coord.email,
@@ -88,6 +99,8 @@ export async function POST(req) {
           phone: coord.phone,
           role: "COORDINATOR",
           businessId: business.id,
+          // ✅ Link coordinator to their area
+          areaId: areaRecord?.id,
         },
       });
 
@@ -105,17 +118,18 @@ export async function POST(req) {
           role: "COORDINATOR",
         },
       });
-       // Send invite after upsert
-  await inviteUserToLogin({
-    email: coord.email,
-    name: coord.name,
-    role: "COORDINATOR",
-  });
-  await prisma.user.update({
-  where: { id: adminUser.id },
-  data: { adminOnboarded: true },
-});
+
+      await inviteUserToLogin({
+        email: coord.email,
+        name: coord.name,
+        role: "COORDINATOR",
+      });
     }
+
+    await prisma.user.update({
+      where: { id: adminUser.id },
+      data: { adminOnboarded: true },
+    });
 
     return NextResponse.json({ success: true, businessId: business.id });
   } catch (error) {
@@ -131,4 +145,3 @@ export async function POST(req) {
     );
   }
 }
-

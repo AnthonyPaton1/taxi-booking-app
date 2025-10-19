@@ -81,8 +81,6 @@ enum InstantBookingStatus {
  * ======================
  */
 
-
-
 model PasswordResetToken {
   id        String   @id @default(cuid())
   token     String   @unique
@@ -92,29 +90,29 @@ model PasswordResetToken {
   expiresAt DateTime
 }
 
-
-
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
   name          String?
-  phone         String?   @unique
+  phone         String?
   password      String?
   role          Role      @default(PUBLIC)
   image         String?
   emailVerified DateTime?
   isApproved    Boolean   @default(false)
-  
-  driverOnboarded      Boolean   @default(false)
-  managerOnboarded     Boolean   @default(false)
-  coordinatorOnboarded Boolean   @default(false)
-  adminOnboarded Boolean @default(false)
+
+  driverOnboarded      Boolean @default(false)
+  managerOnboarded     Boolean @default(false)
+  coordinatorOnboarded Boolean @default(false)
+  adminOnboarded       Boolean @default(false)
+
   // Self relation: manager ↔ drivers
   managerId String?
   manager   User?   @relation("ManagerDrivers", fields: [managerId], references: [id])
   drivers   User[]  @relation("ManagerDrivers")
 
-driver Driver? @relation("UserDriver")
+  driver Driver? @relation("UserDriver")
+
   // Business link
   businessId String?
   business   Business? @relation("UserBusiness", fields: [businessId], references: [id])
@@ -134,13 +132,12 @@ driver Driver? @relation("UserDriver")
   incidents           Incident[]
   instantBookings     InstantBooking[]     @relation("CreatorInstantBookings")
   advancedBookings    AdvancedBooking[]    @relation("CreatorAdvancedBookings")
-  houses House[]
+  houses              House[]
 
   adminOfBusiness         Business?        @relation("BusinessAdminUser")
   acceptedInstantBookings InstantBooking[] @relation("UserAcceptedInstant")
-  passwordResetTokens PasswordResetToken[] @relation("UserPasswordResetTokens")
-   passwordResetToken   String?
-  passwordResetExpires DateTime?
+  passwordResetTokens     PasswordResetToken[] @relation("UserPasswordResetTokens")
+
   // Preferences
   postcode     String?
   radius       Int?
@@ -156,74 +153,131 @@ driver Driver? @relation("UserDriver")
   @@index([deletedAt])
 }
 
-model Driver {
-  id             String   @id @default(cuid())
-  userId         String   @unique
-  name String
-user   User   @relation("UserDriver", fields: [userId], references: [id], onDelete: Cascade) 
-   // Compliance
-  ukDrivingLicence         Boolean @default(false)
-  localAuthorityRegistered Boolean @default(false)
-  dbsChecked               Boolean @default(false)
-  publicLiabilityInsurance Boolean @default(false)
-  fullyCompInsurance       Boolean @default(false)
-  healthCheckPassed        Boolean @default(false)
-  englishProficiency       Boolean @default(false)
+/**
+ * ======================
+ * NEW: Accessibility Profile (Shared)
+ * ======================
+ */
+model AccessibilityProfile {
+  id String @id @default(cuid())
 
-  // Accessibility
-  wheelchairAccess       Boolean @default(false) 
-  doubleWheelchairAccess Boolean @default(false) 
+  // Mobility & Physical
+  wheelchairAccess       Boolean @default(false)
+  doubleWheelchairAccess Boolean @default(false)
   highRoof               Boolean @default(false)
-  carerPresent           Boolean @default(false)
-  passengerCount         Int     @default(0)
-  wheelchairUsers        Int     @default(0)
-  nonWAVvehicle          Boolean @default(false)
-  femaleDriverOnly       Boolean @default(false)
-  quietEnvironment       Boolean @default(false)
-  assistanceRequired     Boolean @default(false)
-  noConversation         Boolean @default(false)
-  specificMusic          Boolean 
+  seatTransferHelp       Boolean @default(false)
+  mobilityAidStorage     Boolean @default(false)
   electricScooterStorage Boolean @default(false)
-  visualSchedule         Boolean @default(false)
-  assistanceAnimal       Boolean @default(false)
-  familiarDriverOnly     Boolean @default(false)
-  ageOfPassenger         Int?
-  escortRequired         Boolean @default(false)
-  preferredLanguage      String?
-  signLanguageRequired   Boolean @default(false)
-  textOnlyCommunication  Boolean @default(false)
-  medicalConditions      String?
-  medicationOnBoard     Boolean @default(false)
-  additionalNeeds        String?
- 
-seatTransferHelp       Boolean @default(false)
-mobilityAidStorage     Boolean @default(false)
-noScents               Boolean @default(false)
-translationSupport     Boolean @default(false)
-firstAidTrained        Boolean @default(false)
-conditionAwareness     Boolean @default(false)
 
-  
-  vehicleType    String   // e.g. Car, WAV, Minibus
-  vehicleReg     String
-  licenceNumber String
-  localPostcode  String   // base area
-  radiusMiles    Int      // pickup radius
-  phone          String
-  approved       Boolean  @default(false)
+  // Passenger details
+  passengerCount  Int     @default(0)
+  wheelchairUsers Int     @default(0)
+  ageOfPassenger  Int?
+  carerPresent    Boolean @default(false)
+  escortRequired  Boolean @default(false)
 
-  instantBookings  InstantBooking[] @relation("DriverInstantBookings")
-  advancedBids     Bid[]            @relation("DriverBids")
+  // Sensory preferences
+  quietEnvironment Boolean @default(false)
+  noConversation   Boolean @default(false)
+  noScents         Boolean @default(false)
+  specificMusic    String? // e.g., "Classical", "No music", "Passenger choice"
+  visualSchedule   Boolean @default(false)
 
- // Vehicle amenities
-  amenities String[]
+  // Communication
+  signLanguageRequired  Boolean @default(false)
+  textOnlyCommunication Boolean @default(false)
+  preferredLanguage     String?
+  translationSupport    Boolean @default(false)
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  // Special requirements
+  assistanceRequired Boolean @default(false)
+  assistanceAnimal   Boolean @default(false)
+  familiarDriverOnly Boolean @default(false)
+  femaleDriverOnly   Boolean @default(false)
+  nonWAVvehicle      Boolean @default(false)
+
+  // Health & safety
+  medicationOnBoard  Boolean @default(false)
+  medicalConditions  String?
+  firstAidTrained    Boolean @default(false)
+  conditionAwareness Boolean @default(false) // e.g., autism, dementia
+
+  // Additional
+  additionalNeeds String?
+
+  // Relations (one-to-one)
+  driver           Driver?          @relation("DriverAccessibility")
+  advancedBooking  AdvancedBooking? @relation("AdvancedBookingAccessibility")
+  instantBooking   InstantBooking?  @relation("InstantBookingAccessibility")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/**
+ * ======================
+ * Driver Models (Split)
+ * ======================
+ */
+model Driver {
+  id     String @id @default(cuid())
+  userId String @unique
+  name   String
+  user   User   @relation("UserDriver", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Vehicle info
+  vehicleType String // e.g., Car, WAV, Minibus
+  vehicleReg  String
+  amenities   String[] // High roof, side step, etc.
+
+  // Location & availability
+  localPostcode String
+  radiusMiles   Int
+  phone         String
+
+  // Approval status
+  approved Boolean @default(false)
+
+  // Relations
+  accessibilityProfileId String              @unique
+  accessibilityProfile   AccessibilityProfile @relation("DriverAccessibility", fields: [accessibilityProfileId], references: [id], onDelete: Cascade)
+
+  compliance DriverCompliance? @relation("DriverComplianceRelation")
+
+  instantBookings InstantBooking[] @relation("DriverInstantBookings")
+  advancedBids    Bid[]            @relation("DriverBids")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([localPostcode, approved])
+}
+
+model DriverCompliance {
+  id       String @id @default(cuid())
+  driverId String @unique
+  driver   Driver @relation("DriverComplianceRelation", fields: [driverId], references: [id], onDelete: Cascade)
+
+  // License & registration (ALL REQUIRED - no optionals)
+  ukDrivingLicence         Boolean
+  licenceNumber            String  // ✅ Required for compliance
+  localAuthorityRegistered Boolean
+
+  // Checks & insurance (ALL REQUIRED)
+  dbsChecked               Boolean
+  publicLiabilityInsurance Boolean
+  fullyCompInsurance       Boolean
+
+  // Health & language (ALL REQUIRED)
+  healthCheckPassed  Boolean
+  englishProficiency Boolean
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Business {
-  id       String       @id @default(cuid())
+  id       String  @id @default(cuid())
   type     String
   name     String
   phone    String?
@@ -232,7 +286,7 @@ model Business {
   address1 String?
   city     String?
   postcode String?
-  approved Boolean      @default(false)
+  approved Boolean @default(false)
 
   // Admin account
   adminUserId String @unique
@@ -243,8 +297,8 @@ model Business {
   employees   User[]               @relation("UserBusiness")
 
   // Domain data
-  housesAsBusiness House[] @relation(name: "HouseBusiness")
-  housesAsCompany  House[] @relation(name: "HouseCompany")
+  housesAsBusiness        House[]           @relation(name: "HouseBusiness")
+  housesAsCompany         House[]           @relation(name: "HouseCompany")
   driverInvites           DriverInvite[]
   incidents               Incident[]
   advancedBookings        AdvancedBooking[] @relation("BusinessAdvancedBookings")
@@ -261,8 +315,8 @@ model BusinessMembership {
   businessId String
   role       BusinessMembershipRole
 
-  user     User     @relation("MembershipUser", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  business Business @relation("MembershipBusiness", fields: [businessId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user     User     @relation("MembershipUser", fields: [userId], references: [id], onDelete: Cascade)
+  business Business @relation("MembershipBusiness", fields: [businessId], references: [id], onDelete: Cascade)
 
   // Verification
   dbsChecked         Boolean @default(false)
@@ -274,7 +328,7 @@ model BusinessMembership {
   verifiedAt DateTime?
 
   verifiedById String?
-  verifiedBy   User?   @relation("MembershipVerifier", fields: [verifiedById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  verifiedBy   User?   @relation("MembershipVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
 
   verifyNotes String?
 
@@ -291,49 +345,47 @@ model Area {
   id   String @id @default(cuid())
   name String @unique
 
-  users User[] @relation("UserArea")
+  users User[]  @relation("UserArea")
   house House[]
 }
 
 model House {
   id         String   @id @default(cuid())
-
   businessId String
-  business   Business @relation(name: "HouseBusiness", fields: [businessId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  business   Business @relation(name: "HouseBusiness", fields: [businessId], references: [id], onDelete: Cascade)
 
-  companyId  String?
-  company    Business? @relation(name: "HouseCompany", fields: [companyId], references: [id])
+  companyId String?
+  company   Business? @relation(name: "HouseCompany", fields: [companyId], references: [id])
 
-  label      String
-  line1      String
-  city       String
-  postcode   String
-  notes      String?
+  label    String
+  line1    String
+  city     String
+  postcode String
+  notes    String?
 
-  internalId String   @unique
+  internalId String @unique
   pin        String
-  loginName  String   @unique
+  loginName  String @unique
 
-  incidents  Incident[]
-  createdAt  DateTime  @default(now())
-  deletedAt  DateTime?
+  incidents Incident[]
+  createdAt DateTime   @default(now())
+  deletedAt DateTime?
 
-  managerId  String
-  manager    User      @relation(fields: [managerId], references: [id], onDelete: Cascade)
+  managerId String
+  manager   User   @relation(fields: [managerId], references: [id], onDelete: Cascade)
 
-  areaId     String
-  area       Area      @relation(fields: [areaId], references: [id])
+  areaId String
+  area   Area   @relation(fields: [areaId], references: [id])
 
-  tenants    String
+  tenants String
 
   @@index([businessId, label])
   @@index([deletedAt])
 }
 
-
 /**
  * ======================
- * Bookings
+ * Bookings (Updated)
  * ======================
  */
 model AdvancedBooking {
@@ -348,33 +400,11 @@ model AdvancedBooking {
   returnTime      DateTime?
   pickupLocation  String
   dropoffLocation String
-  initials String[]
+  initials        String[]
 
-  // Accessibility
-  wheelchairAccess       Boolean @default(false)
-  doubleWheelchairAccess Boolean @default(false)
-  highRoof               Boolean @default(false)
-  carerPresent           Boolean @default(false)
-  passengerCount         Int     @default(0)
-  wheelchairUsers        Int     @default(0)
-  nonWAVvehicle          Boolean @default(false)
-  femaleDriverOnly       Boolean @default(false)
-  quietEnvironment       Boolean @default(false)
-  assistanceRequired     Boolean @default(false)
-  noConversation         Boolean @default(false)
-  specificMusic          String?
-  electricScooterStorage Boolean @default(false)
-  visualSchedule         Boolean @default(false)
-  assistanceAnimal       Boolean @default(false)
-  familiarDriverOnly     Boolean @default(false)
-  ageOfPassenger         Int?
-  escortRequired         Boolean @default(false)
-  preferredLanguage      String?
-  signLanguageRequired   Boolean @default(false)
-  textOnlyCommunication  Boolean @default(false)
-  medicalConditions      String?
-  medicationOnBoard      Boolean @default(false)
-  additionalNeeds        String?
+  // Accessibility (now via relation)
+  accessibilityProfileId String               @unique
+  accessibilityProfile   AccessibilityProfile @relation("AdvancedBookingAccessibility", fields: [accessibilityProfileId], references: [id], onDelete: Cascade)
 
   // Bidding
   visibility    AdvancedBookingVisibility @default(PRIVATE_TO_COMPANY)
@@ -413,36 +443,20 @@ model InstantBooking {
   returnTime      DateTime?
   pickupLocation  String
   dropoffLocation String
-  initials String[]
+  initials        String[]
 
-   driverId String?
+  driverId String?
   driver   Driver? @relation("DriverInstantBookings", fields: [driverId], references: [id], onDelete: SetNull)
 
-  // Accessibility
-  wheelchairAccess       Boolean @default(false)
-  doubleWheelchairAccess Boolean @default(false)
-  highRoof               Boolean @default(false)
-  carerPresent           Boolean @default(false)
-  passengerCount         Int     @default(0)
-  wheelchairUsers        Int     @default(0)
-  nonWAVvehicle          Boolean @default(false)
-  femaleDriverOnly       Boolean @default(false)
-  quietEnvironment       Boolean @default(false)
-  assistanceRequired     Boolean @default(false)
-  noConversation         Boolean @default(false)
-  specificMusic          String?
-  electricScooterStorage Boolean @default(false)
-  visualSchedule         Boolean @default(false)
-  assistanceAnimal       Boolean @default(false)
-  familiarDriverOnly     Boolean @default(false)
-  ageOfPassenger         Int?
-  escortRequired         Boolean @default(false)
-  preferredLanguage      String?
-  signLanguageRequired   Boolean @default(false)
-  textOnlyCommunication  Boolean @default(false)
-  medicalConditions      String?
-  medicationOnBoard      Boolean @default(false)
-  additionalNeeds        String?
+  // Accessibility (now via relation)
+  accessibilityProfileId String               @unique
+  accessibilityProfile   AccessibilityProfile @relation("InstantBookingAccessibility", fields: [accessibilityProfileId], references: [id], onDelete: Cascade)
+
+  // Pricing (NEW)
+  estimatedCostPence Int?
+  finalCostPence     Int?
+  distanceMiles      Float?
+  durationMinutes    Int?
 
   // Acceptance
   acceptedAt           DateTime?
@@ -459,6 +473,9 @@ model InstantBooking {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([status, pickupTime])
+  @@index([driverId])
 }
 
 /**
@@ -500,10 +517,10 @@ model Bid {
 model RideSchedule {
   id                String          @id @default(cuid())
   advancedBookingId String          @unique
-  advancedBooking   AdvancedBooking @relation(fields: [advancedBookingId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  advancedBooking   AdvancedBooking @relation(fields: [advancedBookingId], references: [id], onDelete: Cascade)
 
   driverId String
-  driver   User   @relation("DriverSchedules", fields: [driverId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  driver   User   @relation("DriverSchedules", fields: [driverId], references: [id], onDelete: Cascade)
 
   startAt DateTime
   endAt   DateTime?
@@ -520,18 +537,18 @@ model RideSchedule {
 model Notification {
   id     String @id @default(cuid())
   userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   type String
 
   advancedBookingId String?
-  advancedBooking   AdvancedBooking? @relation(fields: [advancedBookingId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  advancedBooking   AdvancedBooking? @relation(fields: [advancedBookingId], references: [id], onDelete: SetNull)
 
   instantBookingId String?
-  instantBooking   InstantBooking? @relation(fields: [instantBookingId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  instantBooking   InstantBooking? @relation(fields: [instantBookingId], references: [id], onDelete: SetNull)
 
   bidId String?
-  bid   Bid?    @relation(fields: [bidId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  bid   Bid?    @relation(fields: [bidId], references: [id], onDelete: SetNull)
 
   payload Json?
   readAt  DateTime?
@@ -551,7 +568,7 @@ model Notification {
 model TripFeedback {
   id     String @id @default(cuid())
   userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   advancedBookingId String?
   advancedBooking   AdvancedBooking? @relation(fields: [advancedBookingId], references: [id])
@@ -574,12 +591,12 @@ model TripFeedback {
 model Invoice {
   id       String @id @default(cuid())
   driverId String
-  driver   User   @relation(fields: [driverId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  driver   User   @relation(fields: [driverId], references: [id], onDelete: Cascade)
 
   advancedBookingId String?
-  advancedBooking   AdvancedBooking? @relation(fields: [advancedBookingId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  advancedBooking   AdvancedBooking? @relation(fields: [advancedBookingId], references: [id], onDelete: SetNull)
   instantBookingId  String?
-  instantBooking    InstantBooking?  @relation(fields: [instantBookingId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  instantBooking    InstantBooking?  @relation(fields: [instantBookingId], references: [id], onDelete: SetNull)
 
   amountCents Int
   currency    String    @default("GBP")
@@ -598,7 +615,7 @@ model Invoice {
 model DriverInvite {
   id         String   @id @default(cuid())
   businessId String
-  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   email      String
   token      String    @unique
@@ -669,5 +686,3 @@ model VerificationToken {
 
   @@unique([identifier, token])
 }
-
-

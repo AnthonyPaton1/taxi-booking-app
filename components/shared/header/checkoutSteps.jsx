@@ -5,10 +5,10 @@ import Link from "next/link";
 
 const steps = [
   { name: "Admin Dashboard", href: "/dashboard/admin" },
-  { name: "SignUp Form", href: "/dashboard/admin/onboarding" },
   { name: "Edit details", href: "/dashboard/admin/edit" },
   { name: "Audit view", href: "/dashboard/admin/audit" },
   { name: "Notifications", href: "/dashboard/admin/notifications" },
+  
 ];
 
 const CheckoutSteps = ({ current = 0 }) => {

@@ -462,63 +462,69 @@ Please answer the questions below accurately.
 
   {/* Sensory */}
   <fieldset
-    className="border border-gray-200 p-4 rounded"
-    aria-labelledby="driver-sensory-legend"
+  className="border border-gray-200 p-4 rounded"
+  aria-labelledby="driver-sensory-legend"
+>
+  <legend
+    id="driver-sensory-legend"
+    className="text-md font-semibold text-gray-700 mb-2"
   >
-    <legend
-      id="driver-sensory-legend"
-      className="text-md font-semibold text-gray-700 mb-2"
-    >
-      Sensory Preferences
-    </legend>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-      <label className="flex items-center">
-        <input
-          type="checkbox"
-          name="quietEnvironment"
-          checked={formData.quietEnvironment || false}
-          onChange={handleChange}
-          className="mr-2"
-        />
-        Quiet ride / no conversation
+    Sensory Preferences
+  </legend>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <label className="flex items-center">
+      <input
+        type="checkbox"
+        name="quietEnvironment"
+        checked={formData.quietEnvironment || false}
+        onChange={handleChange}
+        className="mr-2"
+      />
+      Quiet ride / no conversation
+    </label>
+    <label className="flex items-center">
+      <input
+        type="checkbox"
+        name="noScents"
+        checked={formData.noScents || false}
+        onChange={handleChange}
+        className="mr-2"
+      />
+      No perfume or strong scents
+    </label>
+    
+    {/* UPDATED: Music preference as text input */}
+    <div className="col-span-2">
+      <label htmlFor="specificMusic" className="block text-sm font-medium text-gray-700 mb-1">
+        Music Preferences (Optional)
       </label>
-      <label className="flex items-center">
-        <input
-          type="checkbox"
-          name="noScents"
-          checked={formData.noScents || false}
-          onChange={handleChange}
-          className="mr-2"
-        />
-        No perfume or strong scents
-      </label>
-      <label className="flex items-center">
-        <input
-          type="checkbox"
-          name="specificMusic"
-          checked={formData.specificMusic || false}
-         onChange={(e) =>
-    setFormData((prev) => ({
-      ...prev,
-      specificMusic: e.target.checked,
-    }))
-  }
-          className="mr-2"
-        />
-        Accommodate music preferences
-      </label>
-      <label className="flex items-center">
-        <input
-          type="checkbox"
-          name="visualSchedule"
-          checked={formData.visualSchedule || false}
-          onChange={handleChange}
-          className="mr-2"
-        />
-        Provide visual schedule
-      </label>
+      <input
+        type="text"
+        id="specificMusic"
+        name="specificMusic"
+        value={formData.specificMusic || ""}
+        onChange={handleChange}
+        placeholder="e.g., Classical, No music, Passenger choice"
+        className="w-full p-2 border rounded focus:ring focus:ring-blue-500"
+      />
+      <p className="text-xs text-gray-500 mt-1">
+        Describe what music options you can offer (or leave blank)
+      </p>
     </div>
-  </fieldset>
+    
+    <label className="flex items-center">
+      <input
+        type="checkbox"
+        name="visualSchedule"
+        checked={formData.visualSchedule || false}
+        onChange={handleChange}
+        className="mr-2"
+      />
+      Provide visual schedule
+    </label>
+  </div>
+</fieldset>
+ 
 
   {/* Communication */}
   <fieldset

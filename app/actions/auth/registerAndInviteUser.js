@@ -6,7 +6,7 @@ import crypto from "crypto";
 import { sendEmail } from "@/lib/email";
 
 export async function registerAndInviteUser(formData) {
-  const { name, email, type, phone } = formData;
+  const { name, email, role, phone } = formData;
 
   // Check if user already exists
   const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -20,7 +20,7 @@ export async function registerAndInviteUser(formData) {
       name,
       email,
       phone,
-      role: type, // ADMIN or DRIVER from form
+      role, // ADMIN or DRIVER from form
       isApproved: true,
     },
   });
