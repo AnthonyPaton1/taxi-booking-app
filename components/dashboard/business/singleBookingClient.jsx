@@ -5,19 +5,19 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { acceptBid } from "@/app/actions/bookings/acceptedBid";
-import { cancelBooking } from "@/app/actions/bookings/cancelBooking";
-import StatusMessage from "../shared/statusMessage";
+import { cancelBooking } from "@/app/actions/bookings/cancelBookings";
+import StatusMessage from "@/components/shared/statusMessage";
 import { 
   User, 
   MapPin, 
   Calendar, 
   Clock, 
   Users, 
-  Wheelchair,
+  Accessibility,  
   Phone,
   Mail,
   MessageSquare,
-  Pound,
+  PoundSterling,     
   TrendingUp,
   CheckCircle,
   XCircle,
@@ -202,7 +202,7 @@ export default function SingleBookingClient({ booking }) {
               </p>
               {booking.wheelchairUsers > 0 && (
                 <p className="flex items-center">
-                  <Wheelchair className="w-4 h-4 mr-2 text-gray-600" />
+                  <Accessibility className="w-4 h-4 mr-2 text-gray-600" />
                   {booking.wheelchairUsers} wheelchair user{booking.wheelchairUsers > 1 ? "s" : ""}
                 </p>
               )}
@@ -292,7 +292,7 @@ export default function SingleBookingClient({ booking }) {
           {/* Driver Bids */}
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-              <Pound className="w-5 h-5 mr-2 text-blue-600" />
+              <PoundSterling className="w-5 h-5 mr-2 text-blue-600" />
               Driver Bids ({activeBids.length})
             </h2>
 
