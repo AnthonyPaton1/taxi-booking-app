@@ -12,29 +12,28 @@ export default async function CoordinatorManagersPage() {
     redirect("/login");
   }
 
- 
   const user = await prisma.user.findUnique({
-  where: { id: session.user.id },
-  include: {
-    area: true,
-    business: {
-      select: {
-        name: true,
-        id: true,
+    where: { id: session.user.id },
+    include: {
+      area: true,
+      business: {
+        select: {
+          name: true,
+          id: true,
+        },
       },
     },
-  },
-});
+  });
 
-  if (!user || !user.coordinator) {
-    redirect("/login");
+  if (!user || !user.coordinatorOnboarded) {
+    redirect("/dashboard/coordinator");
   }
 
   // Get all managers in this coordinator's area
   const managers = await prisma.user.findMany({
     where: {
       role: "MANAGER",
-      areaId: user.coordinator.areaId,
+      areaId: user.areaId,
     },
     include: {
       houses: {
@@ -51,7 +50,7 @@ export default async function CoordinatorManagersPage() {
   return (
     <CoordinatorManagersClient
       managers={managers}
-      coordinatorArea={user.coordinator.area.name}
+      coordinatorArea={user.area?.name || "Unknown Area"}
     />
   );
 }

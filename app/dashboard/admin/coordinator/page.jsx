@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import AdminCoordinatorsClient from "@/components/dashboard/admin/adminCoordinatorsClient";
+import AdminCoordinatorsClient from "@/components/dashboard/business/admin/adminCoordinatorsClient";
 
 export default async function AdminCoordinatorsPage() {
   const session = await getServerSession(authOptions);
