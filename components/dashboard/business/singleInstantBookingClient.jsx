@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import StatusMessage from "@/components/dashboard/shared/statusMessage";
+import StatusMessage from "@/components/shared/statusMessage";
 import { 
   User, 
   MapPin, 

@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import CoordinatorDashboardClient from "@/components/dashboard/business/coordinator/coordinatorDashboardClient";
-import CoordinatorOnboardingForm from "@/components/forms/business/CoordinatorOnboardingForm";
+import CoordinatorOnboardingForm from "@/components/forms/business/coordinatorOnboardingForm";
 
 export default async function CoordinatorDashboardPage() {
   const session = await getServerSession(authOptions);
