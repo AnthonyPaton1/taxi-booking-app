@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/db";
 import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
-import ManagerDashboardClient from "@/components/dashboard/business/managerdashboardClient";
+import ManagerDashboardClient from "@/components/dashboard/business/manager/managerdashboardClient";
 import OnboardingManager from "@/components/forms/business/managerOnboardingForm";
 
 export default async function ManagerDashboardPage() {

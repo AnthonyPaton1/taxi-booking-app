@@ -1,11 +1,11 @@
-// app/dashboard/manager/bookings/[id]/page.jsx
+// app/dashboard/manager/instant-bookings/[id]/page.jsx
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
-import SingleBookingClient from "@/components/dashboard/business/singleBookingClient";
+import SingleInstantBookingClient from "@/components/dashboard/business/singleInstantBookingClient";
 
-export default async function SingleBookingPage({ params }) {
+export default async function SingleInstantBookingPage({ params }) {
   const session = await getServerSession(authOptions);
 
   if (!session || session.user.role !== "MANAGER") {
@@ -15,34 +15,21 @@ export default async function SingleBookingPage({ params }) {
   const { id } = params;
 
   // Fetch booking with all related data
-  const booking = await prisma.advancedBooking.findUnique({
+  const booking = await prisma.booking.findUnique({
     where: { id },
     include: {
-      accessibilityProfile: true,
-      bids: {
+      resident: {
         include: {
-          driver: {
-            select: {
-              name: true,
-              email: true,
-              phone: true,
-              vehicleType: true,
-              vehicleCapacity: true,
-            },
-          },
-        },
-        orderBy: {
-          amountCents: "asc", // Lowest bid first
+          house: true,
         },
       },
-      acceptedBid: {
+      assignedDriver: {
         include: {
-          driver: {
+          user: {
             select: {
               name: true,
               email: true,
               phone: true,
-              vehicleType: true,
             },
           },
         },
@@ -54,9 +41,18 @@ export default async function SingleBookingPage({ params }) {
     notFound();
   }
 
+  // Verify the manager owns this booking
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+  });
+
+  if (booking.createdById !== user.id) {
+    notFound();
+  }
+
   return (
     <div className="container mx-auto p-6 max-w-7xl">
-      <SingleBookingClient booking={booking} />
+      <SingleInstantBookingClient booking={booking} />
     </div>
   );
 }

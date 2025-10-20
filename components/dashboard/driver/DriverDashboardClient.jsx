@@ -2,8 +2,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import CheckoutSteps from "@/components/shared/header/driverSteps";
 import Link from "next/link";
+import { Car } from "lucide-react";
 
 export default function DriverDashboardClient({
   user,
@@ -21,15 +21,19 @@ export default function DriverDashboardClient({
   const totalToday = todaysInstant.length + todaysAdvanced.length;
 
   return (
-    <>
-      <CheckoutSteps />
-      <div className="p-6 space-y-6">
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto p-6 space-y-6">
         {/* Welcome Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Welcome back, {driver?.name || user?.name}!
-          </h1>
-          <ClientDate />
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Welcome back, {driver?.name || user?.name}!
+              </h1>
+              <ClientDate />
+            </div>
+            <Car className="w-12 h-12 text-blue-600" />
+          </div>
         </div>
 
         {/* Stat Cards */}
@@ -149,7 +153,7 @@ export default function DriverDashboardClient({
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 

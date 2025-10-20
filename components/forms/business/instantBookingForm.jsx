@@ -1,15 +1,14 @@
-//components/forms/business/managerBookRideForm.jsx
+//components/forms/business/instantBookingForm.jsx
 "use client";
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { createManagerBooking } from "@/app/actions/bookings/createManagerBooking";
 import RideAccessibilityOptions from "../RideAccessibilityOptions";
 import PhysicalRequirementsCheckboxes from "../driver/PhysicalRequirementsCheckBoxes";
 import StatusMessage from "@/components/shared/statusMessage";
-import { ArrowLeft, Timer } from "lucide-react";
+import { ArrowLeft, Zap, Clock } from "lucide-react";
 
 const postcodeRegex = /^([A-Z]{1,2}\d[A-Z\d]? \d[A-Z]{2}|GIR 0AA)$/i;
 
@@ -44,23 +43,42 @@ const defaultFormData = {
   medicationOnBoard: false,
   
   additionalNeeds: "",
-  managerNotes: "", // Internal notes
+  managerNotes: "",
   physicalRequirements: [],
 };
 
-export default function ManagerBookRideForm({ houses }) {
+export default function InstantBookingForm({ houses, userName }) {
   const [status, setStatus] = useState("");
   const [formData, setFormData] = useState(defaultFormData);
   const [selectedHouse, setSelectedHouse] = useState(null);
   const errorRef = useRef(null);
   const router = useRouter();
 
+  // Set default date to today and time to now + 30 mins
+  useEffect(() => {
+    const now = new Date();
+    const defaultDate = now.toISOString().split("T")[0];
+    
+    // Round up to next 30 min interval
+    const minutes = now.getMinutes();
+    const roundedMinutes = Math.ceil(minutes / 30) * 30;
+    now.setMinutes(roundedMinutes);
+    now.setSeconds(0);
+    
+    const defaultTime = now.toTimeString().slice(0, 5);
+    
+    setFormData((prev) => ({
+      ...prev,
+      pickupDate: defaultDate,
+      pickupTime: defaultTime,
+    }));
+  }, []);
+
   // Filter residents based on selected house
   useEffect(() => {
     if (formData.houseId) {
       const house = houses.find((h) => h.id === formData.houseId);
       setSelectedHouse(house);
-      // Reset resident selection when house changes
       setFormData((prev) => ({ ...prev, residentId: "" }));
     } else {
       setSelectedHouse(null);
@@ -119,13 +137,21 @@ export default function ManagerBookRideForm({ houses }) {
       return;
     }
 
-    // Check if booking is at least 48 hours in advance
+    // Check if pickup is not in the past
     const pickupDateTime = new Date(`${formData.pickupDate}T${formData.pickupTime}`);
     const now = new Date();
-    const hoursDifference = (pickupDateTime - now) / (1000 * 60 * 60);
+    
+    if (pickupDateTime < now) {
+      setStatus("❌ Pickup time cannot be in the past.");
+      errorRef.current?.focus();
+      return;
+    }
 
-    if (hoursDifference < 48) {
-      setStatus("❌ Advanced bookings must be at least 48 hours in advance.");
+    // Check if pickup is within next 48 hours (instant booking window)
+    const hoursDifference = (pickupDateTime - now) / (1000 * 60 * 60);
+    
+    if (hoursDifference > 48) {
+      setStatus("❌ For bookings 48+ hours ahead, please use Advanced Booking.");
       errorRef.current?.focus();
       return;
     }
@@ -135,21 +161,28 @@ export default function ManagerBookRideForm({ houses }) {
       : null;
 
     try {
-      const res = await createManagerBooking({
-        ...formData,
-        passengerCount,
-        wheelchairUsers,
-        pickupTime: pickupDateTime,
-        returnTime,
+      const res = await fetch("/api/bookings/instant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...formData,
+          passengerCount,
+          wheelchairUsers,
+          pickupTime: pickupDateTime.toISOString(),
+          returnTime: returnTime?.toISOString(),
+          createdBy: userName,
+        }),
       });
 
-      if (res.success) {
-        setStatus("✅ Booking created! Drivers can now bid.");
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setStatus("✅ Instant booking created! Drivers are being notified.");
         setTimeout(() => {
-          router.push(`/dashboard/manager/bookings/${res.bookingId}`);
+          router.push(`/dashboard/manager/instant-bookings/${data.bookingId}`);
         }, 1500);
       } else {
-        setStatus("❌ Failed: " + res.error);
+        setStatus("❌ Failed: " + (data.error || "Unknown error"));
         errorRef.current?.focus();
       }
     } catch (err) {
@@ -158,6 +191,10 @@ export default function ManagerBookRideForm({ houses }) {
       errorRef.current?.focus();
     }
   };
+
+  // Calculate min/max dates (today to 2 days from now)
+  const minDate = new Date().toISOString().split("T")[0];
+  const maxDate = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString().split("T")[0];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -171,18 +208,22 @@ export default function ManagerBookRideForm({ houses }) {
             <ArrowLeft className="w-5 h-5 mr-2" />
             Back to Dashboard
           </Link>
-          <div className="flex items-center gap-2 text-blue-600">
-            <Timer className="w-5 h-5" />
-            <span className="font-medium">Pre-Scheduled Booking</span>
+          <div className="flex items-center gap-2 text-purple-600">
+            <Zap className="w-5 h-5" />
+            <span className="font-medium">Instant Booking</span>
           </div>
         </div>
 
         {/* Page Title */}
         <div className="bg-white p-6 rounded-lg shadow-sm">
-          <h1 className="text-3xl font-bold text-gray-900">Create Advanced Booking</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Create Instant Booking</h1>
           <p className="text-gray-600 mt-2">
-            Schedule a ride at least 48 hours in advance - drivers will bid on this booking
+            Book immediate transport (within next 48 hours) - drivers will be notified instantly
           </p>
+          <div className="flex items-center gap-2 mt-3 text-sm text-purple-700 bg-purple-50 p-3 rounded">
+            <Clock className="w-4 h-4" />
+            <span>For bookings 48+ hours ahead, use Advanced Booking with driver bidding</span>
+          </div>
         </div>
 
         <StatusMessage
@@ -201,7 +242,7 @@ export default function ManagerBookRideForm({ houses }) {
             <h2 className="text-xl font-bold text-gray-900 pb-2 border-b">
               1. Select House & Resident
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-purple-50 rounded-lg">
               <div>
                 <label htmlFor="houseId" className="block font-medium text-gray-700 mb-1">
                   Select House *
@@ -212,12 +253,12 @@ export default function ManagerBookRideForm({ houses }) {
                   required
                   value={formData.houseId}
                   onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 >
                   <option value="">-- Choose House --</option>
                   {houses.map((house) => (
                     <option key={house.id} value={house.id}>
-                      {house.name} ({house.residents.length} residents)
+                      {house.label} ({house.residents.length} residents)
                     </option>
                   ))}
                 </select>
@@ -234,7 +275,7 @@ export default function ManagerBookRideForm({ houses }) {
                   value={formData.residentId}
                   onChange={handleChange}
                   disabled={!selectedHouse}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                 >
                   <option value="">-- Choose Resident --</option>
                   {selectedHouse?.residents.map((resident) => (
@@ -268,7 +309,7 @@ export default function ManagerBookRideForm({ houses }) {
                   required
                   value={formData.pickupLocation}
                   onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   placeholder="Full pickup address"
                 />
               </div>
@@ -284,7 +325,7 @@ export default function ManagerBookRideForm({ houses }) {
                   required
                   value={formData.pickupPostcode}
                   onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   placeholder="e.g. SW1A 1AA"
                 />
               </div>
@@ -300,7 +341,7 @@ export default function ManagerBookRideForm({ houses }) {
                   required
                   value={formData.dropoffLocation}
                   onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   placeholder="Full destination address"
                 />
               </div>
@@ -316,7 +357,7 @@ export default function ManagerBookRideForm({ houses }) {
                   required
                   value={formData.dropoffPostcode}
                   onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   placeholder="e.g. EC1A 1BB"
                 />
               </div>
@@ -334,10 +375,11 @@ export default function ManagerBookRideForm({ houses }) {
                   required
                   value={formData.pickupDate}
                   onChange={handleChange}
-                  min={new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString().split("T")[0]}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  min={minDate}
+                  max={maxDate}
+                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
-                <p className="text-sm text-gray-500 mt-1">Must be 48+ hours ahead</p>
+                <p className="text-sm text-gray-500 mt-1">Today to 2 days ahead</p>
               </div>
 
               <div>
@@ -351,7 +393,7 @@ export default function ManagerBookRideForm({ houses }) {
                   required
                   value={formData.pickupTime}
                   onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -363,7 +405,7 @@ export default function ManagerBookRideForm({ houses }) {
                 name="roundTrip"
                 checked={formData.roundTrip}
                 onChange={handleChange}
-                className="w-4 h-4 text-blue-600"
+                className="w-4 h-4 text-purple-600"
               />
               <label htmlFor="roundTrip" className="text-gray-700 font-medium">
                 Return Journey?
@@ -381,7 +423,7 @@ export default function ManagerBookRideForm({ houses }) {
                   name="returnTime"
                   value={formData.returnTime}
                   onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
               </div>
             )}
@@ -405,7 +447,7 @@ export default function ManagerBookRideForm({ houses }) {
                   max={15}
                   value={formData.passengerCount}
                   onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
               </div>
 
@@ -421,7 +463,7 @@ export default function ManagerBookRideForm({ houses }) {
                   max={6}
                   value={formData.wheelchairUsers}
                   onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -452,7 +494,7 @@ export default function ManagerBookRideForm({ houses }) {
                 rows={3}
                 value={formData.additionalNeeds}
                 onChange={handleChange}
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 placeholder="Special requirements for drivers..."
               />
             </div>
@@ -478,10 +520,10 @@ export default function ManagerBookRideForm({ houses }) {
 
           <Button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg font-medium"
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 text-lg font-medium"
             disabled={status === "loading"}
           >
-            {status === "loading" ? "Creating Booking..." : "Create Booking & Open for Bids"}
+            {status === "loading" ? "Creating Instant Booking..." : "Create Instant Booking & Notify Drivers"}
           </Button>
         </form>
       </div>
