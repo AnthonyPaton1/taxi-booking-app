@@ -329,9 +329,9 @@ export default function AllBookingsListClient({
                   bookingType === "advanced" ? booking.bids[0] : null;
                 const isPast = new Date(booking.pickupTime) < new Date();
                 const linkHref =
-                  bookingType === "advanced"
-                    ? `/dashboard/manager/bookings/${booking.id}`
-                    : `/dashboard/manager/instant-bookings/${booking.id}`;
+  bookingType === "advanced"
+    ? `/dashboard/manager/bookings/${booking.id}`
+    : `/dashboard/manager/bookings/${booking.id}?type=instant`;
 
                 return (
                   <Link

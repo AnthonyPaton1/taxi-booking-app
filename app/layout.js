@@ -4,6 +4,7 @@ import "./globals.css";
 import Providers from "./providers";
 import Navbar from "@/components/layout/navbar";
 import Footer from "@/components/layout/footer";
+import CookieConsentBanner from "@/components/CookieConsentBanner";
 
 const geistSans = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
 const geistMono = Geist_Mono({
@@ -27,6 +28,7 @@ export default function RootLayout({ children }) {
           {children}
           <Footer />
         </Providers>
+        <CookieConsentBanner />
       </body>
     </html>
   );

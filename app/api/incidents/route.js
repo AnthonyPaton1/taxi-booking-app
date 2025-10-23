@@ -1,72 +1,116 @@
+// app/api/incidents/route.js
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
-import { v2 as cloudinary } from "cloudinary";
 
-// Setup Cloudinary
-cloudinary.config({
-  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
-
-export async function POST(req) {
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const formData = await req.formData();
-  const time = formData.get("time");
-  const type = formData.get("type");
-  const description = formData.get("description");
-  const emergency = formData.get("emergency") === "true";
-  const actionsTaken = formData.get("actionsTaken");
-  const followUp = formData.get("followUp") === "true";
-  const file = formData.get("file");
-
+export async function POST(request) {
   try {
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      include: { memberships: true },
-    });
+    const session = await getServerSession(authOptions);
 
-    const companyId = user?.memberships?.[0]?.companyId;
-
-    let imageUrl = null;
-
-    if (file && typeof file === "object" && file.size > 0) {
-      const buffer = Buffer.from(await file.arrayBuffer());
-      const uploadRes = await new Promise((resolve, reject) => {
-        cloudinary.uploader
-          .upload_stream({ folder: "incident-reports" }, (err, result) => {
-            if (err) reject(err);
-            else resolve(result);
-          })
-          .end(buffer);
-      });
-
-      imageUrl = uploadRes.secure_url;
+    // Only drivers and managers can submit incidents
+    if (
+      !session ||
+      !["DRIVER", "MANAGER"].includes(session.user.role)
+    ) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
     }
 
-    await prisma.incident.create({
-      data: {
-        time: new Date(time),
-        type,
-        description,
-        emergency,
-        actionsTaken,
-        followUp,
-        image: imageUrl,
-        userId: user.id,
-        companyId,
+    const body = await request.json();
+    const {
+      type,
+      incidentType,
+      description,
+      time,
+      actionsTaken,
+      followUp,
+      emergency,
+      witnesses,
+      image,
+      houseId, // Optional - if manager reporting from house context
+    } = body;
+
+    // Validation
+    if (!description || !time) {
+      return NextResponse.json(
+        { success: false, error: "Description and time are required" },
+        { status: 400 }
+      );
+    }
+
+    if (type === "INCIDENT" && !incidentType) {
+      return NextResponse.json(
+        { success: false, error: "Incident type is required for incidents" },
+        { status: 400 }
+      );
+    }
+
+    // Get user's business for linking
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        id: true,
+        businessId: true,
+        areaId: true,
       },
     });
 
-    return NextResponse.json({ success: true });
+    if (!user || !user.businessId) {
+      return NextResponse.json(
+        { success: false, error: "User not associated with a business" },
+        { status: 400 }
+      );
+    }
+
+    // Determine if this is incident or feedback
+    if (type === "INCIDENT") {
+      // Create incident record
+      const incident = await prisma.incident.create({
+        data: {
+          userId: user.id,
+          businessId: user.businessId,
+          houseId: houseId || null,
+          type: incidentType,
+          description: description.trim(),
+          time: new Date(time),
+          actionsTaken: actionsTaken?.trim() || null,
+          followUp: followUp || false,
+          emergency: emergency || false,
+          image: image || null,
+          evidenceUrl: witnesses || null, // Store witnesses in evidenceUrl field
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        incident,
+        message: "Incident reported successfully",
+      });
+    } else {
+      // Create feedback record
+      const feedback = await prisma.tripFeedback.create({
+        data: {
+          userId: user.id,
+          type: "NOTE",
+          message: description.trim(),
+          resolved: false,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        feedback,
+        message: "Feedback submitted successfully",
+      });
+    }
   } catch (error) {
-    console.error("Incident API Error:", error);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    console.error("Error creating incident/feedback:", error);
+    return NextResponse.json(
+      { success: false, error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }

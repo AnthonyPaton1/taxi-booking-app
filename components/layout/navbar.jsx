@@ -4,8 +4,7 @@ import React, { useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { FaBell } from "react-icons/fa";
-
-//import profileDefault from "@/public/profile-default.png"; // Add a default profile image to /public
+import { Lock, LogOut, User } from "lucide-react";
 
 const Navbar = () => {
   const { data: session } = useSession();
@@ -23,7 +22,7 @@ const Navbar = () => {
         return "/dashboard/manager";
       case "DRIVER":
         return "/dashboard/driver";
-      case "PUBLIC": 
+      case "PUBLIC":
         return "/dashboard/public";
       default:
         return null;
@@ -64,33 +63,67 @@ const Navbar = () => {
 
               {/* Profile Dropdown */}
               <div className="relative">
-  <button
-    onClick={() => setIsProfileMenuOpen((prev) => !prev)}
-    className="rounded-full bg-gray-800 text-sm w-8 h-8 flex items-center justify-center text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-    aria-label="Toggle profile menu"
-  >
-    {/* Could be avatar or initial */}
-    {user?.name?.[0] || "U"}
-  </button>
+                <button
+                  onClick={() => setIsProfileMenuOpen((prev) => !prev)}
+                  className="rounded-full bg-gray-800 text-sm w-8 h-8 flex items-center justify-center text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  aria-label="Toggle profile menu"
+                  aria-expanded={isProfileMenuOpen}
+                  aria-haspopup="true"
+                >
+                  {/* Could be avatar or initial */}
+                  {user?.name?.[0] || "U"}
+                </button>
 
-  {isProfileMenuOpen && (
-    <div
-      className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 z-50"
-      role="menu"
-      aria-label="Profile menu"
-    >
-      <button
-        onClick={() => signOut({ callbackUrl: "/" })}
-        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-      >
-        Logout
-      </button>
-    </div>
-  )}
-</div>
-</div>
-)}
-</div>
+                {isProfileMenuOpen && (
+                  <div
+                    className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 z-50"
+                    role="menu"
+                    aria-label="Profile menu"
+                  >
+                    {/* Profile Name */}
+                    <div className="px-4 py-2 border-b border-gray-200">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {user?.name}
+                      </p>
+                      <p className="text-xs text-gray-500 truncate">
+                        {user?.email}
+                      </p>
+                    </div>
+
+                    {/* Profile Link (Optional) */}
+                    <Link
+                      href="/dashboard/profile"
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                    >
+                      <User className="w-4 h-4" />
+                      Profile
+                    </Link>
+
+                    {/* Change Password Link */}
+                    <Link
+                      href="/dashboard/settings/security"
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                    >
+                      <Lock className="w-4 h-4" />
+                      Change Password
+                    </Link>
+
+                    {/* Logout */}
+                    <button
+                      onClick={() => signOut({ callbackUrl: "/" })}
+                      className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 border-t border-gray-200"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </nav>
   );

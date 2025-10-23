@@ -4,6 +4,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Car } from "lucide-react";
+import IncidentFeedbackForm from "@/components/forms/incidentFeedbackForm";
+import { FileText, Building } from "lucide-react";
 
 export default function DriverDashboardClient({
   user,
@@ -14,6 +16,7 @@ export default function DriverDashboardClient({
   availableAdvanced,
 }) {
   const [isAvailable, setIsAvailable] = useState(true);
+  const [showIncidentForm, setShowIncidentForm] = useState(false);
 
   // Extract booking arrays
   const todaysInstant = todaysBookings?.instant || [];
@@ -32,6 +35,16 @@ export default function DriverDashboardClient({
               </h1>
               <ClientDate />
             </div>
+            <div className="flex items-center gap-4">
+              
+            </div>
+              <button
+                onClick={() => setShowIncidentForm(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition shadow-sm"
+              >
+                <FileText className="w-5 h-5" />
+                <span className="hidden sm:inline">Incident & Feedback</span>
+              </button>
             <Car className="w-12 h-12 text-blue-600" />
           </div>
         </div>
@@ -65,19 +78,19 @@ export default function DriverDashboardClient({
           <QuickActionCard
             title="Available Instant Bookings"
             count={availableInstant?.length || 0}
-            href="/dashboard/driver/instant"
+            href="/dashboard/driver/available-instant"
             color="blue"
           />
           <QuickActionCard
             title="Advanced Bookings (Bids)"
             count={availableAdvanced?.length || 0}
-            href="/dashboard/driver/advanced"
+            href="/dashboard/driver/available-advanced"
             color="green"
           />
           <QuickActionCard
             title="Today's Schedule"
             count={totalToday}
-            href="/dashboard/driver/daily"
+            href="/dashboard/driver/schedule"
             color="purple"
           />
         </div>
@@ -148,11 +161,18 @@ export default function DriverDashboardClient({
               href="/dashboard/driver/edit"
               className="mt-4 block text-center text-sm text-blue-600 hover:underline"
             >
-              Edit Details
+              Edit Driver Details
             </Link>
           </div>
         </div>
       </div>
+      {/* Incident Form Modal */}
+            {showIncidentForm && (
+              <IncidentFeedbackForm
+                user={user}
+                onClose={() => setShowIncidentForm(false)}
+              />
+            )}
     </div>
   );
 }

@@ -57,11 +57,54 @@ function Footer() {
             </a>
           </div>
         </div>
+        {/* Legal Links */}
+<div className="border-t border-blue-600 pt-6 pb-4">
+  <nav className="flex flex-wrap justify-center gap-6 text-sm" aria-label="Legal links">
+    <Link
+      href="/privacy"
+      className="text-blue-100 hover:text-white hover:underline transition"
+    >
+      Privacy Policy
+    </Link>
+    <Link
+      href="/terms"
+      className="text-blue-100 hover:text-white hover:underline transition"
+    >
+      Terms & Conditions
+    </Link>
+    <Link
+      href="/cookies"
+      className="text-blue-100 hover:text-white hover:underline transition"
+    >
+      Cookie Policy
+    </Link>
+    <Link
+      href="/contact"
+      className="text-blue-100 hover:text-white hover:underline transition"
+    >
+      Contact Us
+    </Link>
+    <Link
+      href="/how-it-works"
+      className="text-blue-100 hover:text-white hover:underline transition"
+    >
+      How It Works
+    </Link>
+    <Link
+      href="/faq"
+      className="text-blue-100 hover:text-white hover:underline transition"
+    >
+      FAQ
+    </Link>
+  </nav>
+</div>
 
-        <div className="text-sm text-blue-100 text-center">
-          © {new Date().getFullYear()} NEAT Transport. All rights reserved.
-        </div>
-      </div>
+{/* Copyright - move this below the legal links */}
+<div className="text-sm text-blue-100 text-center mt-6">
+  © <CurrentYear /> NEAT Transport. All rights reserved.
+</div>
+
+       
 
       {/* Trust Message */}
       <div className="mt-6 text-center text-sm text-white px-4">
@@ -76,6 +119,7 @@ function Footer() {
         </a>{" "}
         for enhanced privacy and performance.
       </div>
+      </div> 
     </footer>
   );
 }

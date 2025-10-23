@@ -1,3 +1,4 @@
+//app/api/auth/[...nextauth]/route.js
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -31,11 +32,10 @@ export const authOptions = {
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
-     EmailProvider({
+    EmailProvider({
       server: process.env.EMAIL_SERVER,
       from: process.env.EMAIL_FROM,
     }),
-    
 
     CredentialsProvider({
       id: "credentials",
@@ -62,13 +62,14 @@ export const authOptions = {
           throw new Error("Invalid credentials");
         }
 
-       console.log(process.env.EMAIL_SERVER)
+        console.log(process.env.EMAIL_SERVER);
 
         return {
           id: user.id,
           email: user.email,
           role: user.role,
           name: user.name,
+          businessId: user.businessId, // ✅ ADD THIS
         };
       },
     }),
@@ -82,18 +83,25 @@ export const authOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.businessId = user.businessId; 
       }
 
       if (token?.email) {
         const dbUser = await prisma.user.findUnique({
           where: { email: token.email },
-          select: { id: true, role: true, driverOnboarded: true },
+          select: { 
+            id: true, 
+            role: true, 
+            driverOnboarded: true,
+            businessId: true, 
+          },
         });
 
         if (dbUser) {
           token.id = dbUser.id;
           token.role = dbUser.role;
           token.driverOnboarded = dbUser.driverOnboarded;
+          token.businessId = dbUser.businessId; 
         }
       }
 
@@ -106,6 +114,7 @@ export const authOptions = {
         session.user.role = token.role;
         session.user.dashboardUrl = getDashboardByRole(token.role);
         session.user.driverOnboarded = Boolean(token.driverOnboarded);
+        session.user.businessId = token.businessId; 
       }
       return session;
     },

@@ -85,7 +85,7 @@ const CoordinatorOnboardingForm = ({companyId}) => {
         <h2 className="text-2xl font-bold text-blue-700 mb-6">
           Manager Onboarding
         </h2>
-        <p>Add your managers and invute</p>
+        <p>Add your managers and invite them to the App</p>
         <form onSubmit={handleSubmit} className="space-y-4">
           {managers.map((manager, i) => (
             <div key={i} className="border p-4 rounded-md bg-gray-50 space-y-4">

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   Accordion,
   AccordionContent,
@@ -15,9 +16,12 @@ const FaqSection = () => {
       role="region"
     >
       <div className="max-w-3xl mx-auto text-center">
-        <h2 id="faq-heading" className="text-4xl font-bold text-blue-700 mb-8">
+        <h2 id="faq-heading" className="text-4xl font-bold text-blue-700 mb-4">
           Frequently Asked Questions
         </h2>
+        <p className="text-gray-600 mb-8">
+          Quick answers to common questions. <Link href="/faq" className="text-blue-600 hover:underline">View all FAQs →</Link>
+        </p>
 
         <Accordion
           type="single"
@@ -27,15 +31,24 @@ const FaqSection = () => {
         >
           {faqItems.map(({ id, question, answer }) => (
             <AccordionItem key={id} value={id}>
-              <AccordionTrigger className="text-blue-700 text-lg">
+              <AccordionTrigger className="text-blue-700 text-lg hover:no-underline">
                 {question}
               </AccordionTrigger>
-              <AccordionContent className="text-gray-900">
+              <AccordionContent className="text-gray-700">
                 {answer}
               </AccordionContent>
             </AccordionItem>
           ))}
         </Accordion>
+
+        <div className="mt-8">
+          <Link
+            href="/faq"
+            className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium"
+          >
+            View All FAQs
+          </Link>
+        </div>
       </div>
     </section>
   );
@@ -43,70 +56,54 @@ const FaqSection = () => {
 
 export default FaqSection;
 
+// Condensed FAQ items for homepage (most important questions only)
 const faqItems = [
   {
     id: "item-1",
-    question: "Why use NEAT?",
+    question: "What is NEAT Transport?",
     answer:
-      "NEAT is designed for you to book your accessible transport in advance. By booking in advance you get more control over pricing structures, and your journeys are submitted to a bank of drivers who bid for them.",
+      "NEAT is a marketplace platform connecting care companies with independent, qualified drivers who specialize in accessible transport. We're NOT a taxi company – we provide the technology to make accessible transport booking transparent, fair, and compliant with CQC requirements.",
   },
   {
     id: "item-2",
-    question: "Is this a private app?",
+    question: "How does the bidding system work?",
     answer:
-      "No. NEAT is open to everyone who needs accessible vehicles with modifications.",
+      "For bookings made 48+ hours in advance, you post the journey details and qualified drivers submit competitive bids. You review the bids (comparing price, ratings, and vehicle type) and choose the best option for your residents. For urgent bookings (within 48 hours), available drivers can accept immediately.",
   },
   {
     id: "item-3",
-    question: "How does the bidding system work?",
+    question: "Who can use NEAT?",
     answer:
-      "You post required trips. These appear in nominated drivers’ dashboards, where they can place bids. You accept bids based on price, availability, and rating.",
+      "NEAT is designed for care companies, residential homes, and organizations booking transport for residents or service users. Independent private hire drivers with wheelchair accessible vehicles (or other adaptations) can register to offer their services.",
   },
   {
     id: "item-4",
-    question: "Is NEAT available in my area?",
-    answer: "We are rolling out region by region.",
+    question: "What accessibility options are available?",
+    answer:
+      "You can specify wheelchair requirements, quiet environment, no conversation, visual schedules, assistance animals, familiar driver preferences, female driver only, sign language support, medication on board, and many more options tailored to individual needs.",
   },
   {
     id: "item-5",
-    question: "How do I choose drivers?",
+    question: "Is NEAT compliant with CQC requirements?",
     answer:
-      "From your dashboard, you can see who has placed bids on your journey. You then choose the best option for you. Drivers are notified of successful and unsuccessful bids.",
+      "Yes! We maintain full audit trails showing who booked what and when, incident reporting systems for safeguarding, secure record keeping for inspections, and driver verification through local councils (enhanced DBS, licenses, insurance).",
   },
   {
     id: "item-6",
-    question: "Can I add urgent journeys ad hoc?",
+    question: "How much does it cost?",
     answer:
-      "Yes. Urgent journeys can be posted any time. They will appear in the drivers' dashboards marked as 'Urgent' for immediate bidding.",
+      "For care companies: NEAT is currently free to use. Drivers set their own rates through competitive bidding on Advanced Bookings. Payment processing will be implemented later with clear pricing announced in advance.",
   },
   {
     id: "item-7",
-    question: "Is there an after-journey reporting system?",
+    question: "How are drivers verified?",
     answer:
-      "Yes. Drivers, carers, and support workers can fill out a feedback form after each journey to report any issues or concerns.",
+      "We verify all drivers by contacting their local council directly to confirm: enhanced DBS checks, private hire vehicle licenses, vehicle registration, and insurance coverage. Drivers don't upload documents – we verify credentials at source for maximum security.",
   },
   {
     id: "item-8",
-    question: "What does it cost?",
+    question: "Can I book urgent transport?",
     answer:
-      "NEAT is completely free to use. Drivers pay a flat rate of £100 per month, and 25% of that is given back to care companies to benefit service users through activities like parties or hobby groups.",
-  },
-  {
-    id: "driver-1",
-    question: "How much does it cost to join NEAT as a driver?",
-    answer:
-      "It’s a flat fee of £100 per month — giving you access to multiple care providers in your area as well as public needs. No commission, no hidden costs.",
-  },
-  {
-    id: "driver-2",
-    question: "How do I sign up?",
-    answer:
-      "As long as you are a verified WAV driver, and licenced in your local council, you can sign up to the platform.",
-  },
-  {
-    id: "driver-3",
-    question: "What’s in it for me?",
-    answer:
-      "Less paperwork, more work. NEAT lets you bid on jobs in advance, manage your schedule, and build a reputation that attracts more bookings — all in one dashboard.",
+      "Yes! Instant Bookings are for urgent needs within 48 hours. Available drivers see the booking immediately and can accept on a first-come basis. For planned journeys, Advanced Bookings (48+ hours ahead) offer better pricing through competitive bidding.",
   },
 ];

@@ -12,62 +12,69 @@ export default async function AdminCoordinatorsPage() {
     redirect("/login");
   }
 
-  // Get all coordinators with their areas and stats
-  const coordinators = await prisma.coordinator.findMany({
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
     include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          phone: true,
-          coordinatorOnboarded: true,
-          lastLogin: true,
-          createdAt: true,
-        },
-      },
-      area: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
-    },
-    orderBy: {
-      user: {
-        name: "asc",
-      },
+      business: true,
     },
   });
 
-  // Get manager counts per coordinator
-  const coordinatorsWithStats = await Promise.all(
-    coordinators.map(async (coordinator) => {
-      const managerCount = await prisma.user.count({
-        where: {
-          role: "MANAGER",
-          areaId: coordinator.areaId,
-        },
-      });
+  if (!user || !user.adminOnboarded || !user.business) {
+    redirect("/dashboard/admin");
+  }
 
-      const houseCount = await prisma.house.count({
-        where: {
-          areaId: coordinator.areaId,
+  // Get all coordinators in this business
+  const coordinators = await prisma.user.findMany({
+  where: {
+    role: "COORDINATOR",
+    businessId: user.businessId,
+  },
+  include: {
+    area: {
+      select: {
+        name: true,
+        id: true,
+        house: {
+          select: {
+            id: true,
+            managerId: true,
+          },
         },
-      });
+      },
+    },
+  },
+  orderBy: {
+    name: "asc",
+  },
+});
 
-      return {
-        ...coordinator,
-        stats: {
-          managers: managerCount,
-          houses: houseCount,
-        },
-      };
-    })
-  );
+  // Calculate stats for each coordinator
+  const coordinatorsWithStats = coordinators.map((coordinator) => {
+    const houses = coordinator.area?.house || [];
+    const uniqueManagers = new Set(
+      houses.map((h) => h.managerId).filter((id) => id !== null)
+    );
 
-  // Get all areas for adding new coordinators
+    return {
+      ...coordinator,
+      user: coordinator, // The coordinator IS the user in this case
+      stats: {
+        managers: uniqueManagers.size,
+        houses: houses.length,
+      },
+    };
+  });
+
+  // Get all areas for the business
   const areas = await prisma.area.findMany({
+    include: {
+      _count: {
+        select: {
+          users: true,
+          house: true,
+        },
+      },
+    },
     orderBy: {
       name: "asc",
     },
@@ -77,6 +84,7 @@ export default async function AdminCoordinatorsPage() {
     <AdminCoordinatorsClient
       coordinators={coordinatorsWithStats}
       areas={areas}
+      businessId={user.businessId}
     />
   );
 }

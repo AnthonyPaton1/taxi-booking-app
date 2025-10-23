@@ -9,8 +9,6 @@ import {
   MapPin,
   Calendar,
   MessageSquare,
-  BarChart3,
-  Settings,
 } from "lucide-react";
 
 export default function AdminDashboardClient({
@@ -18,8 +16,6 @@ export default function AdminDashboardClient({
   business,
   areas,
   coordinators,
-  managers,
-  houses,
   stats,
 }) {
   return (
@@ -99,7 +95,7 @@ export default function AdminDashboardClient({
           <QuickAction
             title="Manage Coordinators"
             description="View, add, remove coordinators"
-            href="/dashboard/admin/coordinators"
+            href="/dashboard/admin/coordinator"
             color="purple"
             icon="👥"
           />
@@ -151,17 +147,19 @@ export default function AdminDashboardClient({
                     <h3 className="font-semibold text-gray-900">{area.name}</h3>
                   </div>
                   <div className="space-y-2 text-sm text-gray-600">
-                    <div className="flex justify-between">
-                      <span>Coordinators:</span>
-                      <span className="font-medium">
-                        {area._count.coordinators}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Houses:</span>
-                      <span className="font-medium">{area._count.houses}</span>
-                    </div>
-                  </div>
+  <div className="flex justify-between">
+    <span>Coordinators:</span>
+    <span className="font-medium">
+      {area.users?.length || 0}
+    </span>
+  </div>
+  <div className="flex justify-between">
+    <span>Houses:</span>
+    <span className="font-medium">
+      {area._count.house}
+    </span>
+  </div>
+</div>
                 </Link>
               ))}
             </div>
@@ -172,10 +170,10 @@ export default function AdminDashboardClient({
         <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold text-gray-900">
-              Recent Coordinators
+              Your Coordinators
             </h2>
             <Link
-              href="/dashboard/admin/coordinators"
+              href="/dashboard/admin/coordinator"
               className="text-sm text-blue-600 hover:underline"
             >
               View all
@@ -189,43 +187,73 @@ export default function AdminDashboardClient({
             </div>
           ) : (
             <div className="space-y-2">
-  {coordinators.slice(0, 5).map((coordinator) => (
-    <div
-      key={coordinator.id}
-      className="flex items-center justify-between p-3 bg-gray-50 rounded border border-gray-200"
-    >
-      <div>
-        <p className="font-medium text-gray-900">
-          {coordinator.name}
-        </p>
-        <p className="text-sm text-gray-600">
-          {coordinator.area?.name}
-        </p>
-      </div>
-      <div className="text-right text-sm">
-        <p className="text-gray-600">{coordinator.email}</p>
-        <span
-          className={`text-xs ${
-            coordinator.coordinatorOnboarded
-              ? "text-green-600"
-              : "text-yellow-600"
-          }`}
-        >
-          {coordinator.coordinatorOnboarded
-            ? "✓ Onboarded"
-            : "⏳ Pending"}
-        </span>
-      </div>
-    </div>
-  ))}
-             
+              {coordinators.slice(0, 5).map((coordinator) => (
+                <div
+                  key={coordinator.id}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded border border-gray-200"
+                >
+                  <div>
+                    <p className="font-medium text-gray-900">
+                      {coordinator.name}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {coordinator.area?.name}
+                    </p>
+                  </div>
+                  <div className="text-right text-sm">
+                    <p className="text-gray-600">{coordinator.email}</p>
+                    <span
+                      className={`text-xs ${
+                        coordinator.coordinatorOnboarded
+                          ? "text-green-600"
+                          : "text-yellow-600"
+                      }`}
+                    >
+                      {coordinator.coordinatorOnboarded
+                        ? "✓ Onboarded"
+                        : "⏳ Pending"}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
+
+        {/* Add Manager CTA - Only shows when no coordinators */}
+        {coordinators.length === 0 && (
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6">
+            <p className="text-blue-700 font-bold mb-2">
+              Add your Area Managers or Coordinators below
+            </p>
+            <p className="text-sm text-gray-600 mb-4">
+              Coordinators manage multiple houses across an area. They will each
+              receive an email to complete their assigned areas and onboard their
+              House Managers.
+            </p>
+
+            <div className="bg-white border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-gray-700 mb-2">
+                <strong>Single location?</strong> If you only have one care home
+                or location, you can skip adding coordinators and go straight to
+                adding your House Manager.
+              </p>
+              <Link
+                href="/dashboard/admin/houses"
+                className="inline-block text-sm text-blue-600 font-medium underline hover:text-blue-800"
+              >
+                Skip Coordinators & Add Manager Instead →
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
+
+
 
 // Stat Card
 const StatCard = ({ title, value, color, icon }) => {

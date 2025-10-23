@@ -15,40 +15,42 @@ export default async function AdminAreasPage() {
   // Get all areas with counts
   const areas = await prisma.area.findMany({
     include: {
-      coordinators: {
-        include: {
-          user: {
-            select: {
-              name: true,
-              email: true,
-            },
-          },
+      users: {
+        where: {
+          role: 'COORDINATOR'
         },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          coordinatorOnboarded: true
+        }
       },
-      houses: {
+      house: {
         include: {
-          residents: true,
-        },
+          residents: true // Need to include residents to count them
+        }
       },
       _count: {
         select: {
-          coordinators: true,
-          houses: true,
-        },
-      },
+          house: true
+        }
+      }
     },
     orderBy: {
-      name: "asc",
-    },
+      name: "asc"
+    }
   });
 
   const areasWithStats = areas.map((area) => ({
     ...area,
-    totalResidents: area.houses.reduce(
-      (sum, house) => sum + house.residents.length,
+    totalResidents: area.house.reduce(
+      (sum, house) => sum + (house.residents?.length || 0),
       0
     ),
-    managers: area.houses.map((h) => h.managerId).filter((v, i, a) => a.indexOf(v) === i).length,
+    managers: area.house
+      .map((h) => h.managerId)
+      .filter((v, i, a) => v && a.indexOf(v) === i).length,
   }));
 
   return <AdminAreasClient areas={areasWithStats} />;

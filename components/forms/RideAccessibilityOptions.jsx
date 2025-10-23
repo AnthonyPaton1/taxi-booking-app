@@ -1,17 +1,18 @@
 "use client";
 
-export default function RideAccessibilityOptions({ formData, setFormData }) {
+export default function RideAccessibilityOptions({ formData, setFormData, prefix = "" }) {
   const handleCheckbox = (e) => {
     const { name, checked } = e.target;
     setFormData((prev) => ({ ...prev, [name]: checked }));
   };
+  
   const handleChange = (e) => {
-  const { name, value } = e.target;
-  setFormData((prev) => ({
-    ...prev,
-    [name]: value,
-  }));
-};
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
   const options = [
     {
@@ -31,7 +32,6 @@ export default function RideAccessibilityOptions({ formData, setFormData }) {
         { name: "quietEnvironment", label: "Quiet environment preferred" },
         { name: "noConversation", label: "No conversation during trip" },
         { name: "visualSchedule", label: "Visual schedule provided" },
-        
       ],
     },
     {
@@ -85,26 +85,30 @@ export default function RideAccessibilityOptions({ formData, setFormData }) {
                   {label}
                 </label>
               </div>
-              
             ))}
           </div>
-          <fieldset className="border border-gray-200 p-4 rounded">
-          <label htmlFor="specificMusic" className="block font-medium text-gray-700">
-  Preferred music (optional)
-</label>
-<input
-  type="text"
-  id="specificMusic"
-  name="specificMusic"
-  value={formData.specificMusic}
-  onChange={handleChange}
-  className="w-full mt-1 p-2 border rounded"
-  placeholder="e.g. Calming classical"
-/>
-
-          </fieldset>
         </fieldset>
       ))}
+
+      {/* Move specificMusic field OUTSIDE the map loop */}
+      <fieldset className="border border-gray-200 p-4 rounded">
+        <label htmlFor={`${prefix}specificMusic`} className="block font-medium text-gray-700">
+          Preferred music (optional)
+        </label>
+        <input
+          type="text"
+          id={`${prefix}specificMusic`}
+          name="specificMusic"
+          value={formData.specificMusic || ""}
+          onChange={handleChange}
+          className="w-full mt-1 p-2 border rounded focus:ring focus:ring-blue-500"
+          placeholder="e.g. Calming classical"
+          aria-describedby={`${prefix}specificMusicHelp`}
+        />
+        <p id={`${prefix}specificMusicHelp`} className="text-sm text-gray-500 mt-1">
+          Tell us about any music preferences for the journey
+        </p>
+      </fieldset>
     </div>
   );
 }

@@ -134,6 +134,7 @@ model User {
   advancedBookings    AdvancedBooking[]    @relation("CreatorAdvancedBookings")
   houses              House[]
 
+
   adminOfBusiness         Business?        @relation("BusinessAdminUser")
   acceptedInstantBookings InstantBooking[] @relation("UserAcceptedInstant")
   passwordResetTokens     PasswordResetToken[] @relation("UserPasswordResetTokens")
@@ -152,6 +153,33 @@ model User {
 
   @@index([deletedAt])
 }
+// model ContactRequest {
+//   id        String   @id @default(cuid())
+//   name      String
+//   email     String
+//   phone     String?
+//   subject   String
+//   category  String   // general, support, booking, driver, business, complaint, feedback, partnership
+//   message   String   @db.Text
+//   status    String   @default("NEW") // NEW, READ, REPLIED, RESOLVED, ARCHIVED
+  
+//   // Audit fields
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+  
+//   // Optional: Link to user if they're logged in
+//   userId    String?
+//   user      User?    @relation(fields: [userId], references: [id])
+  
+//   // Optional: Admin notes
+//   adminNotes String? @db.Text
+//   resolvedBy String?
+//   resolvedAt DateTime?
+
+//   @@index([status])
+//   @@index([category])
+//   @@index([createdAt])
+// }
 
 /**
  * ======================

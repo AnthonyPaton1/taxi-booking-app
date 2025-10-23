@@ -1,7 +1,9 @@
+//components/forms/journeyBookingForm
 "use client";
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { createPublicBooking } from "@/app/actions/bookings/createPublicBooking";
 import RideAccessibilityOptions from "./RideAccessibilityOptions";
@@ -51,6 +53,9 @@ const defaultFormData = {
 
 const JourneyBookingForm
  = () => {
+  const [isRepeating, setIsRepeating] = useState(false);
+  const searchParams = useSearchParams();
+  const repeatTripId = searchParams.get("repeat");
   const [status, setStatus] = useState("");
   const router = useRouter();
   const [formData, setFormData] = useState(defaultFormData);
@@ -69,11 +74,57 @@ const JourneyBookingForm
     errorRef.current.focus();
   }
 }, [status]);
+   useEffect(() => {
+    if (repeatTripId) {
+      const repeatData = sessionStorage.getItem("repeatBookingData");
+      
+      if (repeatData) {
+        try {
+          const data = JSON.parse(repeatData);
+          
+          // Pre-fill everything EXCEPT date/time
+          setFormData(prev => ({
+            ...prev,
+            pickupLocation: data.pickupLocation || "",
+          dropoffLocation: data.dropoffLocation || "",
+          pickupPostcode: data.pickupPostcode || "",
+          dropoffPostcode: data.dropoffPostcode || "",
+          
+          // Map correctly!
+          passengerCount: data.passengerCount?.toString() || "1",
+          wheelchairUsers: data.wheelchairUsers?.toString() || "0",
+          
+          // Accessibility options
+          wheelchairAccess: data.wheelchairAccess || false,
+          carerPresent: data.carerPresent || false,
+          femaleDriverOnly: data.femaleDriverOnly || false,
+          quietEnvironment: data.quietEnvironment || false,
+          // ... map all accessibility fields
+          
+          additionalNeeds: data.additionalNeeds || "",
+            // Date and time intentionally left blank!
+          }));
+
+          setIsRepeating(true);
+          
+          // Clear from session storage
+          sessionStorage.removeItem("repeatBookingData");
+        } catch (error) {
+          console.error("Failed to parse repeat booking data:", error);
+        }
+      }
+    }
+  }, [repeatTripId]);
 
 
 const handleSubmit = async (e) => {
   e.preventDefault();
   setStatus("loading");
+
+   if (!formData.pickupDate || !formData.pickupTime) {
+      alert("Please select pickup date and time");
+      return;
+    }
 
   // --- Parse numbers safely ---
   const passengerCount = parseInt(formData.passengerCount, 10) || 0;
@@ -128,11 +179,11 @@ const handleSubmit = async (e) => {
       type: bookingType,
     });
 
-    if (res.success) {
-      setStatus("✅ Booking submitted successfully!");
-      router.push("/dashboard/driver/instant?success=true");
-      setFormData(defaultFormData);
-    } else {
+   if (res.success) {
+  setStatus("✅ Booking submitted successfully!");
+  router.push("/dashboard/public?success=true"); 
+  setFormData(defaultFormData);
+} else {
       setStatus("❌ Failed to submit booking: " + res.error);
       errorRef.current?.focus();
     }
@@ -145,7 +196,23 @@ const handleSubmit = async (e) => {
   return (
     <>
 <StatusMessage message={status} type={status?.startsWith("❌") ? "error" : "info"} />
-
+{isRepeating && (
+  <div className="bg-blue-50 border-2 border-blue-400 rounded-lg p-4 mb-6">
+    <div className="flex items-start gap-3">
+      <svg className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <div>
+        <h3 className="font-semibold text-blue-900 mb-1">
+          🔄 Repeating Previous Trip
+        </h3>
+        <p className="text-sm text-blue-800">
+          Trip details have been pre-filled. Please select a new date and time below.
+        </p>
+      </div>
+    </div>
+  </div>
+)}
       <form
         onSubmit={handleSubmit}
         className="bg-white p-6 rounded-lg shadow-md space-y-4"
@@ -245,15 +312,19 @@ const handleSubmit = async (e) => {
               Journey Date
             </label>
             <input
-              type="date"
-              id="pickupDate"
-              name="pickupDate"
-              required
-              aria-required="true"
-              value={formData.pickupDate || ""}
-              onChange={handleChange}
-              className="w-full mt-1 p-2 border rounded text-gray-500 bg-white focus:ring focus:ring-blue-500"
-            />
+  type="date"
+  id="pickupDate"
+  name="pickupDate"
+  required
+  aria-required="true"
+  value={formData.pickupDate || ""}
+  onChange={handleChange}
+  className={`w-full mt-1 p-2 border-2 rounded text-gray-500 bg-white focus:ring focus:ring-blue-500 ${
+    isRepeating && !formData.pickupDate
+      ? "border-orange-400 bg-orange-50"
+      : "border-gray-300"
+  }`}
+/>
           </div>
           <div>
             <label htmlFor="pickupTime" className="block font-medium text-gray-700">
@@ -266,7 +337,11 @@ const handleSubmit = async (e) => {
   required
   value={formData.pickupTime || ""}
   onChange={handleChange}
-  className="w-full mt-1 p-2 border rounded text-gray-500 bg-white focus:ring focus:ring-blue-500"
+  className={`w-full mt-1 p-2 border-2 rounded text-gray-500 bg-white focus:ring focus:ring-blue-500 ${
+    isRepeating && !formData.pickupTime
+      ? "border-orange-400 bg-orange-50"
+      : "border-gray-300"
+  }`}
 />
           </div>
         </div>
@@ -364,7 +439,7 @@ const handleSubmit = async (e) => {
         )}
 
         {/* Extra accessibility + needs */}
-<RideAccessibilityOptions formData={formData} setFormData={setFormData} />
+<RideAccessibilityOptions formData={formData} setFormData={setFormData} prefix="public-" />
 <PhysicalRequirementsCheckboxes formData={formData} setFormData={setFormData} />
 
 <div>
@@ -421,12 +496,9 @@ const handleSubmit = async (e) => {
     "Submit Booking"
   )}
 </Button>
-
-
-      </form>
+</form>
     </>
   );
 };
 
-export default JourneyBookingForm
-;
+export default JourneyBookingForm;

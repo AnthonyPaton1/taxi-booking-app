@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
 import ManagerDashboardClient from "@/components/dashboard/business/manager/managerdashboardClient";
+import { getRecentTripsForUser } from "@/app/actions/bookings/getRecentTripsForUser";
 import OnboardingManager from "@/components/forms/business/managerOnboardingForm";
 
 export default async function ManagerDashboardPage() {
@@ -31,7 +32,6 @@ export default async function ManagerDashboardPage() {
 
   // Check if manager has onboarded (has houses)
   if (!user.managerOnboarded || user.houses.length === 0) {
-    // Show onboarding form instead of redirecting
     const area = user.areaId ? await prisma.area.findUnique({
       where: { id: user.areaId }
     }) : null;
@@ -56,6 +56,13 @@ export default async function ManagerDashboardPage() {
         </div>
       </div>
     );
+  }
+
+  // ✅ Get recent trips for this manager (uses their user ID)
+  const recentTripsResult = await getRecentTripsForUser(10);
+  
+  if (!recentTripsResult.success) {
+    console.error("Failed to load recent trips:", recentTripsResult.error);
   }
 
   // Get manager's bookings (advanced bookings they created)
@@ -141,6 +148,7 @@ export default async function ManagerDashboardPage() {
       houses={user.houses}
       upcomingBookings={upcomingBookings}
       stats={stats}
+      recentTrips={recentTripsResult.trips || []}
     />
   );
 }

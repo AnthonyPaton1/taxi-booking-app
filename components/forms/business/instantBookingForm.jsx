@@ -474,7 +474,7 @@ export default function InstantBookingForm({ houses, userName }) {
             <h2 className="text-xl font-bold text-gray-900 pb-2 border-b">
               4. Accessibility & Requirements
             </h2>
-            <RideAccessibilityOptions formData={formData} setFormData={setFormData} />
+            <RideAccessibilityOptions formData={formData} setFormData={setFormData} prefix="instant-" />
             <PhysicalRequirementsCheckboxes formData={formData} setFormData={setFormData} />
           </div>
 

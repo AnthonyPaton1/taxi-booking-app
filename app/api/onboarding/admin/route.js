@@ -126,6 +126,15 @@ export async function POST(req) {
       });
     }
 
+    // ✅ If no coordinators, create a default area for the business
+    if (coordinators.length === 0) {
+      await prisma.area.upsert({
+        where: { name: `${validated.businessName} - Main` },
+        update: {},
+        create: { name: `${validated.businessName} - Main` },
+      });
+    }
+
     await prisma.user.update({
       where: { id: adminUser.id },
       data: { adminOnboarded: true },

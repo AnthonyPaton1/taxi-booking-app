@@ -3,16 +3,17 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
+import PasswordStrengthInput, { validateStrongPassword } from "@/components/auth/PasswordStrengthInput";
 
 export default function SetPasswordClient() {
   const router = useRouter();
   const params = useSearchParams();
   const token = params.get("token");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [message, setMessage] = useState(null);
-  const [confirm, setConfirm] = useState("");
 
   // Validate token exists
   if (!token) {
@@ -25,29 +26,20 @@ export default function SetPasswordClient() {
     );
   }
 
-  const validatePassword = (pwd) => {
-    const errors = [];
-    if (pwd.length < 8) errors.push("at least 8 characters");
-    if (!/[A-Z]/.test(pwd)) errors.push("one uppercase letter");
-    if (!/[a-z]/.test(pwd)) errors.push("one lowercase letter");
-    if (!/[0-9]/.test(pwd)) errors.push("one number");
-    return errors;
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setMessage(null);
 
     // Validate password strength
-    const passwordErrors = validatePassword(password);
-    if (passwordErrors.length > 0) {
-      setError(`Password must contain ${passwordErrors.join(", ")}.`);
+    const validation = validateStrongPassword(password);
+    if (!validation.isValid) {
+      setError(validation.errors.join(". "));
       return;
     }
 
     // Check passwords match
-    if (password !== confirm) {
+    if (password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
     }
@@ -146,41 +138,15 @@ export default function SetPasswordClient() {
             </div>
           )}
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-              New Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="appearance-none rounded border border-gray-300 w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-              disabled={loading}
-              minLength={8}
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              Must contain at least 8 characters, including uppercase, lowercase, and a number
-            </p>
-          </div>
-
-          <div>
-            <label htmlFor="confirm" className="block text-sm font-medium text-gray-700 mb-2">
-              Confirm Password
-            </label>
-            <input
-              id="confirm"
-              type="password"
-              placeholder="Confirm your password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              className="appearance-none rounded border border-gray-300 w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-              disabled={loading}
-            />
-          </div>
+          {/* Password Strength Component */}
+          <PasswordStrengthInput
+            password={password}
+            onPasswordChange={setPassword}
+            confirmPassword={confirmPassword}
+            onConfirmPasswordChange={setConfirmPassword}
+            disabled={loading}
+            showConfirm={true}
+          />
 
           <button
             type="submit"

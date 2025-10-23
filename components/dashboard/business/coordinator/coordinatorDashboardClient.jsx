@@ -84,19 +84,20 @@ export default function CoordinatorDashboardClient({
             color="blue"
             icon="👥"
           />
-          <QuickAction
-            title="Incidents & Feedback"
-            description="Review reports and feedback"
-            href="/dashboard/coordinator/incidents"
-            color="orange"
-            icon="⚠️"
-          />
+          
           <QuickAction
             title="Houses Overview"
             description="View all houses in your area"
             href="/dashboard/coordinator/houses"
             color="purple"
             icon="🏘️"
+          />
+          <QuickAction
+            title="Incidents & Feedback"
+            description="Review reports and feedback"
+            href="/dashboard/coordinator/incidents"
+            color="orange"
+            icon="⚠️"
           />
         </div>
 

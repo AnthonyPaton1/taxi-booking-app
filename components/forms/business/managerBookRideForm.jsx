@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { useSearchParams } from "next/navigation";
 import { createManagerBooking } from "@/app/actions/bookings/createManagerBooking";
 import RideAccessibilityOptions from "../RideAccessibilityOptions";
 import PhysicalRequirementsCheckboxes from "../driver/PhysicalRequirementsCheckBoxes";
@@ -52,6 +53,9 @@ export default function ManagerBookRideForm({ houses }) {
   const [status, setStatus] = useState("");
   const [formData, setFormData] = useState(defaultFormData);
   const [selectedHouse, setSelectedHouse] = useState(null);
+  const searchParams = useSearchParams();
+  const repeatTripId = searchParams.get("repeat");
+   const [isRepeating, setIsRepeating] = useState(false);
   const errorRef = useRef(null);
   const router = useRouter();
 
@@ -72,6 +76,48 @@ export default function ManagerBookRideForm({ houses }) {
       errorRef.current.focus();
     }
   }, [status]);
+  useEffect(() => {
+    if (repeatTripId) {
+      const repeatData = sessionStorage.getItem("repeatBookingData");
+      
+      if (repeatData) {
+        try {
+          const data = JSON.parse(repeatData);
+          
+          // Pre-fill everything EXCEPT date/time
+          setFormData(prev => ({
+            ...prev,
+            pickupLocation: data.pickupLocation || "",
+          dropoffLocation: data.dropoffLocation || "",
+          pickupPostcode: data.pickupPostcode || "",
+          dropoffPostcode: data.dropoffPostcode || "",
+          
+          // Map correctly!
+          passengerCount: data.passengerCount?.toString() || "1",
+          wheelchairUsers: data.wheelchairUsers?.toString() || "0",
+          
+          // Accessibility options
+          wheelchairAccess: data.wheelchairAccess || false,
+          carerPresent: data.carerPresent || false,
+          femaleDriverOnly: data.femaleDriverOnly || false,
+          quietEnvironment: data.quietEnvironment || false,
+          // ... map all accessibility fields
+          
+          additionalNeeds: data.additionalNeeds || "",
+            // Date and time intentionally left blank!
+          }));
+
+          setIsRepeating(true);
+          
+          // Clear from session storage
+          sessionStorage.removeItem("repeatBookingData");
+        } catch (error) {
+          console.error("Failed to parse repeat booking data:", error);
+        }
+      }
+    }
+  }, [repeatTripId]);
+
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -84,6 +130,11 @@ export default function ManagerBookRideForm({ houses }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setStatus("loading");
+
+     if (!formData.pickupDate || !formData.pickupTime) {
+      alert("Please select pickup date and time");
+      return;
+    }
 
     // Validation
     const passengerCount = parseInt(formData.passengerCount, 10) || 0;
@@ -189,6 +240,23 @@ export default function ManagerBookRideForm({ houses }) {
           message={status}
           type={status?.startsWith("❌") ? "error" : "info"}
         />
+        {isRepeating && (
+  <div className="bg-blue-50 border-2 border-blue-400 rounded-lg p-4 mb-6">
+    <div className="flex items-start gap-3">
+      <svg className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <div>
+        <h3 className="font-semibold text-blue-900 mb-1">
+          🔄 Repeating Previous Trip
+        </h3>
+        <p className="text-sm text-blue-800">
+          Trip details have been pre-filled. Please select a new date and time below.
+        </p>
+      </div>
+    </div>
+  </div>
+)}
 
         <form
           onSubmit={handleSubmit}
@@ -328,15 +396,19 @@ export default function ManagerBookRideForm({ houses }) {
                   Journey Date *
                 </label>
                 <input
-                  type="date"
-                  id="pickupDate"
-                  name="pickupDate"
-                  required
-                  value={formData.pickupDate}
-                  onChange={handleChange}
-                  min={new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString().split("T")[0]}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+  type="date"
+  id="pickupDate"
+  name="pickupDate"
+  required
+  aria-required="true"
+  value={formData.pickupDate || ""}
+  onChange={handleChange}
+  className={`w-full mt-1 p-2 border-2 rounded text-gray-500 bg-white focus:ring focus:ring-blue-500 ${
+    isRepeating && !formData.pickupDate
+      ? "border-orange-400 bg-orange-50"
+      : "border-gray-300"
+  }`}
+/>
                 <p className="text-sm text-gray-500 mt-1">Must be 48+ hours ahead</p>
               </div>
 
@@ -345,14 +417,18 @@ export default function ManagerBookRideForm({ houses }) {
                   Pickup Time *
                 </label>
                 <input
-                  type="time"
-                  id="pickupTime"
-                  name="pickupTime"
-                  required
-                  value={formData.pickupTime}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+  type="time"
+  id="pickupTime"
+  name="pickupTime"
+  required
+  value={formData.pickupTime || ""}
+  onChange={handleChange}
+  className={`w-full mt-1 p-2 border-2 rounded text-gray-500 bg-white focus:ring focus:ring-blue-500 ${
+    isRepeating && !formData.pickupTime
+      ? "border-orange-400 bg-orange-50"
+      : "border-gray-300"
+  }`}
+/>
               </div>
             </div>
 
@@ -432,7 +508,7 @@ export default function ManagerBookRideForm({ houses }) {
             <h2 className="text-xl font-bold text-gray-900 pb-2 border-b">
               4. Accessibility & Requirements
             </h2>
-            <RideAccessibilityOptions formData={formData} setFormData={setFormData} />
+            <RideAccessibilityOptions formData={formData} setFormData={setFormData} prefix="manager-" />
             <PhysicalRequirementsCheckboxes formData={formData} setFormData={setFormData} />
           </div>
 

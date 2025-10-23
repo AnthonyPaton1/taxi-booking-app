@@ -179,23 +179,28 @@ export default function BusinessOnboardingForm({ prefillData = {} }) {
           onChange={handleChange}
         />
 
-        <p className="text-blue-700 font-bold mt-6 mb-6 px-6">
-          Add your Area Managers or Coordinators below. They will each receive an email to complete their assigned areas and onboard their House Managers.
+         <p className="text-blue-700 font-bold mt-6 mb-2 px-6">
+          Add your Area Managers or Coordinators below
+        </p>
+        <p className="text-sm text-gray-600 mb-4 px-6">
+          Coordinators manage multiple houses across an area. They will each receive an email to complete their assigned areas and onboard their House Managers.
         </p>
 
-        <div className="mb-4 px-6">
+        <div className="mb-4 px-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p className="text-sm text-gray-700 mb-2">
+            <strong>Single location?</strong> If you only have one care home or location, you can skip adding coordinators and add your House Manager directly after setup.
+          </p>
           <button
             type="button"
             onClick={() => submitOnboarding([])}
-            className="inline-block text-sm text-gray-600 underline hover:text-gray-800 mr-4"
+            className="inline-block text-sm text-blue-600 font-medium underline hover:text-blue-800"
             disabled={submitting}
           >
-            Skip this step
+            Skip & Add House Manager Instead →
           </button>
-          <p className="text-xs text-gray-500 mt-2">
-            You can add coordinators later from the dashboard under Edit Business details.
-          </p>
         </div>
+
+        
 
         {coordinators.map((coord, i) => (
           <div key={i} className="border p-4 rounded-md bg-gray-50 space-y-4">

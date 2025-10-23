@@ -3,22 +3,44 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import IncidentFeedbackForm from "@/components/forms/incidentFeedbackForm";
+import { FileText, Building } from "lucide-react";
+import RecentTripsSection from "@/components/dashboard/RecentTripsSection";
 
-export default function ManagerDashboardClient({
+export default  function ManagerDashboardClient({
   user,
   houses,
   upcomingBookings,
   stats,
+  recentTrips,
+  houseId
 }) {
+  const [showIncidentForm, setShowIncidentForm] = useState(false);
+ 
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm p-6">
-          <h1 className="text-2xl font-bold text-gray-900">
-            Welcome, {user.name}
-          </h1>
-          <ClientDate />
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Welcome, {user.name}
+              </h1>
+              <ClientDate />
+            </div>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setShowIncidentForm(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition shadow-sm"
+              >
+                <FileText className="w-5 h-5" />
+                <span className="hidden sm:inline">Incident & Feedback</span>
+              </button>
+              <Building className="w-12 h-12 text-blue-600" />
+            </div>
+          </div>
         </div>
 
         {/* Stats Grid */}
@@ -52,28 +74,28 @@ export default function ManagerDashboardClient({
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-  <QuickAction
-    title="Book Advanced Ride"
-    description="Schedule transport 48hrs+ ahead"
-    href="/dashboard/manager/book-ride"
-    color="blue"
-    icon="📅"
-  />
-  <QuickAction
-    title="Book Instant Ride"
-    description="Request immediate transport"
-    href="/dashboard/manager/instant-booking"
-    color="purple"
-    icon="⚡"
-  />
-  <QuickAction
-    title="View All Bookings"
-    description="Manage all transport requests"
-    href="/dashboard/manager/bookings"
-    color="green"
-    icon="📋"
-  />
-</div>
+          <QuickAction
+            title="Book Advanced Ride"
+            description="Schedule transport 48hrs+ ahead"
+            href="/dashboard/manager/book-ride"
+            color="blue"
+            icon="📅"
+          />
+          <QuickAction
+            title="Book Instant Ride"
+            description="Request immediate transport"
+            href="/dashboard/manager/instant-booking"
+            color="purple"
+            icon="⚡"
+          />
+          <QuickAction
+            title="View All Bookings"
+            description="Manage all transport requests"
+            href="/dashboard/manager/bookings"
+            color="green"
+            icon="📋"
+          />
+        </div>
 
         {/* Bookings Needing Attention */}
         {stats.pendingBids > 0 && (
@@ -82,55 +104,86 @@ export default function ManagerDashboardClient({
               <span className="text-2xl">⚠️</span>
               <div>
                 <h3 className="font-semibold text-yellow-900">
-                  {stats.pendingBids} booking{stats.pendingBids !== 1 ? "s" : ""} need
-                  your attention
+                  {stats.pendingBids} booking{stats.pendingBids !== 1 ? "s" : ""}{" "}
+                  need your attention
                 </h3>
                 <p className="text-sm text-yellow-800">
                   Bids have been received - review and accept to confirm drivers
                 </p>
               </div>
-            <Link
-  href="/dashboard/manager/pending-bids"
-  className="ml-auto bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded font-medium"
->
-  Review Bids
-</Link>
+              <Link
+                href="/dashboard/manager/pending-bids"
+                className="ml-auto bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded font-medium"
+              >
+                Review Bids
+              </Link>
             </div>
           </div>
         )}
 
-        {/* Upcoming Bookings */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Upcoming Bookings
-            </h2>
-            <Link
-              href="/dashboard/manager/bookings"
-              className="text-sm text-blue-600 hover:underline"
-            >
-              View all
-            </Link>
+         {/* 🔥 NEW: Recent Trips Section (Full Width) */}
+          <div className="lg:col-span-2">
+            <RecentTripsSection 
+              trips={recentTrips} 
+              houseId={houseId}
+            />
           </div>
 
-          {upcomingBookings.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500">No upcoming bookings</p>
-              <Link
-                href="/dashboard/manager/book-ride"
-                className="mt-4 inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
-              >
-                Book First Ride
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {upcomingBookings.map((booking) => (
-                <BookingCard key={booking.id} booking={booking} />
-              ))}
-            </div>
-          )}
-        </div>
+        {/* Upcoming Bookings */}
+<div className="bg-white rounded-lg shadow-sm p-6">
+  <div className="flex justify-between items-center mb-4">
+    <h2 className="text-lg font-semibold text-gray-900">
+      Upcoming Bookings
+    </h2>
+    <Link
+      href="/dashboard/manager/bookings"
+      className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+    >
+      View All
+      <svg 
+        className="w-4 h-4" 
+        fill="none" 
+        stroke="currentColor" 
+        viewBox="0 0 24 24"
+      >
+        <path 
+          strokeLinecap="round" 
+          strokeLinejoin="round" 
+          strokeWidth={2} 
+          d="M9 5l7 7-7 7" 
+        />
+      </svg>
+    </Link>
+  </div>
+  
+  {upcomingBookings.length === 0 ? (
+    <div className="text-center py-12">
+      <svg
+        className="w-16 h-16 text-gray-400 mx-auto mb-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+        />
+      </svg>
+      <p className="text-gray-600 text-lg mb-1">No upcoming bookings</p>
+      <p className="text-gray-500 text-sm">
+        Use the quick actions above to create a booking
+      </p>
+    </div>
+  ) : (
+    <div className="space-y-3">
+      {upcomingBookings.map((booking) => (
+        <BookingCard key={booking.id} booking={booking} />
+      ))}
+    </div>
+  )}
+</div>
 
         {/* Houses Overview */}
         <div className="bg-white rounded-lg shadow-sm p-6">
@@ -151,6 +204,14 @@ export default function ManagerDashboardClient({
           </div>
         </div>
       </div>
+
+      {/* Incident Form Modal */}
+      {showIncidentForm && (
+        <IncidentFeedbackForm
+          user={user}
+          onClose={() => setShowIncidentForm(false)}
+        />
+      )}
     </div>
   );
 }

@@ -26,7 +26,7 @@ export default async function EditManagerPage({ params }) {
     redirect("/dashboard/coordinator");
   }
 
-  const { id: managerId } = params;
+  const { id: managerId } = await params;
 
   // Get the manager - verify they're in this coordinator's area
   const manager = await prisma.user.findFirst({

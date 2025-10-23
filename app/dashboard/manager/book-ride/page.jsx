@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import ManagerBookRideForm from "@/components/forms/business/managerBookRideForm";
 
-export default async function BookRidePage() {
+
+export default async function ManagerBookRidePage() {
   const session = await getServerSession(authOptions);
 
   if (!session || session.user.role !== "MANAGER") {
@@ -24,7 +25,7 @@ export default async function BookRidePage() {
           },
         },
         orderBy: {
-          label: "asc",  // ✅ Changed from 'name' to 'label'
+          label: "asc",
         },
       },
     },
@@ -58,5 +59,18 @@ export default async function BookRidePage() {
     );
   }
 
-  return <ManagerBookRideForm houses={user.houses} />;
+  return (
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-3xl mx-auto px-4">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">Book Advanced Ride</h1>
+          <p className="text-gray-600 mt-2">
+            Schedule transport 48hrs+ ahead for your residents
+          </p>
+        </div>
+
+        <ManagerBookRideForm houses={user.houses} userName={user.name} />
+      </div>
+    </div>
+  );
 }

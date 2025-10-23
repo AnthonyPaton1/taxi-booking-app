@@ -12,24 +12,31 @@ export default async function SingleInstantBookingPage({ params }) {
     redirect("/login");
   }
 
-  const { id } = params;
+  const { id } = await params;
 
-  // Fetch booking with all related data
-  const booking = await prisma.booking.findUnique({
+  // Fetch booking with all related data - FIXED: using instantBooking model
+  const booking = await prisma.instantBooking.findUnique({
     where: { id },
     include: {
-      resident: {
-        include: {
-          house: true,
-        },
-      },
-      assignedDriver: {
+      accessibilityProfile: true,
+      driver: {
         include: {
           user: {
             select: {
               name: true,
               email: true,
               phone: true,
+            },
+          },
+        },
+      },
+      createdBy: {
+        select: {
+          name: true,
+          houses: {
+            select: {
+              label: true,
+              id: true,
             },
           },
         },
