@@ -1,7 +1,8 @@
 "use client";
 
 import { format } from "date-fns";
-import { Calendar, MapPin, User, Wheelchair, Volume2, UserCircle2 } from "lucide-react";
+import { Calendar, MapPin, User, Accessibility, Volume2, UserCircle2 } from "lucide-react";
+
 
 export default function TripCard({ trip, onRepeat }) {
   // Format date for display
@@ -53,7 +54,7 @@ export default function TripCard({ trip, onRepeat }) {
         <div className="flex flex-wrap gap-2 mb-4">
           {trip.wheelchairUsers > 0 && (
             <span className="bg-purple-50 text-purple-700 px-2 py-1 rounded text-xs flex items-center gap-1">
-              <Wheelchair className="w-3 h-3" />
+              <Accessibility className="w-3 h-3" />
               {trip.wheelchairUsers} wheelchair{trip.wheelchairUsers > 1 ? "s" : ""}
             </span>
           )}

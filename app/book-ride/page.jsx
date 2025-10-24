@@ -2,7 +2,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
-import JourneyBookingForm from "@/components/forms/JourneyBookingForm";
+import JourneyBookingForm from "@/components/forms/journeyBookingForm";
 
 export const metadata = {
   title: "Book a Journey - Accessible Transport",
