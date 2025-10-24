@@ -5,6 +5,7 @@ import Providers from "./providers";
 import Navbar from "@/components/layout/navbar";
 import Footer from "@/components/layout/footer";
 import CookieConsentBanner from "@/components/CookieConsentBanner";
+import { Toaster } from "sonner";
 
 const geistSans = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
 const geistMono = Geist_Mono({
@@ -25,6 +26,7 @@ export default function RootLayout({ children }) {
       >
         <Providers>
           <Navbar />
+          <Toaster position="top-center" richColors />
           {children}
           <Footer />
         </Providers>

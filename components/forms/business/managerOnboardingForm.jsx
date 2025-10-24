@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { PostcodeInput } from "@/components/shared/PostcodeInput";
 import { toast } from "sonner";
 
 const OnboardingManager = ({ managerEmail, name, area }) => {
@@ -13,11 +14,11 @@ const OnboardingManager = ({ managerEmail, name, area }) => {
 
   const [houses, setHouses] = useState([
     {
-      number: "",
-      street: "",
+      label: "",
+      line1: "",
       city: "",
       postcode: "",
-      tenants: "",
+      notes: "",
     },
   ]);
 
@@ -30,7 +31,7 @@ const OnboardingManager = ({ managerEmail, name, area }) => {
   const addHouse = () => {
     setHouses([
       ...houses,
-      { number: "", street: "", city: "", postcode: "", tenants: "" },
+      { label: "", line1: "", city: "", postcode: "", notes: "" },
     ]);
   };
 
@@ -39,7 +40,7 @@ const OnboardingManager = ({ managerEmail, name, area }) => {
   };
 
   const isValid = houses.every(
-    (h) => h.number && h.street && h.postcode && h.tenants
+    (h) => h.label && h.line1 && h.city && h.postcode
   );
 
   const handleSubmit = async (e) => {
@@ -57,11 +58,64 @@ const OnboardingManager = ({ managerEmail, name, area }) => {
     
     try {
       setSubmitting(true);
+      
+      // Step 1: Validate all house postcodes and get coordinates
+      toast.loading("Verifying house postcodes...");
+      
+      const validatedHouses = [];
+      
+      for (let i = 0; i < houses.length; i++) {
+        const house = houses[i];
+        
+        const postcodeValidation = await fetch("/api/validate-postcode", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ postcode: house.postcode }),
+        });
+
+        const postcodeData = await postcodeValidation.json();
+
+        // Check BOTH response.ok AND data.valid
+        if (!postcodeValidation.ok || !postcodeData.valid) {
+          toast.dismiss();
+          toast.error(`Property ${i + 1}: ${postcodeData.error || "Postcode not found"}`, {
+            duration: 5000,
+          });
+          
+          // Scroll to the invalid house postcode field
+          setTimeout(() => {
+            const postcodeField = document.getElementById(`house-postcode-${i}`);
+            if (postcodeField) {
+              postcodeField.scrollIntoView({ 
+                behavior: "smooth", 
+                block: "center" 
+              });
+              postcodeField.focus();
+            }
+          }, 100);
+          
+          setSubmitting(false);
+          return;
+        }
+
+        // Add validated house with coordinates
+        validatedHouses.push({
+          ...house,
+          postcode: postcodeData.coordinates.postcode, // Normalized
+          lat: postcodeData.coordinates.lat,            // Float
+          lng: postcodeData.coordinates.lng,            // Float
+        });
+      }
+
+      toast.dismiss();
+      toast.loading("Submitting houses...");
+
+      // Step 2: Submit with validated houses
       const payload = { 
         managerEmail, 
         name, 
         area, 
-        houses 
+        houses: validatedHouses,
       };
 
       const res = await fetch("/api/onboarding/manager", {
@@ -75,9 +129,12 @@ const OnboardingManager = ({ managerEmail, name, area }) => {
         throw new Error(error.message || "Submission failed");
       }
 
+      toast.dismiss();
       toast.success("Houses onboarded successfully!");
       setTimeout(() => router.push("/dashboard/manager"), 1200);
+      
     } catch (err) {
+      toast.dismiss();
       console.error("Onboarding failed:", err);
       toast.error(err.message || "Something went wrong.");
     } finally {
@@ -125,33 +182,39 @@ const OnboardingManager = ({ managerEmail, name, area }) => {
               </div>
               
               <Input
-                placeholder="House Number *"
-                value={house.number}
-                onChange={(e) => handleHouseChange(i, "number", e.target.value)}
+                placeholder="House Label (e.g., Main House, Oak Villa) *"
+                value={house.label}
+                onChange={(e) => handleHouseChange(i, "label", e.target.value)}
                 required
               />
               <Input
-                placeholder="Street Name *"
-                value={house.street}
-                onChange={(e) => handleHouseChange(i, "street", e.target.value)}
+                placeholder="Address Line 1 (e.g., 123 Main Street) *"
+                value={house.line1}
+                onChange={(e) => handleHouseChange(i, "line1", e.target.value)}
                 required
               />
               <Input
-                placeholder="City or Town (optional)"
+                placeholder="City or Town *"
                 value={house.city}
                 onChange={(e) => handleHouseChange(i, "city", e.target.value)}
+                required
               />
-              <Input
-                placeholder="Postcode *"
+              
+              {/* UPDATED POSTCODE INPUT */}
+              <PostcodeInput
+                id={`house-postcode-${i}`}
                 value={house.postcode}
-                onChange={(e) => handleHouseChange(i, "postcode", e.target.value)}
+                onChange={(value) => handleHouseChange(i, "postcode", value)}
+                label="Postcode"
+                placeholder="e.g., SK3 0AA"
                 required
               />
+              
               <Textarea
-                placeholder="Tenant initials (e.g. JD, ML) *"
-                value={house.tenants}
-                onChange={(e) => handleHouseChange(i, "tenants", e.target.value)}
-                required
+                placeholder="Notes (optional - any additional information)"
+                value={house.notes}
+                onChange={(e) => handleHouseChange(i, "notes", e.target.value)}
+                rows={2}
               />
             </div>
           ))}

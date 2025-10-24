@@ -5,14 +5,14 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { PostcodeInput } from "@/components/shared/PostcodeInput";
 import { useSearchParams } from "next/navigation";
 import { createManagerBooking } from "@/app/actions/bookings/createManagerBooking";
 import RideAccessibilityOptions from "../RideAccessibilityOptions";
 import PhysicalRequirementsCheckboxes from "../driver/PhysicalRequirementsCheckBoxes";
 import StatusMessage from "@/components/shared/statusMessage";
 import { ArrowLeft, Timer } from "lucide-react";
-
-const postcodeRegex = /^([A-Z]{1,2}\d[A-Z\d]? \d[A-Z]{2}|GIR 0AA)$/i;
+import { toast } from "sonner";
 
 const defaultFormData = {
   houseId: "",
@@ -51,11 +51,12 @@ const defaultFormData = {
 
 export default function ManagerBookRideForm({ houses }) {
   const [status, setStatus] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState(defaultFormData);
   const [selectedHouse, setSelectedHouse] = useState(null);
   const searchParams = useSearchParams();
   const repeatTripId = searchParams.get("repeat");
-   const [isRepeating, setIsRepeating] = useState(false);
+  const [isRepeating, setIsRepeating] = useState(false);
   const errorRef = useRef(null);
   const router = useRouter();
 
@@ -76,6 +77,7 @@ export default function ManagerBookRideForm({ houses }) {
       errorRef.current.focus();
     }
   }, [status]);
+
   useEffect(() => {
     if (repeatTripId) {
       const repeatData = sessionStorage.getItem("repeatBookingData");
@@ -87,23 +89,36 @@ export default function ManagerBookRideForm({ houses }) {
           // Pre-fill everything EXCEPT date/time
           setFormData(prev => ({
             ...prev,
+            houseId: data.houseId || "",
+            residentId: data.residentId || "",
             pickupLocation: data.pickupLocation || "",
-          dropoffLocation: data.dropoffLocation || "",
-          pickupPostcode: data.pickupPostcode || "",
-          dropoffPostcode: data.dropoffPostcode || "",
-          
-          // Map correctly!
-          passengerCount: data.passengerCount?.toString() || "1",
-          wheelchairUsers: data.wheelchairUsers?.toString() || "0",
-          
-          // Accessibility options
-          wheelchairAccess: data.wheelchairAccess || false,
-          carerPresent: data.carerPresent || false,
-          femaleDriverOnly: data.femaleDriverOnly || false,
-          quietEnvironment: data.quietEnvironment || false,
-          // ... map all accessibility fields
-          
-          additionalNeeds: data.additionalNeeds || "",
+            dropoffLocation: data.dropoffLocation || "",
+            pickupPostcode: data.pickupPostcode || "",
+            dropoffPostcode: data.dropoffPostcode || "",
+            
+            // Map correctly!
+            passengerCount: data.passengerCount?.toString() || "1",
+            wheelchairUsers: data.wheelchairUsers?.toString() || "0",
+            
+            // Accessibility options
+            wheelchairAccess: data.wheelchairAccess || false,
+            carerPresent: data.carerPresent || false,
+            femaleDriverOnly: data.femaleDriverOnly || false,
+            quietEnvironment: data.quietEnvironment || false,
+            noConversation: data.noConversation || false,
+            visualSchedule: data.visualSchedule || false,
+            assistanceAnimal: data.assistanceAnimal || false,
+            familiarDriverOnly: data.familiarDriverOnly || false,
+            escortRequired: data.escortRequired || false,
+            signLanguageRequired: data.signLanguageRequired || false,
+            textOnlyCommunication: data.textOnlyCommunication || false,
+            medicationOnBoard: data.medicationOnBoard || false,
+            assistanceRequired: data.assistanceRequired || false,
+            nonWAVvehicle: data.nonWAVvehicle || false,
+            
+            additionalNeeds: data.additionalNeeds || "",
+            managerNotes: data.managerNotes || "",
+            physicalRequirements: data.physicalRequirements || [],
             // Date and time intentionally left blank!
           }));
 
@@ -118,7 +133,6 @@ export default function ManagerBookRideForm({ houses }) {
     }
   }, [repeatTripId]);
 
-
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -130,9 +144,13 @@ export default function ManagerBookRideForm({ houses }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setStatus("loading");
+    setSubmitting(true);
 
-     if (!formData.pickupDate || !formData.pickupTime) {
-      alert("Please select pickup date and time");
+    if (!formData.pickupDate || !formData.pickupTime) {
+      setStatus("❌ Please select pickup date and time");
+      toast.error("Please select pickup date and time");
+      errorRef.current?.focus();
+      setSubmitting(false);
       return;
     }
 
@@ -142,31 +160,17 @@ export default function ManagerBookRideForm({ houses }) {
 
     if (wheelchairUsers > passengerCount) {
       setStatus("❌ Wheelchair users cannot exceed total passengers.");
+      toast.error("Wheelchair users cannot exceed total passengers");
       errorRef.current?.focus();
+      setSubmitting(false);
       return;
     }
 
     if (!formData.houseId || !formData.residentId) {
       setStatus("❌ Please select a house and resident.");
+      toast.error("Please select a house and resident");
       errorRef.current?.focus();
-      return;
-    }
-
-    if (!postcodeRegex.test(formData.pickupPostcode)) {
-      setStatus("❌ Invalid pickup postcode format");
-      errorRef.current?.focus();
-      return;
-    }
-
-    if (!postcodeRegex.test(formData.dropoffPostcode)) {
-      setStatus("❌ Invalid dropoff postcode format");
-      errorRef.current?.focus();
-      return;
-    }
-
-    if (!formData.pickupDate || !formData.pickupTime) {
-      setStatus("❌ Pickup date and time are required.");
-      errorRef.current?.focus();
+      setSubmitting(false);
       return;
     }
 
@@ -177,7 +181,9 @@ export default function ManagerBookRideForm({ houses }) {
 
     if (hoursDifference < 48) {
       setStatus("❌ Advanced bookings must be at least 48 hours in advance.");
+      toast.error("Advanced bookings must be at least 48 hours in advance");
       errorRef.current?.focus();
+      setSubmitting(false);
       return;
     }
 
@@ -186,27 +192,120 @@ export default function ManagerBookRideForm({ houses }) {
       : null;
 
     try {
-      const res = await createManagerBooking({
+      // Step 1: Validate pickup postcode
+      toast.loading("Verifying pickup postcode...");
+      
+      const pickupValidation = await fetch("/api/validate-postcode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postcode: formData.pickupPostcode }),
+      });
+
+      const pickupData = await pickupValidation.json();
+
+      if (!pickupValidation.ok || !pickupData.valid) {
+        toast.dismiss();
+        toast.error(pickupData.error || "Pickup postcode not found", {
+          duration: 5000,
+        });
+        
+        // Scroll to pickup postcode field
+        setTimeout(() => {
+          const pickupField = document.getElementById("manager-pickup-postcode");
+          if (pickupField) {
+            pickupField.scrollIntoView({ 
+              behavior: "smooth", 
+              block: "center" 
+            });
+            pickupField.focus();
+          }
+        }, 100);
+        
+        setStatus("❌ " + pickupData.error);
+        setSubmitting(false);
+        return;
+      }
+
+      toast.dismiss();
+      toast.loading("Verifying dropoff postcode...");
+
+      // Step 2: Validate dropoff postcode
+      const dropoffValidation = await fetch("/api/validate-postcode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postcode: formData.dropoffPostcode }),
+      });
+
+      const dropoffData = await dropoffValidation.json();
+
+      if (!dropoffValidation.ok || !dropoffData.valid) {
+        toast.dismiss();
+        toast.error(dropoffData.error || "Dropoff postcode not found", {
+          duration: 5000,
+        });
+        
+        // Scroll to dropoff postcode field
+        setTimeout(() => {
+          const dropoffField = document.getElementById("manager-dropoff-postcode");
+          if (dropoffField) {
+            dropoffField.scrollIntoView({ 
+              behavior: "smooth", 
+              block: "center" 
+            });
+            dropoffField.focus();
+          }
+        }, 100);
+        
+        setStatus("❌ " + dropoffData.error);
+        setSubmitting(false);
+        return;
+      }
+
+      toast.dismiss();
+      toast.loading("Creating booking...");
+
+      // Step 3: Create booking with validated postcodes and coordinates
+      const bookingPayload = {
         ...formData,
+        // Normalized postcodes
+        pickupPostcode: pickupData.coordinates.postcode,
+        dropoffPostcode: dropoffData.coordinates.postcode,
+        // Cached coordinates
+        pickupLat: pickupData.coordinates.lat,
+        pickupLng: pickupData.coordinates.lng,
+        dropoffLat: dropoffData.coordinates.lat,
+        dropoffLng: dropoffData.coordinates.lng,
+        // Parsed values
         passengerCount,
         wheelchairUsers,
         pickupTime: pickupDateTime,
         returnTime,
-      });
+        type: "ADVANCED", // Manager bookings are always ADVANCED (48h minimum)
+      };
+
+      const res = await createManagerBooking(bookingPayload);
 
       if (res.success) {
+        toast.dismiss();
+        toast.success("Booking created! Drivers can now bid.");
         setStatus("✅ Booking created! Drivers can now bid.");
         setTimeout(() => {
           router.push(`/dashboard/manager/bookings/${res.bookingId}`);
         }, 1500);
       } else {
+        toast.dismiss();
+        toast.error(res.error || "Failed to create booking");
         setStatus("❌ Failed: " + res.error);
         errorRef.current?.focus();
       }
     } catch (err) {
+      toast.dismiss();
       console.error("💥 Error:", err);
+      toast.error("Something went wrong. Please try again.");
       setStatus("❌ Something went wrong.");
       errorRef.current?.focus();
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -224,106 +323,95 @@ export default function ManagerBookRideForm({ houses }) {
           </Link>
           <div className="flex items-center gap-2 text-blue-600">
             <Timer className="w-5 h-5" />
-            <span className="font-medium">Pre-Scheduled Booking</span>
+            <span className="font-medium">Advanced Booking</span>
           </div>
         </div>
 
         {/* Page Title */}
         <div className="bg-white p-6 rounded-lg shadow-sm">
-          <h1 className="text-3xl font-bold text-gray-900">Create Advanced Booking</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Book a Ride</h1>
           <p className="text-gray-600 mt-2">
-            Schedule a ride at least 48 hours in advance - drivers will bid on this booking
+            Create an advanced booking for a resident (minimum 48 hours in advance)
           </p>
+          <div className="flex items-center gap-2 mt-3 text-sm text-blue-700 bg-blue-50 p-3 rounded">
+            <Timer className="w-4 h-4" />
+            <span>All bookings must be made at least 48 hours in advance to allow drivers time to bid</span>
+          </div>
         </div>
 
-        <StatusMessage
-          message={status}
-          type={status?.startsWith("❌") ? "error" : "info"}
-        />
-        {isRepeating && (
-  <div className="bg-blue-50 border-2 border-blue-400 rounded-lg p-4 mb-6">
-    <div className="flex items-start gap-3">
-      <svg className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-      <div>
-        <h3 className="font-semibold text-blue-900 mb-1">
-          🔄 Repeating Previous Trip
-        </h3>
-        <p className="text-sm text-blue-800">
-          Trip details have been pre-filled. Please select a new date and time below.
-        </p>
-      </div>
-    </div>
-  </div>
-)}
+        {/* Status Message */}
+        {status && (
+          <div ref={errorRef} tabIndex={-1}>
+            <StatusMessage message={status} />
+          </div>
+        )}
 
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white p-6 rounded-lg shadow-md space-y-6"
-        >
-          <div ref={errorRef} tabIndex={-1} />
+        {isRepeating && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <p className="text-sm text-green-800">
+              ✨ Repeating previous trip (dates cleared for new booking)
+            </p>
+          </div>
+        )}
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-sm space-y-6">
 
           {/* House & Resident Selection */}
-          <div className="space-y-4">
-            <h2 className="text-xl font-bold text-gray-900 pb-2 border-b">
-              1. Select House & Resident
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg">
-              <div>
-                <label htmlFor="houseId" className="block font-medium text-gray-700 mb-1">
-                  Select House *
-                </label>
-                <select
-                  id="houseId"
-                  name="houseId"
-                  required
-                  value={formData.houseId}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">-- Choose House --</option>
-                  {houses.map((house) => (
-                    <option key={house.id} value={house.id}>
-                      {house.name} ({house.residents.length} residents)
-                    </option>
-                  ))}
-                </select>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="houseId" className="block font-medium text-gray-700 mb-1">
+                Select House *
+              </label>
+              <select
+                id="houseId"
+                name="houseId"
+                required
+                value={formData.houseId}
+                onChange={handleChange}
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">-- Select House --</option>
+                {houses.map((house) => (
+                  <option key={house.id} value={house.id}>
+                    {house.label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-              <div>
-                <label htmlFor="residentId" className="block font-medium text-gray-700 mb-1">
-                  Select Resident *
-                </label>
-                <select
-                  id="residentId"
-                  name="residentId"
-                  required
-                  value={formData.residentId}
-                  onChange={handleChange}
-                  disabled={!selectedHouse}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-                >
-                  <option value="">-- Choose Resident --</option>
-                  {selectedHouse?.residents.map((resident) => (
-                    <option key={resident.id} value={resident.id}>
-                      {resident.name}
-                    </option>
-                  ))}
-                </select>
-                {!selectedHouse && (
-                  <p className="text-sm text-gray-500 mt-1">Select a house first</p>
-                )}
-              </div>
+            <div>
+              <label htmlFor="residentId" className="block font-medium text-gray-700 mb-1">
+                Select Resident *
+              </label>
+              <select
+                id="residentId"
+                name="residentId"
+                required
+                value={formData.residentId}
+                onChange={handleChange}
+                disabled={!selectedHouse}
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+              >
+                <option value="">-- Select Resident --</option>
+                {selectedHouse?.residents.map((resident) => (
+                  <option key={resident.id} value={resident.id}>
+                    {resident.name}
+                  </option>
+                ))}
+              </select>
+              {!selectedHouse && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Please select a house first
+                </p>
+              )}
             </div>
           </div>
 
-          {/* Journey Details */}
+          {/* Pickup & Dropoff Details */}
           <div className="space-y-4">
-            <h2 className="text-xl font-bold text-gray-900 pb-2 border-b">
-              2. Journey Details
-            </h2>
-
+            <h3 className="text-lg font-semibold text-gray-900">Journey Details</h3>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="pickupLocation" className="block font-medium text-gray-700 mb-1">
@@ -341,21 +429,15 @@ export default function ManagerBookRideForm({ houses }) {
                 />
               </div>
 
-              <div>
-                <label htmlFor="pickupPostcode" className="block font-medium text-gray-700 mb-1">
-                  Pickup Postcode *
-                </label>
-                <input
-                  type="text"
-                  id="pickupPostcode"
-                  name="pickupPostcode"
-                  required
-                  value={formData.pickupPostcode}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="e.g. SW1A 1AA"
-                />
-              </div>
+              {/* Pickup Postcode - UPDATED */}
+              <PostcodeInput
+                id="manager-pickup-postcode"
+                value={formData.pickupPostcode}
+                onChange={(value) => setFormData(prev => ({ ...prev, pickupPostcode: value }))}
+                label="Pickup Postcode"
+                placeholder="e.g., SK3 0AA"
+                required
+              />
 
               <div>
                 <label htmlFor="dropoffLocation" className="block font-medium text-gray-700 mb-1">
@@ -373,191 +455,171 @@ export default function ManagerBookRideForm({ houses }) {
                 />
               </div>
 
-              <div>
-                <label htmlFor="dropoffPostcode" className="block font-medium text-gray-700 mb-1">
-                  Destination Postcode *
-                </label>
-                <input
-                  type="text"
-                  id="dropoffPostcode"
-                  name="dropoffPostcode"
-                  required
-                  value={formData.dropoffPostcode}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="e.g. EC1A 1BB"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="pickupDate" className="block font-medium text-gray-700 mb-1">
-                  Journey Date *
-                </label>
-                <input
-  type="date"
-  id="pickupDate"
-  name="pickupDate"
-  required
-  aria-required="true"
-  value={formData.pickupDate || ""}
-  onChange={handleChange}
-  className={`w-full mt-1 p-2 border-2 rounded text-gray-500 bg-white focus:ring focus:ring-blue-500 ${
-    isRepeating && !formData.pickupDate
-      ? "border-orange-400 bg-orange-50"
-      : "border-gray-300"
-  }`}
-/>
-                <p className="text-sm text-gray-500 mt-1">Must be 48+ hours ahead</p>
-              </div>
-
-              <div>
-                <label htmlFor="pickupTime" className="block font-medium text-gray-700 mb-1">
-                  Pickup Time *
-                </label>
-                <input
-  type="time"
-  id="pickupTime"
-  name="pickupTime"
-  required
-  value={formData.pickupTime || ""}
-  onChange={handleChange}
-  className={`w-full mt-1 p-2 border-2 rounded text-gray-500 bg-white focus:ring focus:ring-blue-500 ${
-    isRepeating && !formData.pickupTime
-      ? "border-orange-400 bg-orange-50"
-      : "border-gray-300"
-  }`}
-/>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 p-3 bg-gray-50 rounded">
-              <input
-                type="checkbox"
-                id="roundTrip"
-                name="roundTrip"
-                checked={formData.roundTrip}
-                onChange={handleChange}
-                className="w-4 h-4 text-blue-600"
+              {/* Dropoff Postcode - UPDATED */}
+              <PostcodeInput
+                id="manager-dropoff-postcode"
+                value={formData.dropoffPostcode}
+                onChange={(value) => setFormData(prev => ({ ...prev, dropoffPostcode: value }))}
+                label="Destination Postcode"
+                placeholder="e.g., M1 1AA"
+                required
               />
-              <label htmlFor="roundTrip" className="text-gray-700 font-medium">
-                Return Journey?
-              </label>
             </div>
-
-            {formData.roundTrip && (
-              <div>
-                <label htmlFor="returnTime" className="block font-medium text-gray-700 mb-1">
-                  Return Time
-                </label>
-                <input
-                  type="time"
-                  id="returnTime"
-                  name="returnTime"
-                  value={formData.returnTime}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-            )}
           </div>
 
-          {/* Passengers */}
-          <div className="space-y-4">
-            <h2 className="text-xl font-bold text-gray-900 pb-2 border-b">
-              3. Passenger Information
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="passengerCount" className="block font-medium text-gray-700 mb-1">
-                  Number of Passengers *
-                </label>
-                <input
-                  type="number"
-                  id="passengerCount"
-                  name="passengerCount"
-                  min={1}
-                  max={15}
-                  value={formData.passengerCount}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
+          {/* Date & Time */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="pickupDate" className="block font-medium text-gray-700 mb-1">
+                Pickup Date *
+              </label>
+              <input
+                type="date"
+                id="pickupDate"
+                name="pickupDate"
+                required
+                value={formData.pickupDate}
+                onChange={handleChange}
+                min={new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
 
-              <div>
-                <label htmlFor="wheelchairUsers" className="block font-medium text-gray-700 mb-1">
-                  Wheelchair Users
-                </label>
-                <input
-                  type="number"
-                  id="wheelchairUsers"
-                  name="wheelchairUsers"
-                  min={0}
-                  max={6}
-                  value={formData.wheelchairUsers}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
+            <div>
+              <label htmlFor="pickupTime" className="block font-medium text-gray-700 mb-1">
+                Pickup Time *
+              </label>
+              <input
+                type="time"
+                id="pickupTime"
+                name="pickupTime"
+                required
+                value={formData.pickupTime}
+                onChange={handleChange}
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          {/* Round Trip */}
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="roundTrip"
+              name="roundTrip"
+              checked={formData.roundTrip}
+              onChange={handleChange}
+              className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+            />
+            <label htmlFor="roundTrip" className="font-medium text-gray-700">
+              Round Trip (Return Journey)
+            </label>
+          </div>
+
+          {/* Return Time (if round trip) */}
+          {formData.roundTrip && (
+            <div>
+              <label htmlFor="returnTime" className="block font-medium text-gray-700 mb-1">
+                Return Time
+              </label>
+              <input
+                type="time"
+                id="returnTime"
+                name="returnTime"
+                value={formData.returnTime}
+                onChange={handleChange}
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          )}
+
+          {/* Passenger Details */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="passengerCount" className="block font-medium text-gray-700 mb-1">
+                Number of Passengers *
+              </label>
+              <input
+                type="number"
+                id="passengerCount"
+                name="passengerCount"
+                min="1"
+                max="16"
+                required
+                value={formData.passengerCount}
+                onChange={handleChange}
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="wheelchairUsers" className="block font-medium text-gray-700 mb-1">
+                Number of Wheelchair Users
+              </label>
+              <input
+                type="number"
+                id="wheelchairUsers"
+                name="wheelchairUsers"
+                min="0"
+                max="8"
+                value={formData.wheelchairUsers}
+                onChange={handleChange}
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
             </div>
           </div>
 
           {/* Accessibility Options */}
-          <div className="space-y-4">
-            <h2 className="text-xl font-bold text-gray-900 pb-2 border-b">
-              4. Accessibility & Requirements
-            </h2>
-            <RideAccessibilityOptions formData={formData} setFormData={setFormData} prefix="manager-" />
-            <PhysicalRequirementsCheckboxes formData={formData} setFormData={setFormData} />
+          <RideAccessibilityOptions
+            formData={formData}
+            handleChange={handleChange}
+          />
+
+          {/* Physical Requirements */}
+          <PhysicalRequirementsCheckboxes
+            formData={formData}
+            setFormData={setFormData}
+          />
+
+          {/* Additional Needs */}
+          <div>
+            <label htmlFor="additionalNeeds" className="block font-medium text-gray-700 mb-1">
+              Additional Needs
+            </label>
+            <textarea
+              id="additionalNeeds"
+              name="additionalNeeds"
+              rows="3"
+              value={formData.additionalNeeds}
+              onChange={handleChange}
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Any additional requirements or notes..."
+            />
           </div>
 
-          {/* Additional Notes */}
-          <div className="space-y-4">
-            <h2 className="text-xl font-bold text-gray-900 pb-2 border-b">
-              5. Additional Information
-            </h2>
-
-            <div>
-              <label htmlFor="additionalNeeds" className="block font-medium text-gray-700 mb-1">
-                Additional Needs (Visible to drivers)
-              </label>
-              <textarea
-                id="additionalNeeds"
-                name="additionalNeeds"
-                rows={3}
-                value={formData.additionalNeeds}
-                onChange={handleChange}
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Special requirements for drivers..."
-              />
-            </div>
-
-            <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
-              <label htmlFor="managerNotes" className="block font-medium text-gray-700 mb-1">
-                Internal Manager Notes (Not visible to drivers)
-              </label>
-              <textarea
-                id="managerNotes"
-                name="managerNotes"
-                rows={2}
-                value={formData.managerNotes}
-                onChange={handleChange}
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                placeholder="Internal notes, CQC requirements, etc..."
-              />
-              <p className="text-sm text-gray-600 mt-2 flex items-center gap-1">
-                🔒 For internal use only - drivers cannot see this
-              </p>
-            </div>
+          {/* Manager Notes (Internal) */}
+          <div>
+            <label htmlFor="managerNotes" className="block font-medium text-gray-700 mb-1">
+              Internal Notes (Not visible to driver)
+            </label>
+            <textarea
+              id="managerNotes"
+              name="managerNotes"
+              rows="2"
+              value={formData.managerNotes}
+              onChange={handleChange}
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Internal notes for your reference..."
+            />
           </div>
 
+          {/* Submit Button */}
           <Button
             type="submit"
             className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg font-medium"
-            disabled={status === "loading"}
+            disabled={submitting}
           >
-            {status === "loading" ? "Creating Booking..." : "Create Booking & Open for Bids"}
+            {submitting ? "Creating Booking..." : "Create Advanced Booking"}
           </Button>
         </form>
       </div>

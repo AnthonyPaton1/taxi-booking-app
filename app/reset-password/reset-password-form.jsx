@@ -3,7 +3,8 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import PasswordStrengthInput, { validateStrongPassword } from "@/components/auth/PasswordStrengthInput";
+import PasswordStrengthInput from "@/components/auth/PasswordStrengthInput";
+import { validateStrongPassword } from "@/components/auth/PasswordStrengthInput";
 
 export default function ResetPasswordForm() {
   const searchParams = useSearchParams();

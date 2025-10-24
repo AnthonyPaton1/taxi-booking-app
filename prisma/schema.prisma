@@ -261,6 +261,8 @@ model Driver {
   // Location & availability
   localPostcode String
   radiusMiles   Int
+  baseLat Float?
+  baseLng Float?
   phone         String
 
   // Approval status
@@ -332,6 +334,9 @@ model Business {
   advancedBookings        AdvancedBooking[] @relation("BusinessAdvancedBookings")
   instantBookings         InstantBooking[]  @relation("BusinessInstantBookings")
   acceptedInstantBookings InstantBooking[]  @relation("BusinessAcceptedInstant")
+  lat Float?
+  lng Float?
+
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -397,6 +402,8 @@ model House {
 
   incidents Incident[]
   residents Resident[]
+  lat Float?
+  lng Float?
 
   createdAt DateTime   @default(now())
   deletedAt DateTime?

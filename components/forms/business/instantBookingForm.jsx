@@ -3,14 +3,15 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { PostcodeInput } from "@/components/shared/PostcodeInput";
 import RideAccessibilityOptions from "../RideAccessibilityOptions";
 import PhysicalRequirementsCheckboxes from "../driver/PhysicalRequirementsCheckBoxes";
 import StatusMessage from "@/components/shared/statusMessage";
 import { ArrowLeft, Zap, Clock } from "lucide-react";
-
-const postcodeRegex = /^([A-Z]{1,2}\d[A-Z\d]? \d[A-Z]{2}|GIR 0AA)$/i;
+import { toast } from "sonner";
 
 const defaultFormData = {
   houseId: "",
@@ -49,8 +50,12 @@ const defaultFormData = {
 
 export default function InstantBookingForm({ houses, userName }) {
   const [status, setStatus] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState(defaultFormData);
   const [selectedHouse, setSelectedHouse] = useState(null);
+  const [isRepeating, setIsRepeating] = useState(false);
+  const searchParams = useSearchParams();
+  const repeatTripId = searchParams.get("repeat");
   const errorRef = useRef(null);
   const router = useRouter();
 
@@ -91,6 +96,62 @@ export default function InstantBookingForm({ houses, userName }) {
     }
   }, [status]);
 
+  // Repeat trip functionality
+  useEffect(() => {
+    if (repeatTripId) {
+      const repeatData = sessionStorage.getItem("repeatBookingData");
+      
+      if (repeatData) {
+        try {
+          const data = JSON.parse(repeatData);
+          
+          // Pre-fill everything EXCEPT date/time
+          setFormData(prev => ({
+            ...prev,
+            houseId: data.houseId || "",
+            residentId: data.residentId || "",
+            pickupLocation: data.pickupLocation || "",
+            dropoffLocation: data.dropoffLocation || "",
+            pickupPostcode: data.pickupPostcode || "",
+            dropoffPostcode: data.dropoffPostcode || "",
+            
+            // Map correctly!
+            passengerCount: data.passengerCount?.toString() || "1",
+            wheelchairUsers: data.wheelchairUsers?.toString() || "0",
+            
+            // Accessibility options
+            wheelchairAccess: data.wheelchairAccess || false,
+            carerPresent: data.carerPresent || false,
+            femaleDriverOnly: data.femaleDriverOnly || false,
+            quietEnvironment: data.quietEnvironment || false,
+            noConversation: data.noConversation || false,
+            visualSchedule: data.visualSchedule || false,
+            assistanceAnimal: data.assistanceAnimal || false,
+            familiarDriverOnly: data.familiarDriverOnly || false,
+            escortRequired: data.escortRequired || false,
+            signLanguageRequired: data.signLanguageRequired || false,
+            textOnlyCommunication: data.textOnlyCommunication || false,
+            medicationOnBoard: data.medicationOnBoard || false,
+            assistanceRequired: data.assistanceRequired || false,
+            nonWAVvehicle: data.nonWAVvehicle || false,
+            
+            additionalNeeds: data.additionalNeeds || "",
+            managerNotes: data.managerNotes || "",
+            physicalRequirements: data.physicalRequirements || [],
+            // Date and time intentionally left blank - will be set by default time logic!
+          }));
+
+          setIsRepeating(true);
+          
+          // Clear from session storage
+          sessionStorage.removeItem("repeatBookingData");
+        } catch (error) {
+          console.error("Failed to parse repeat booking data:", error);
+        }
+      }
+    }
+  }, [repeatTripId]);
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -102,6 +163,7 @@ export default function InstantBookingForm({ houses, userName }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setStatus("loading");
+    setSubmitting(true);
 
     // Validation
     const passengerCount = parseInt(formData.passengerCount, 10) || 0;
@@ -109,31 +171,25 @@ export default function InstantBookingForm({ houses, userName }) {
 
     if (wheelchairUsers > passengerCount) {
       setStatus("❌ Wheelchair users cannot exceed total passengers.");
+      toast.error("Wheelchair users cannot exceed total passengers");
       errorRef.current?.focus();
+      setSubmitting(false);
       return;
     }
 
     if (!formData.houseId || !formData.residentId) {
       setStatus("❌ Please select a house and resident.");
+      toast.error("Please select a house and resident");
       errorRef.current?.focus();
-      return;
-    }
-
-    if (!postcodeRegex.test(formData.pickupPostcode)) {
-      setStatus("❌ Invalid pickup postcode format");
-      errorRef.current?.focus();
-      return;
-    }
-
-    if (!postcodeRegex.test(formData.dropoffPostcode)) {
-      setStatus("❌ Invalid dropoff postcode format");
-      errorRef.current?.focus();
+      setSubmitting(false);
       return;
     }
 
     if (!formData.pickupDate || !formData.pickupTime) {
       setStatus("❌ Pickup date and time are required.");
+      toast.error("Pickup date and time are required");
       errorRef.current?.focus();
+      setSubmitting(false);
       return;
     }
 
@@ -143,7 +199,9 @@ export default function InstantBookingForm({ houses, userName }) {
     
     if (pickupDateTime < now) {
       setStatus("❌ Pickup time cannot be in the past.");
+      toast.error("Pickup time cannot be in the past");
       errorRef.current?.focus();
+      setSubmitting(false);
       return;
     }
 
@@ -152,7 +210,9 @@ export default function InstantBookingForm({ houses, userName }) {
     
     if (hoursDifference > 48) {
       setStatus("❌ For bookings 48+ hours ahead, please use Advanced Booking.");
+      toast.error("For bookings 48+ hours ahead, please use Advanced Booking");
       errorRef.current?.focus();
+      setSubmitting(false);
       return;
     }
 
@@ -161,34 +221,125 @@ export default function InstantBookingForm({ houses, userName }) {
       : null;
 
     try {
+      // Step 1: Validate pickup postcode
+      toast.loading("Verifying pickup postcode...");
+      
+      const pickupValidation = await fetch("/api/validate-postcode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postcode: formData.pickupPostcode }),
+      });
+
+      const pickupData = await pickupValidation.json();
+
+      if (!pickupValidation.ok || !pickupData.valid) {
+        toast.dismiss();
+        toast.error(pickupData.error || "Pickup postcode not found", {
+          duration: 5000,
+        });
+        
+        // Scroll to pickup postcode field
+        setTimeout(() => {
+          const pickupField = document.getElementById("instant-pickup-postcode");
+          if (pickupField) {
+            pickupField.scrollIntoView({ 
+              behavior: "smooth", 
+              block: "center" 
+            });
+            pickupField.focus();
+          }
+        }, 100);
+        
+        setStatus("❌ " + pickupData.error);
+        setSubmitting(false);
+        return;
+      }
+
+      toast.dismiss();
+      toast.loading("Verifying dropoff postcode...");
+
+      // Step 2: Validate dropoff postcode
+      const dropoffValidation = await fetch("/api/validate-postcode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postcode: formData.dropoffPostcode }),
+      });
+
+      const dropoffData = await dropoffValidation.json();
+
+      if (!dropoffValidation.ok || !dropoffData.valid) {
+        toast.dismiss();
+        toast.error(dropoffData.error || "Dropoff postcode not found", {
+          duration: 5000,
+        });
+        
+        // Scroll to dropoff postcode field
+        setTimeout(() => {
+          const dropoffField = document.getElementById("instant-dropoff-postcode");
+          if (dropoffField) {
+            dropoffField.scrollIntoView({ 
+              behavior: "smooth", 
+              block: "center" 
+            });
+            dropoffField.focus();
+          }
+        }, 100);
+        
+        setStatus("❌ " + dropoffData.error);
+        setSubmitting(false);
+        return;
+      }
+
+      toast.dismiss();
+      toast.loading("Creating instant booking...");
+
+      // Step 3: Create instant booking with validated postcodes and coordinates
       const res = await fetch("/api/bookings/instant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
+          // Normalized postcodes
+          pickupPostcode: pickupData.coordinates.postcode,
+          dropoffPostcode: dropoffData.coordinates.postcode,
+          // Cached coordinates
+          pickupLat: pickupData.coordinates.lat,
+          pickupLng: pickupData.coordinates.lng,
+          dropoffLat: dropoffData.coordinates.lat,
+          dropoffLng: dropoffData.coordinates.lng,
+          // Parsed values
           passengerCount,
           wheelchairUsers,
           pickupTime: pickupDateTime.toISOString(),
           returnTime: returnTime?.toISOString(),
           createdBy: userName,
+          type: "INSTANT",
         }),
       });
 
       const data = await res.json();
 
       if (res.ok && data.success) {
+        toast.dismiss();
+        toast.success("Instant booking created! Drivers are being notified.");
         setStatus("✅ Instant booking created! Drivers are being notified.");
         setTimeout(() => {
           router.push(`/dashboard/manager/instant-bookings/${data.bookingId}`);
         }, 1500);
       } else {
+        toast.dismiss();
+        toast.error(data.error || "Failed to create booking");
         setStatus("❌ Failed: " + (data.error || "Unknown error"));
         errorRef.current?.focus();
       }
     } catch (err) {
+      toast.dismiss();
       console.error("💥 Error:", err);
+      toast.error("Something went wrong. Please try again.");
       setStatus("❌ Something went wrong.");
       errorRef.current?.focus();
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -222,27 +373,33 @@ export default function InstantBookingForm({ houses, userName }) {
           </p>
           <div className="flex items-center gap-2 mt-3 text-sm text-purple-700 bg-purple-50 p-3 rounded">
             <Clock className="w-4 h-4" />
-            <span>For bookings 48+ hours ahead, use Advanced Booking with driver bidding</span>
+            <span>Instant bookings are available from now until 2 days ahead</span>
           </div>
         </div>
 
-        <StatusMessage
-          message={status}
-          type={status?.startsWith("❌") ? "error" : "info"}
-        />
+        {/* Status Message */}
+        {status && (
+          <div ref={errorRef} tabIndex={-1}>
+            <StatusMessage message={status} />
+          </div>
+        )}
 
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white p-6 rounded-lg shadow-md space-y-6"
-        >
-          <div ref={errorRef} tabIndex={-1} />
+        {isRepeating && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <p className="text-sm text-green-800">
+              ✨ Repeating previous trip (dates cleared for new booking)
+            </p>
+          </div>
+        )}
 
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-sm space-y-8">
           {/* House & Resident Selection */}
           <div className="space-y-4">
             <h2 className="text-xl font-bold text-gray-900 pb-2 border-b">
               1. Select House & Resident
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-purple-50 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="houseId" className="block font-medium text-gray-700 mb-1">
                   Select House *
@@ -255,10 +412,10 @@ export default function InstantBookingForm({ houses, userName }) {
                   onChange={handleChange}
                   className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 >
-                  <option value="">-- Choose House --</option>
+                  <option value="">-- Select House --</option>
                   {houses.map((house) => (
                     <option key={house.id} value={house.id}>
-                      {house.label} ({house.residents.length} residents)
+                      {house.label}
                     </option>
                   ))}
                 </select>
@@ -275,9 +432,9 @@ export default function InstantBookingForm({ houses, userName }) {
                   value={formData.residentId}
                   onChange={handleChange}
                   disabled={!selectedHouse}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100"
                 >
-                  <option value="">-- Choose Resident --</option>
+                  <option value="">-- Select Resident --</option>
                   {selectedHouse?.residents.map((resident) => (
                     <option key={resident.id} value={resident.id}>
                       {resident.name}
@@ -285,7 +442,9 @@ export default function InstantBookingForm({ houses, userName }) {
                   ))}
                 </select>
                 {!selectedHouse && (
-                  <p className="text-sm text-gray-500 mt-1">Select a house first</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Please select a house first
+                  </p>
                 )}
               </div>
             </div>
@@ -296,7 +455,7 @@ export default function InstantBookingForm({ houses, userName }) {
             <h2 className="text-xl font-bold text-gray-900 pb-2 border-b">
               2. Journey Details
             </h2>
-
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="pickupLocation" className="block font-medium text-gray-700 mb-1">
@@ -314,21 +473,16 @@ export default function InstantBookingForm({ houses, userName }) {
                 />
               </div>
 
-              <div>
-                <label htmlFor="pickupPostcode" className="block font-medium text-gray-700 mb-1">
-                  Pickup Postcode *
-                </label>
-                <input
-                  type="text"
-                  id="pickupPostcode"
-                  name="pickupPostcode"
-                  required
-                  value={formData.pickupPostcode}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  placeholder="e.g. SW1A 1AA"
-                />
-              </div>
+              {/* Pickup Postcode - UPDATED */}
+              <PostcodeInput
+                id="instant-pickup-postcode"
+                value={formData.pickupPostcode}
+                onChange={(value) => setFormData(prev => ({ ...prev, pickupPostcode: value }))}
+                label="Pickup Postcode"
+                placeholder="e.g., SK3 0AA"
+                required
+                className="w-full"
+              />
 
               <div>
                 <label htmlFor="dropoffLocation" className="block font-medium text-gray-700 mb-1">
@@ -346,21 +500,16 @@ export default function InstantBookingForm({ houses, userName }) {
                 />
               </div>
 
-              <div>
-                <label htmlFor="dropoffPostcode" className="block font-medium text-gray-700 mb-1">
-                  Destination Postcode *
-                </label>
-                <input
-                  type="text"
-                  id="dropoffPostcode"
-                  name="dropoffPostcode"
-                  required
-                  value={formData.dropoffPostcode}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  placeholder="e.g. EC1A 1BB"
-                />
-              </div>
+              {/* Dropoff Postcode - UPDATED */}
+              <PostcodeInput
+                id="instant-dropoff-postcode"
+                value={formData.dropoffPostcode}
+                onChange={(value) => setFormData(prev => ({ ...prev, dropoffPostcode: value }))}
+                label="Destination Postcode"
+                placeholder="e.g., M1 1AA"
+                required
+                className="w-full"
+              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -474,7 +623,7 @@ export default function InstantBookingForm({ houses, userName }) {
             <h2 className="text-xl font-bold text-gray-900 pb-2 border-b">
               4. Accessibility & Requirements
             </h2>
-            <RideAccessibilityOptions formData={formData} setFormData={setFormData} prefix="instant-" />
+            <RideAccessibilityOptions formData={formData} handleChange={handleChange} />
             <PhysicalRequirementsCheckboxes formData={formData} setFormData={setFormData} />
           </div>
 
@@ -521,9 +670,9 @@ export default function InstantBookingForm({ houses, userName }) {
           <Button
             type="submit"
             className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 text-lg font-medium"
-            disabled={status === "loading"}
+            disabled={submitting}
           >
-            {status === "loading" ? "Creating Instant Booking..." : "Create Instant Booking & Notify Drivers"}
+            {submitting ? "Creating Instant Booking..." : "Create Instant Booking & Notify Drivers"}
           </Button>
         </form>
       </div>

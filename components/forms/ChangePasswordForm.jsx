@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import PasswordStrengthInput, { validateStrongPassword } from "@/components/auth/PasswordStrengthInput";
+import PasswordStrengthInput from "../auth/PasswordStrengthInput";
+import { validateStrongPassword } from "../auth/PasswordStrengthInput";
 
 /**
  * Change Password Form (for logged-in users in settings)

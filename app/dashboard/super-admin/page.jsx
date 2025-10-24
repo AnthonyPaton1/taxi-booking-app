@@ -1,4 +1,3 @@
-import CheckoutSteps from "@/components/shared/header/SuperAdminCheckoutSteps";
 
 const SuperAdminMainPage = async () => {
   // Simulated data — replace with actual fetch later
@@ -11,7 +10,6 @@ const SuperAdminMainPage = async () => {
 
   return (
     <div className="space-y-6">
-      <CheckoutSteps current={0} />
 
       <h2 className="text-2xl font-semibold text-blue-800">Welcome Tony you genius</h2>
 

@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { PostcodeInput } from "@/components/shared/PostcodeInput";
 import { completeDriverOnboarding } from "@/app/actions/driver/driverDetails";
 import { DriverOnboardingSchema } from "@/lib/validators";
+import { toast } from "sonner";
 
 // Required fields
 const requiredFields = [
@@ -69,7 +71,7 @@ const defaultFormData = {
   medicalConditions: "",
   firstAidTrained: false,
   conditionAwareness: false,
-visualSchedule: false,
+  visualSchedule: false,
   medicationOnBoard: false,
   additionalNeeds: "",
 
@@ -87,10 +89,11 @@ const amenityOptions = [
   "Electric scooter storage",
 ];
 
-export default function DriverOnboardingForm( {onSubmit}) {
+export default function DriverOnboardingForm({ onSubmit }) {
   const [formData, setFormData] = useState(defaultFormData);
   const [errors, setErrors] = useState({});
   const [firstErrorKey, setFirstErrorKey] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (firstErrorKey) {
@@ -119,18 +122,18 @@ export default function DriverOnboardingForm( {onSubmit}) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
     const newErrors = {};
- 
 
-
-
+    // Validate required fields
     requiredFields.forEach((field) => {
       if (!formData[field] || formData[field].toString().trim() === "") {
         newErrors[field] = "This field is required.";
       }
     });
 
+    // Validate required booleans
     requiredBooleans.forEach((field) => {
       if (!formData[field]) {
         newErrors[field] = "This checkbox must be checked.";
@@ -140,22 +143,84 @@ export default function DriverOnboardingForm( {onSubmit}) {
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       setFirstErrorKey(Object.keys(newErrors)[0]);
+      setIsSubmitting(false);
       return;
     }
 
-    // Reset errors and submit
+    // Reset errors
     setErrors({});
     setFirstErrorKey(null);
 
     try {
-       const payload = DriverOnboardingSchema.parse(formData);
-       await completeDriverOnboarding(payload); 
-  alert("Onboarding completed!");
-  window.location.href = "/dashboard/driver";
-} catch (err) {
-  console.error(err);
-  alert("Something went wrong");
-}
+      // Step 1: Validate postcode and get coordinates
+      toast.loading("Verifying your postcode...");
+      
+      const postcodeValidation = await fetch("/api/validate-postcode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postcode: formData.localPostcode }),
+      });
+
+      const postcodeData = await postcodeValidation.json();
+
+      // Check BOTH response.ok AND data.valid
+      if (!postcodeValidation.ok || !postcodeData.valid) {
+        toast.dismiss();
+        toast.error(postcodeData.error || "Postcode not found", {
+          duration: 5000,
+        });
+        setErrors({ localPostcode: postcodeData.error });
+        setFirstErrorKey("localPostcode");
+        
+        // Scroll to postcode field
+        setTimeout(() => {
+          const postcodeField = document.getElementById("localPostcode");
+          if (postcodeField) {
+            postcodeField.scrollIntoView({ 
+              behavior: "smooth", 
+              block: "center" 
+            });
+            postcodeField.focus();
+          }
+        }, 100);
+        
+        setIsSubmitting(false);
+        return;
+      }
+
+      toast.dismiss();
+      toast.loading("Completing your registration...");
+
+      toast.dismiss();
+      toast.loading("Completing your registration...");
+
+      // Step 2: Add coordinates to form data
+      const payload = {
+        ...formData,
+        localPostcode: postcodeData.coordinates.postcode, // Normalized postcode
+        baseLat: postcodeData.coordinates.lat,            // Cache coordinates
+        baseLng: postcodeData.coordinates.lng,
+      };
+
+      // Step 3: Validate with schema
+      const validatedPayload = DriverOnboardingSchema.parse(payload);
+
+      // Step 4: Submit
+      await completeDriverOnboarding(validatedPayload);
+
+      toast.dismiss();
+      toast.success("Onboarding completed successfully!");
+      
+      setTimeout(() => {
+        window.location.href = "/dashboard/driver";
+      }, 1500);
+      
+    } catch (err) {
+      toast.dismiss();
+      console.error("Onboarding error:", err);
+      toast.error(err.message || "Something went wrong");
+      setIsSubmitting(false);
+    }
   };
 
 
@@ -253,53 +318,58 @@ export default function DriverOnboardingForm( {onSubmit}) {
         </div>
 
         <div>
-          <label htmlFor="localPostcode" className="block font-medium text-gray-700">
-            Base Postcode
-          </label>
-          <input
-            type="text"
-            id="localPostcode"
-            name="localPostcode"
-            required
-            aria-required="true"
-            value={formData.localPostcode}
-            onChange={handleChange}
-            className="w-full mt-1 p-2 border rounded focus:ring focus:ring-blue-500"
-            placeholder="e.g. M1 1AA"
-          />
-          {errors.localPostcode && <p className="text-red-600 text-sm mt-1">{errors.localPostcode}</p>}
-        </div>
+        <PostcodeInput
+          id="localPostcode"
+          value={formData.localPostcode}
+          onChange={(value) => setFormData(prev => ({ ...prev, localPostcode: value }))}
+          label="Base Postcode"
+          placeholder="e.g., SK3 0AA"
+          required
+          className="w-full"
+        />
+        {errors.localPostcode && (
+          <p className="text-red-600 text-sm mt-1">{errors.localPostcode}</p>
+        )}
+        <p className="text-sm text-gray-500 mt-1">
+          This is where you'll be based. We'll match you with nearby bookings.
+        </p>
+      </div>
 
-        <div>
-          <label htmlFor="radiusMiles" className="block font-medium text-gray-700">
-            Operating Radius (miles)
-          </label>
-  <input
-  type="number"
-  id="radiusMiles"
-  name="radiusMiles"
-  min={5}
-  max={100}
-  inputMode="numeric"
-  value={formData.radiusMiles?.toString() || ""}
-  onChange={(e) => {
-    let val = e.target.value;
-
-    // Remove leading zeros
-    if (val.length > 1 && val.startsWith("0")) {
-      val = val.replace(/^0+/, "");
-    }
-
-    // Convert cleaned value to number
-    setFormData((prev) => ({
-      ...prev,
-      radiusMiles: Number(val),
-    }));
-  }}
-  className="w-full mt-1 p-2 border rounded focus:ring focus:ring-blue-500"
-/>
-          {errors.radiusMiles && <p className="text-red-600 text-sm mt-1">{errors.radiusMiles}</p>}
-        </div>
+      <div>
+        <label htmlFor="radiusMiles" className="block font-medium text-gray-700">
+          Operating Radius (miles)
+        </label>
+        <input
+          type="number"
+          id="radiusMiles"
+          name="radiusMiles"
+          min={5}
+          max={100}
+          inputMode="numeric"
+          value={formData.radiusMiles?.toString() || ""}
+          onChange={(e) => {
+            let val = e.target.value;
+            
+            // Remove leading zeros
+            if (val.length > 1 && val.startsWith("0")) {
+              val = val.replace(/^0+/, "");
+            }
+            
+            // Convert cleaned value to number
+            setFormData((prev) => ({
+              ...prev,
+              radiusMiles: Number(val),
+            }));
+          }}
+          className="w-full mt-1 p-2 border rounded focus:ring focus:ring-blue-500"
+        />
+        {errors.radiusMiles && (
+          <p className="text-red-600 text-sm mt-1">{errors.radiusMiles}</p>
+        )}
+        <p className="text-sm text-gray-500 mt-1">
+          Maximum distance you're willing to travel for pickups (5-100 miles)
+        </p>
+      </div>
 
         <div>
           <label htmlFor="phone" className="block font-medium text-gray-700">

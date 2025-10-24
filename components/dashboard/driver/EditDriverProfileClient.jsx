@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Save, User, Car, MapPin, Settings, Shield } from "lucide-react";
+import { PostcodeInput } from "@/components/shared/PostcodeInput";
+import { toast } from "sonner";
 
 export default function EditDriverProfileClient({ user, driver }) {
   const router = useRouter();
@@ -90,6 +92,60 @@ export default function EditDriverProfileClient({ user, driver }) {
     setError("");
 
     try {
+      // Only validate postcode via API if it changed
+      if (formData.localPostcode !== driver.localPostcode) {
+        toast.loading("Verifying postcode...");
+        
+        const postcodeValidation = await fetch("/api/validate-postcode", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ postcode: formData.localPostcode }),
+        });
+
+        const postcodeData = await postcodeValidation.json();
+
+        
+
+        // Check if validation failed (either !ok or valid: false)
+         if (!postcodeValidation.ok || !postcodeData.valid) {
+          const errorMessage = postcodeData.error || "Postcode not found";
+          
+          
+          // Dismiss loading toast THEN show error
+          toast.dismiss();
+          toast.error(errorMessage, {
+            duration: 5000,
+          });
+          
+          
+          
+          // Switch to location tab and scroll to postcode field
+          setActiveTab("location");
+          setTimeout(() => {
+            const postcodeField = document.getElementById("driver-postcode");
+            if (postcodeField) {
+              postcodeField.scrollIntoView({ 
+                behavior: "smooth", 
+                block: "center" 
+              });
+              postcodeField.focus();
+            }
+          }, 100);
+          
+          setLoading(false);
+          return;
+        }
+
+        // Add normalized postcode and coordinates to form data
+        formData.localPostcode = postcodeData.coordinates.postcode;
+        formData.baseLat = postcodeData.coordinates.lat;
+        formData.baseLng = postcodeData.coordinates.lng;
+        
+        toast.dismiss();
+      }
+
+      toast.loading("Updating profile...");
+
       const response = await fetch(`/api/driver/profile`, {
         method: "PATCH",
         headers: {
@@ -104,14 +160,23 @@ export default function EditDriverProfileClient({ user, driver }) {
         throw new Error(data.error || "Failed to update profile");
       }
 
-      router.push("/dashboard/driver");
-      router.refresh();
+      toast.dismiss();
+      toast.success("Profile updated successfully!");
+      
+      setTimeout(() => {
+        router.push("/dashboard/driver");
+        router.refresh();
+      }, 1000);
+      
     } catch (err) {
+      toast.dismiss();
       setError(err.message);
+      toast.error(err.message || "Failed to update profile");
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="space-y-6">
@@ -298,54 +363,45 @@ export default function EditDriverProfileClient({ user, driver }) {
         )}
 
         {/* Location Tab */}
-        {activeTab === "location" && (
-          <div className="space-y-4">
-            <div>
-              <label
-                htmlFor="localPostcode"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Base Postcode <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                id="localPostcode"
-                name="localPostcode"
+           {activeTab === "location" && (
+            <div className="space-y-4">
+              <PostcodeInput
+                id="driver-postcode"
                 value={formData.localPostcode}
-                onChange={handleChange}
+                onChange={(value) => setFormData(prev => ({ ...prev, localPostcode: value }))}
+                label="Base Postcode"
+                placeholder="e.g., SK3 0AA"
                 required
-                placeholder="M1 1AA"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent uppercase"
+                className="w-full"
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-500 -mt-2">
                 Your home or primary operating location
               </p>
-            </div>
 
-            <div>
-              <label
-                htmlFor="radiusMiles"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Service Radius (miles) <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                id="radiusMiles"
-                name="radiusMiles"
-                value={formData.radiusMiles}
-                onChange={handleChange}
-                required
-                min="1"
-                max="50"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                How far you're willing to travel for jobs (1-50 miles)
-              </p>
+              <div>
+                <label
+                  htmlFor="radiusMiles"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Service Radius (miles) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  id="radiusMiles"
+                  name="radiusMiles"
+                  value={formData.radiusMiles}
+                  onChange={handleChange}
+                  required
+                  min="1"
+                  max="50"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  How far you're willing to travel for jobs (1-50 miles)
+                </p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
         {/* Compliance Tab */}
         {activeTab === "compliance" && (
