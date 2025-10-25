@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
-import PasswordStrengthInput, { validateStrongPassword } from "@/components/auth/PasswordStrengthInput";
+import PasswordStrengthInput from "@/components/auth/PasswordStrengthInput";
+import { validateStrongPassword } from "@/components/auth/PasswordStrengthInput";
 
 export default function SetPasswordClient() {
   const router = useRouter();

@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import PublicDashboardClient from "@/components/dashboard/public/publicDashboardClient";
+import PublicDashboardClient from "@/components/dashboard/public/PublicDashboardClient";
 import { getRecentTripsForUser } from "@/app/actions/bookings/getRecentTripsForUser";
 
 export const metadata = {

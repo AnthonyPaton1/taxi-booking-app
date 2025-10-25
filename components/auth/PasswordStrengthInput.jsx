@@ -1,3 +1,4 @@
+//app/components/auth/PasswordStrengthInput.jsx
 "use client";
 
 import { useState, useEffect } from "react";
