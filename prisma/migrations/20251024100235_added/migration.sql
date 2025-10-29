@@ -1,3 +1,0 @@
--- AlterTable
-ALTER TABLE "Driver" ADD COLUMN     "baseLat" DOUBLE PRECISION,
-ADD COLUMN     "baseLng" DOUBLE PRECISION;

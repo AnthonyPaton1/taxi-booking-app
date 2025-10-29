@@ -189,6 +189,8 @@ model User {
 model AccessibilityProfile {
   id String @id @default(cuid())
 
+  vehicleType String @default("either")
+
   // Mobility & Physical
   wheelchairAccess       Boolean @default(false)
   doubleWheelchairAccess Boolean @default(false)
@@ -240,6 +242,8 @@ model AccessibilityProfile {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([vehicleType])
 }
 
 /**
@@ -267,6 +271,15 @@ model Driver {
 
   // Approval status
   approved Boolean @default(false)
+  hasWAV             Boolean @default(false)
+hasStandard        Boolean @default(true)
+wavOnly            Boolean @default(false)
+gender             String?
+completedRides     Int     @default(0)
+rating             Float   @default(0.0)
+serviceAreaLat     Float?
+serviceAreaLng     Float?
+serviceAreaRadius  Float?  @default(25.0)
 
   // Relations
   accessibilityProfileId String              @unique
@@ -281,6 +294,9 @@ model Driver {
   updatedAt DateTime @updatedAt
 
   @@index([localPostcode, approved])
+  @@index([hasWAV])
+@@index([gender])
+@@index([serviceAreaLat, serviceAreaLng])
 }
 
 model DriverCompliance {
@@ -447,7 +463,11 @@ model AdvancedBooking {
   pickupTime      DateTime
   returnTime      DateTime?
   pickupLocation  String
+   pickupLatitude  Float?     
+  pickupLongitude Float?    
   dropoffLocation String
+   dropoffLatitude  Float?  
+  dropoffLongitude Float? 
   initials        String[]
 
   // Accessibility (now via relation)
@@ -469,7 +489,8 @@ model AdvancedBooking {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
-
+  cancelledAt DateTime?
+cancellationReason String? 
   schedule RideSchedule?
 
   @@index([businessId, pickupTime])
@@ -505,6 +526,11 @@ model InstantBooking {
   finalCostPence     Int?
   distanceMiles      Float?
   durationMinutes    Int?
+   pickupLatitude  Float?    
+  pickupLongitude Float?    
+  
+  dropoffLatitude  Float?   
+  dropoffLongitude Float?   
 
   // Acceptance
   acceptedAt           DateTime?
@@ -519,6 +545,8 @@ model InstantBooking {
   invoices      Invoice[]
   notifications Notification[]
 
+cancelledAt DateTime?
+cancellationReason String? 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

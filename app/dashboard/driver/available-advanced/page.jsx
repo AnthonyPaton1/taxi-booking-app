@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import AvailableAdvancedBookingsClient from "@/components/dashboard/driver/AvailableAdvancedBookingsClient";
+import { matchDriverToBookings } from "@/lib/matching/bookingMatcher";
 
 export default async function AvailableAdvancedBookingsPage() {
   const session = await getServerSession(authOptions);
@@ -27,6 +28,19 @@ export default async function AvailableAdvancedBookingsPage() {
     redirect("/dashboard/driver");
   }
 
+  const driver = user.driver;
+
+  // Check if driver has location set
+  if (!driver.baseLat || !driver.baseLng) {
+    return (
+      <AvailableAdvancedBookingsClient
+        driver={driver}
+        bookings={[]}
+        error="Please update your profile with a valid postcode to see available bookings."
+      />
+    );
+  }
+
   // Get all open advanced bookings that haven't passed the bid deadline
   const availableBookings = await prisma.advancedBooking.findMany({
     where: {
@@ -42,7 +56,7 @@ export default async function AvailableAdvancedBookingsPage() {
       accessibilityProfile: true,
       bids: {
         where: {
-          driverId: user.driver.id,
+          driverId: driver.id,
         },
         select: {
           id: true,
@@ -57,6 +71,8 @@ export default async function AvailableAdvancedBookingsPage() {
           business: {
             select: {
               name: true,
+              lat: true,
+              lng: true,
             },
           },
         },
@@ -72,10 +88,38 @@ export default async function AvailableAdvancedBookingsPage() {
     },
   });
 
+  // Add coordinates to bookings (using business location)
+  // TODO: In future, geocode actual pickup addresses for more accuracy
+ const bookingsWithCoords = availableBookings
+  .filter(booking => 
+    booking.pickupLatitude && 
+    booking.pickupLongitude
+  )
+  .map(booking => ({
+    ...booking,
+    pickupLat: booking.pickupLatitude,   
+    pickupLng: booking.pickupLongitude,  
+  }));
+
+  // Match driver to bookings using the algorithm
+  const matches = matchDriverToBookings(driver, bookingsWithCoords);
+
+  // Format matches for the client component
+  const matchedBookings = matches.map(match => ({
+    ...match.booking,
+    matchScore: match.score,
+    distance: match.distance,
+    scoreBreakdown: match.scoreBreakdown
+   
+  }));
+
   return (
-    <AvailableAdvancedBookingsClient
-      driver={user.driver}
-      bookings={availableBookings}
-    />
+      <AvailableAdvancedBookingsClient
+    driver={driver}
+    driverId={driver.id}
+    bookings={matchedBookings}
+    totalAvailable={availableBookings.length}
+    matchedCount={matchedBookings.length}
+  />
   );
 }

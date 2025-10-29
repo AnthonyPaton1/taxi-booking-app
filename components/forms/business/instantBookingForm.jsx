@@ -8,14 +8,14 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PostcodeInput } from "@/components/shared/PostcodeInput";
 import RideAccessibilityOptions from "../RideAccessibilityOptions";
-import PhysicalRequirementsCheckboxes from "../driver/PhysicalRequirementsCheckBoxes";
+// import PhysicalRequirementsCheckboxes from "../driver/PhysicalRequirementsCheckBoxes";
 import StatusMessage from "@/components/shared/statusMessage";
 import { ArrowLeft, Zap, Clock } from "lucide-react";
 import { toast } from "sonner";
 
 const defaultFormData = {
   houseId: "",
-  residentId: "",
+  residentIds: [],
   pickupLocation: "",
   dropoffLocation: "",
   pickupPostcode: "",
@@ -26,11 +26,12 @@ const defaultFormData = {
   roundTrip: false,
   passengerCount: "1",
   wheelchairUsers: "0",
+
+  vehicleType: "either",
   
   // Accessibility
   wheelchairAccess: false,
   carerPresent: false,
-  nonWAVvehicle: false,
   femaleDriverOnly: false,
   quietEnvironment: false,
   assistanceRequired: false,
@@ -45,7 +46,7 @@ const defaultFormData = {
   
   additionalNeeds: "",
   managerNotes: "",
-  physicalRequirements: [],
+  
 };
 
 export default function InstantBookingForm({ houses, userName }) {
@@ -79,22 +80,34 @@ export default function InstantBookingForm({ houses, userName }) {
     }));
   }, []);
 
-  // Filter residents based on selected house
-  useEffect(() => {
-    if (formData.houseId) {
-      const house = houses.find((h) => h.id === formData.houseId);
-      setSelectedHouse(house);
-      setFormData((prev) => ({ ...prev, residentId: "" }));
-    } else {
-      setSelectedHouse(null);
-    }
-  }, [formData.houseId, houses]);
+ // Filter residents based on selected house
+ useEffect(() => {
+  if (formData.houseId) {
+    const house = houses.find((h) => h.id === formData.houseId);
+    setSelectedHouse(house);
+    setFormData((prev) => ({ ...prev, residentIds: [] })); 
+  } else {
+    setSelectedHouse(null);
+  }
+}, [formData.houseId, houses]);
 
   useEffect(() => {
     if (status && errorRef.current) {
       errorRef.current.focus();
     }
   }, [status]);
+
+  useEffect(() => {
+  if (formData.residentIds.length > 0) {
+    setFormData(prev => ({
+      ...prev,
+      passengerCount: Math.max(
+        parseInt(prev.passengerCount) || 1,
+        formData.residentIds.length
+      ).toString()
+    }));
+  }
+}, [formData.residentIds]);
 
   // Repeat trip functionality
   useEffect(() => {
@@ -109,7 +122,7 @@ export default function InstantBookingForm({ houses, userName }) {
           setFormData(prev => ({
             ...prev,
             houseId: data.houseId || "",
-            residentId: data.residentId || "",
+            residentIds: data.residentIds || [],
             pickupLocation: data.pickupLocation || "",
             dropoffLocation: data.dropoffLocation || "",
             pickupPostcode: data.pickupPostcode || "",
@@ -176,14 +189,15 @@ export default function InstantBookingForm({ houses, userName }) {
       setSubmitting(false);
       return;
     }
+    if (!formData.houseId || formData.residentIds.length === 0) {
+  setStatus("❌ Please select a house and at least one resident.");
+  toast.error("Please select a house and at least one resident");
+  errorRef.current?.focus();
+  setSubmitting(false);
+  return;
+}
 
-    if (!formData.houseId || !formData.residentId) {
-      setStatus("❌ Please select a house and resident.");
-      toast.error("Please select a house and resident");
-      errorRef.current?.focus();
-      setSubmitting(false);
-      return;
-    }
+
 
     if (!formData.pickupDate || !formData.pickupTime) {
       setStatus("❌ Pickup date and time are required.");
@@ -324,7 +338,7 @@ export default function InstantBookingForm({ houses, userName }) {
         toast.success("Instant booking created! Drivers are being notified.");
         setStatus("✅ Instant booking created! Drivers are being notified.");
         setTimeout(() => {
-          router.push(`/dashboard/manager/instant-bookings/${data.bookingId}`);
+          router.push("/dashboard/manager");
         }, 1500);
       } else {
         toast.dismiss();
@@ -395,60 +409,98 @@ export default function InstantBookingForm({ houses, userName }) {
         {/* Form */}
         <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-sm space-y-8">
           {/* House & Resident Selection */}
-          <div className="space-y-4">
-            <h2 className="text-xl font-bold text-gray-900 pb-2 border-b">
-              1. Select House & Resident
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="houseId" className="block font-medium text-gray-700 mb-1">
-                  Select House *
-                </label>
-                <select
-                  id="houseId"
-                  name="houseId"
-                  required
-                  value={formData.houseId}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                >
-                  <option value="">-- Select House --</option>
-                  {houses.map((house) => (
-                    <option key={house.id} value={house.id}>
-                      {house.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="residentId" className="block font-medium text-gray-700 mb-1">
-                  Select Resident *
-                </label>
-                <select
-                  id="residentId"
-                  name="residentId"
-                  required
-                  value={formData.residentId}
-                  onChange={handleChange}
-                  disabled={!selectedHouse}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100"
-                >
-                  <option value="">-- Select Resident --</option>
-                  {selectedHouse?.residents.map((resident) => (
-                    <option key={resident.id} value={resident.id}>
-                      {resident.name}
-                    </option>
-                  ))}
-                </select>
-                {!selectedHouse && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Please select a house first
-                  </p>
-                )}
-              </div>
-            </div>
+          
+<div>
+  <label htmlFor="houseId" className="block font-medium text-gray-700 mb-2">
+    Select House *
+  </label>
+  <select
+    id="houseId"
+    name="houseId"
+    required
+    value={formData.houseId}
+    onChange={handleChange}
+    className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+  >
+    <option value="">-- Select a House --</option>
+    {houses.map((house) => (
+      <option key={house.id} value={house.id}>
+        {house.label}
+      </option>
+    ))}
+  </select>
+</div>
+         <div>
+  <label className="block font-medium text-gray-700 mb-2">
+    Residents Traveling * (Select all that apply)
+  </label>
+  
+  {!selectedHouse ? (
+    <p className="text-sm text-gray-500 p-3 bg-gray-50 rounded border border-gray-200">
+      Please select a house first to see available residents
+    </p>
+  ) : selectedHouse.residents && selectedHouse.residents.length > 0 ? (
+    <div className="space-y-2 max-h-60 overflow-y-auto border border-gray-300 rounded-lg p-3">
+      {selectedHouse.residents.map((resident) => (
+        <label
+          key={resident.id}
+          className={`flex items-center p-3 rounded cursor-pointer transition-colors ${
+            formData.residentIds.includes(resident.id)
+              ? 'bg-blue-50 border-2 border-blue-500'
+              : 'bg-white border border-gray-200 hover:bg-gray-50'
+          }`}
+        >
+          <input
+            type="checkbox"
+            checked={formData.residentIds.includes(resident.id)}
+            onChange={(e) => {
+              if (e.target.checked) {
+                // Add resident
+                setFormData(prev => ({
+                  ...prev,
+                  residentIds: [...prev.residentIds, resident.id]
+                }));
+              } else {
+                // Remove resident
+                setFormData(prev => ({
+                  ...prev,
+                  residentIds: prev.residentIds.filter(id => id !== resident.id)
+                }));
+              }
+            }}
+            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+          />
+          <div className="ml-3 flex-1">
+            <span className="font-medium text-gray-900">
+              {resident.name}
+            </span>
+            {resident.initials && (
+              <span className="ml-2 text-xs text-gray-500">
+                ({resident.initials})
+              </span>
+            )}
           </div>
+          {formData.residentIds.includes(resident.id) && (
+            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+              Selected
+            </span>
+          )}
+        </label>
+      ))}
+    </div>
+  ) : (
+    <p className="text-sm text-gray-500 p-3 bg-gray-50 rounded border border-gray-200">
+      No residents found for this house
+    </p>
+  )}
+  
+  {formData.residentIds.length > 0 && (
+    <p className="text-sm text-gray-600 mt-2">
+      {formData.residentIds.length} resident{formData.residentIds.length !== 1 ? 's' : ''} selected
+    </p>
+  )}
+</div>
+
 
           {/* Journey Details */}
           <div className="space-y-4">
@@ -624,7 +676,7 @@ export default function InstantBookingForm({ houses, userName }) {
               4. Accessibility & Requirements
             </h2>
             <RideAccessibilityOptions formData={formData} handleChange={handleChange} />
-            <PhysicalRequirementsCheckboxes formData={formData} setFormData={setFormData} />
+            {/* <PhysicalRequirementsCheckboxes formData={formData} setFormData={setFormData} /> */}
           </div>
 
           {/* Additional Notes */}

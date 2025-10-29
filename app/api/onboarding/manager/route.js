@@ -43,24 +43,25 @@ export async function POST(req) {
 
     const businessId = coordinator.business.id;
 
-    // Create houses
-    for (const house of houses) {
-      await prisma.house.create({
-        data: {
-          label: `${house.number} ${house.street}`,
-          line1: `${house.number} ${house.street}`,
-          city: house.city || area,
-          postcode: house.postcode,
-          tenants: house.tenants,
-          internalId: `house-${Math.random().toString(36).slice(2, 8)}`,
-          pin: Math.floor(1000 + Math.random() * 9000).toString(),
-          loginName: `login-${Math.random().toString(36).slice(2, 6)}`,
-          manager: { connect: { id: managerUser.id } },
-          business: { connect: { id: businessId } },
-          area: { connect: { id: areaRecord.id } },
-        },
-      });
-    }
+ for (const house of houses) {
+  await prisma.house.create({
+    data: {
+      label: house.label,           
+      line1: house.line1,           
+      city: house.city,             
+      postcode: house.postcode,     
+      notes: house.notes || null,   
+      lat: house.lat,               
+      lng: house.lng,               
+      internalId: `house-${Math.random().toString(36).slice(2, 8)}`,
+      pin: Math.floor(1000 + Math.random() * 9000).toString(),
+      loginName: `login-${Math.random().toString(36).slice(2, 6)}`,
+      manager: { connect: { id: managerUser.id } },
+      business: { connect: { id: businessId } },
+      area: { connect: { id: areaRecord.id } },
+    },
+  });
+}
 
     // Mark manager as onboarded
     await prisma.user.update({

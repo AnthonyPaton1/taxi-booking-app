@@ -7,131 +7,100 @@ import { prisma } from "@/lib/db";
 export async function POST(request) {
   try {
     const session = await getServerSession(authOptions);
-
-    if (!session || session.user.role !== "MANAGER") {
+    
+    if (!session) {
       return NextResponse.json(
-        { success: false, error: "Unauthorized" },
+        { error: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    const body = await request.json();
+    const data = await request.json();
 
-    const {
-      houseId,
-      residentId,
-      pickupLocation,
-      dropoffLocation,
-      pickupPostcode,
-      dropoffPostcode,
-      pickupTime,
-      returnTime,
-      roundTrip,
-      passengerCount,
-      wheelchairUsers,
-      wheelchairAccess,
-      carerPresent,
-      nonWAVvehicle,
-      femaleDriverOnly,
-      quietEnvironment,
-      assistanceRequired,
-      noConversation,
-      visualSchedule,
-      assistanceAnimal,
-      familiarDriverOnly,
-      escortRequired,
-      signLanguageRequired,
-      textOnlyCommunication,
-      medicationOnBoard,
-      additionalNeeds,
-      managerNotes,
-      createdBy,
-      physicalRequirements = [],
-    } = body;
-
-    // Validation
-    if (!houseId || !residentId || !pickupLocation || !dropoffLocation || !pickupTime) {
+     const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { businessId: true },
+    });
+    
+    // Validate required fields
+    if (!data.pickupLocation || !data.dropoffLocation || !data.pickupTime) {
       return NextResponse.json(
-        { success: false, error: "Missing required fields" },
+        { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
-    // Verify the manager owns this house
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+    // Step 1: Create AccessibilityProfile first
+    const accessibilityProfile = await prisma.accessibilityProfile.create({
+      data: {
+        // Vehicle type
+        vehicleType: data.vehicleType || 'either',
+        
+        // Core accessibility
+        wheelchairAccess: data.wheelchairAccess || false,
+        carerPresent: data.carerPresent || false,
+        femaleDriverOnly: data.femaleDriverOnly || false,
+        assistanceRequired: data.assistanceRequired || false,
+        
+        // Additional options
+        quietEnvironment: data.quietEnvironment || false,
+        noConversation: data.noConversation || false,
+        visualSchedule: data.visualSchedule || false,
+        assistanceAnimal: data.assistanceAnimal || false,
+        familiarDriverOnly: data.familiarDriverOnly || false,
+        escortRequired: data.escortRequired || false,
+        signLanguageRequired: data.signLanguageRequired || false,
+        textOnlyCommunication: data.textOnlyCommunication || false,
+        medicationOnBoard: data.medicationOnBoard || false,
+        
+        // Passenger details
+        passengerCount: parseInt(data.passengerCount) || 1,
+        wheelchairUsers: parseInt(data.wheelchairUsers) || 0,
+        
+        // Text fields
+        additionalNeeds: data.additionalNeeds || null,
+      }
     });
 
-    const house = await prisma.house.findUnique({
-      where: { id: houseId },
-    });
-
-    if (!house || house.managerId !== user.id) {
-      return NextResponse.json(
-        { success: false, error: "House not found or unauthorized" },
-        { status: 403 }
-      );
-    }
-
-    // Verify the resident belongs to this house
-    const resident = await prisma.resident.findUnique({
-      where: { id: residentId },
-    });
-
-    if (!resident || resident.houseId !== houseId) {
-      return NextResponse.json(
-        { success: false, error: "Resident not found in this house" },
-        { status: 400 }
-      );
-    }
-
-    // Create the instant booking
+    // Step 2: Create InstantBooking with connected profile
     const booking = await prisma.instantBooking.create({
       data: {
-        residentId,
-        pickupLocation,
-        dropoffLocation,
-        pickupPostcode,
-        dropoffPostcode,
-        pickupTime: new Date(pickupTime),
-        returnTime: returnTime ? new Date(returnTime) : null,
-        roundTrip,
-        passengerCount,
-        wheelchairUsers,
-        wheelchairAccess,
-        carerPresent,
-        nonWAVvehicle,
-        femaleDriverOnly,
-        quietEnvironment,
-        assistanceRequired,
-        noConversation,
-        visualSchedule,
-        assistanceAnimal,
-        familiarDriverOnly,
-        escortRequired,
-        signLanguageRequired,
-        textOnlyCommunication,
-        medicationOnBoard,
-        additionalNeeds,
-        managerNotes,
-        createdBy,
-        createdById: user.id,
-        status: "PENDING", // Instant bookings start as PENDING until driver accepts
-      },
+        status: "PENDING",
+        
+        // Location
+        pickupLocation: data.pickupLocation,
+        
+        pickupLatitude: data.pickupLat,
+        pickupLongitude: data.pickupLng,
+        dropoffLocation: data.dropoffLocation,
+        
+        dropoffLatitude: data.dropoffLat,
+        dropoffLongitude: data.dropoffLng,
+        
+        // Time
+        pickupTime: new Date(data.pickupTime),
+        returnTime: data.returnTime ? new Date(data.returnTime) : null,
+        
+        // Connect accessibility profile
+        accessibilityProfile: {
+          connect: { id: accessibilityProfile.id }
+        },
+        
+        // Relations (if you have these fields)
+        createdBy: { connect: { id: session.user.id } },
+        business: { connect: { id: user.businessId } },
+      }
     });
-
-    // TODO: Send notifications to available drivers
-    // You can add driver notification logic here later
 
     return NextResponse.json({
       success: true,
       bookingId: booking.id,
-      message: "Instant booking created successfully",
     });
+
   } catch (error) {
     console.error("Error creating instant booking:", error);
     return NextResponse.json(
-      { success: false, error: "Internal server error" },
+      { error: "Failed to create booking. Please try again." },
       { status: 500 }
     );
   }

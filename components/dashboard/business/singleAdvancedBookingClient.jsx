@@ -1,11 +1,11 @@
-// components/manager/SingleBookingClient.jsx
+// components/manager/SingleAdvancedBookingClient.jsx
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { acceptBid } from "@/app/actions/bookings/acceptedBid";
-import { cancelBooking } from "@/app/actions/bookings/cancelBookings";
+
 import StatusMessage from "@/components/shared/statusMessage";
 import { 
   User, 
@@ -21,13 +21,23 @@ import {
   TrendingUp,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+   Edit,
+   Trash2,
+   ArrowLeft
+   
+
 } from "lucide-react";
 
-export default function SingleBookingClient({ booking }) {
+export default function SingleAdvancedBookingClient({ booking }) {
   const [status, setStatus] = useState("");
   const [selectedBidId, setSelectedBidId] = useState(null);
   const router = useRouter();
+    const activeBids = booking.bids.filter(bid => bid.status === "PENDING");
+  const lowestBid = activeBids.length > 0 ? activeBids[0] : null;
+  const averageBid = activeBids.length > 0 
+    ? activeBids.reduce((sum, bid) => sum + bid.amount, 0) / activeBids.length 
+    : 0;
 
   const formatDateTime = (date) => {
     return new Date(date).toLocaleString("en-GB", {
@@ -52,7 +62,7 @@ export default function SingleBookingClient({ booking }) {
       PENDING: { color: "bg-yellow-100 text-yellow-800", icon: AlertCircle, text: "Awaiting Bids" },
       ACCEPTED: { color: "bg-green-100 text-green-800", icon: CheckCircle, text: "Driver Assigned" },
       COMPLETED: { color: "bg-blue-100 text-blue-800", icon: CheckCircle, text: "Completed" },
-      CANCELLED: { color: "bg-red-100 text-red-800", icon: XCircle, text: "Cancelled" },
+      CANCELED: { color: "bg-red-100 text-red-800", icon: XCircle, text: "Cancelled" },
     };
     const badge = badges[status] || badges.PENDING;
     const Icon = badge.icon;
@@ -65,64 +75,94 @@ export default function SingleBookingClient({ booking }) {
   };
 
   const handleAcceptBid = async (bidId) => {
-    if (!confirm("Accept this bid? The driver will be notified and assigned to this booking.")) {
-      return;
+  if (!confirm("Accept this bid? The driver will be notified and assigned to this booking.")) {
+    return;
+  }
+
+  setStatus("loading");
+  setSelectedBidId(bidId);
+
+  try {
+    // ✅ Call the API route
+    const res = await fetch('/api/bookings/accept-bid', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        bookingId: booking.id, 
+        bidId 
+      }),
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      setStatus("✅ Bid accepted! Driver has been assigned.");
+      setTimeout(() => {
+        router.refresh();
+      }, 1500);
+    } else {
+      setStatus("❌ Failed to accept bid: " + data.error);
     }
+  } catch (err) {
+    console.error("Error accepting bid:", err);
+    setStatus("❌ Something went wrong.");
+  } finally {
+    setSelectedBidId(null);
+  }
+};
 
-    setStatus("loading");
-    setSelectedBidId(bidId);
+const handleCancelBooking = async () => {
+  // ✅ Prompt for reason
+  const reason = prompt(
+    "Please provide a reason for cancellation (optional):\n\n" +
+    "Examples:\n" +
+    "- Resident unwell\n" +
+    "- Appointment rescheduled\n" +
+    "- No longer needed"
+  );
 
-    try {
-      const res = await acceptBid({ bookingId: booking.id, bidId });
+  if (reason === null) return; // User clicked cancel
 
-      if (res.success) {
-        setStatus("✅ Bid accepted! Driver has been assigned.");
-        setTimeout(() => {
-          router.refresh();
-        }, 1500);
-      } else {
-        setStatus("❌ Failed to accept bid: " + res.error);
-      }
-    } catch (err) {
-      console.error("Error accepting bid:", err);
-      setStatus("❌ Something went wrong.");
-    } finally {
-      setSelectedBidId(null);
+  if (!confirm("Cancel this booking? This cannot be undone.")) {
+    return;
+  }
+
+  setStatus("loading");
+
+  try {
+    const res = await fetch(`/api/bookings/advanced/${booking.id}/cancel`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason }), // ✅ Send reason
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      setStatus("Booking cancelled.");
+      setTimeout(() => {
+        router.push("/dashboard/manager/bookings");
+        router.refresh();
+      }, 1500);
+    } else {
+      setStatus("❌ Failed to cancel: " + data.error);
     }
-  };
-
-  const handleCancelBooking = async () => {
-    if (!confirm("Cancel this booking? This cannot be undone.")) {
-      return;
-    }
-
-    setStatus("loading");
-
-    try {
-      const res = await cancelBooking({ bookingId: booking.id });
-
-      if (res.success) {
-        setStatus("✅ Booking cancelled.");
-        setTimeout(() => {
-          router.push("/dashboard/manager/bookings");
-        }, 1500);
-      } else {
-        setStatus("❌ Failed to cancel: " + res.error);
-      }
-    } catch (err) {
-      console.error("Error cancelling:", err);
-      setStatus("❌ Something went wrong.");
-    }
-  };
-
-  const activeBids = booking.bids.filter(bid => bid.status === "PENDING");
-  const lowestBid = activeBids.length > 0 ? activeBids[0] : null;
-  const averageBid = activeBids.length > 0 
-    ? activeBids.reduce((sum, bid) => sum + bid.amount, 0) / activeBids.length 
-    : 0;
-
+  } catch (err) {
+    console.error("Error cancelling:", err);
+    setStatus("❌ Something went wrong.");
+  }
+};
   return (
     <>
+     <div className="mb-6">
+      <Link
+        href="/dashboard/manager/bookings"
+        className="flex items-center text-gray-600 hover:text-gray-900 mb-4"
+      >
+        <ArrowLeft className="w-5 h-5 mr-2" />
+        Back to Bookings
+      </Link>
+    </div>
       <StatusMessage message={status} type={status?.startsWith("❌") ? "error" : "info"} />
 
       {/* Header */}
@@ -136,6 +176,33 @@ export default function SingleBookingClient({ booking }) {
         <div>
           {getStatusBadge(booking.status)}
         </div>
+        <div className="bg-white rounded-lg shadow p-6">
+  
+    <div className="flex items-center gap-3">
+      {/* Only show edit if no bid accepted yet */}
+      {!booking.acceptedBidId && booking.status === "OPEN" && (
+        <Link
+          href={`/dashboard/manager/bookings/${booking.id}/edit`}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          <Edit className="w-4 h-4" />
+          Edit Booking
+        </Link>
+      )}
+      
+      {/* Cancel/Delete button */}
+      {!booking.acceptedBidId && (
+        <button
+          onClick={handleCancelBooking}
+          className="flex items-center gap-2 px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50"
+        >
+          <Trash2 className="w-4 h-4" />
+          Cancel Booking
+        </button>
+      )}
+    </div>
+  </div>
+        
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -147,6 +214,8 @@ export default function SingleBookingClient({ booking }) {
               <MapPin className="w-5 h-5 mr-2 text-blue-600" />
               Journey Details
             </h2>
+            
+
             
             <div className="space-y-3">
               <div className="flex items-start">
@@ -194,8 +263,8 @@ export default function SingleBookingClient({ booking }) {
             </h2>
 
             <div className="space-y-2">
-              <p><span className="font-medium">Name:</span> {booking.resident.name}</p>
-              <p><span className="font-medium">House:</span> {booking.resident.house.name}</p>
+              <p><span className="font-medium">Residents:</span> {booking.initials.join(", ")}</p>
+<p><span className="font-medium">Business:</span> {booking.business?.name || "N/A"}</p>
               <p className="flex items-center">
                 <Users className="w-4 h-4 mr-2 text-gray-600" />
                 {booking.passengerCount} passenger{booking.passengerCount > 1 ? "s" : ""}

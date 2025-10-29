@@ -16,7 +16,7 @@ const InfoBoxes = () => {
               text: "Request a Journey",
               onClick: () =>
                 signIn("google", {
-                  callbackUrl: "/auth/public-redirect",
+                  callbackUrl: "/api/auth/public-redirect",
                   prompt: "select_account",
                 }),
 

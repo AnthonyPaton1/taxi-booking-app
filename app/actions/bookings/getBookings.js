@@ -3,7 +3,8 @@
 
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/authOptions";
+import { matchDriverToBookings } from "@/lib/matching/bookingMatcher";
 
 /**
  * Get instant bookings for current user
@@ -20,7 +21,7 @@ export async function getInstantBookings() {
     const bookings = await prisma.instantBooking.findMany({
       where: { createdById: session.user.id },
       include: {
-        accessibilityProfile: true, // ✅ Include accessibility needs
+        accessibilityProfile: true,
         driver: {
           select: {
             name: true,
@@ -55,7 +56,7 @@ export async function getAdvancedBookings() {
     const bookings = await prisma.advancedBooking.findMany({
       where: { createdById: session.user.id },
       include: {
-        accessibilityProfile: true, // ✅ Include accessibility needs
+        accessibilityProfile: true,
         bids: {
           include: {
             driver: {
@@ -73,7 +74,7 @@ export async function getAdvancedBookings() {
               },
             },
           },
-          orderBy: { amountCents: "asc" }, // Lowest bid first
+          orderBy: { amountCents: "asc" },
         },
         acceptedBid: {
           include: {
@@ -98,7 +99,7 @@ export async function getAdvancedBookings() {
 }
 
 /**
- * Get available instant bookings for DRIVERS
+ * Get available instant bookings for DRIVERS (with matching)
  * (Shows pending bookings they could accept)
  */
 export async function getAvailableInstantBookings() {
@@ -125,12 +126,25 @@ export async function getAvailableInstantBookings() {
       return { success: false, error: "No driver profile found" };
     }
 
+    const driver = user.driver;
+
+    // Check if driver has location set
+    if (!driver.baseLat || !driver.baseLng) {
+      return { 
+        success: true, 
+        bookings: [], 
+        driverProfile: driver,
+        error: "Driver location not set" 
+      };
+    }
+
     // Get pending instant bookings
-    const bookings = await prisma.instantBooking.findMany({
+    const allBookings = await prisma.instantBooking.findMany({
       where: {
         status: "PENDING",
+        driverId: null,
         pickupTime: {
-          gte: new Date(), // Future bookings only
+          gte: new Date(),
         },
       },
       include: {
@@ -138,16 +152,39 @@ export async function getAvailableInstantBookings() {
         createdBy: {
           select: {
             name: true,
+            business: {
+              select: {
+                name: true,
+                lat: true,
+                lng: true,
+              },
+            },
           },
         },
       },
       orderBy: { pickupTime: "asc" },
     });
 
-    // TODO: Filter by matching accessibility (implement matching algorithm)
-    // For now, return all pending bookings
+    // Add coordinates to bookings
+    const bookingsWithCoords = allBookings
+      .filter(booking => booking.createdBy?.business?.lat && booking.createdBy?.business?.lng)
+      .map(booking => ({
+        ...booking,
+        pickupLat: booking.createdBy.business.lat,
+        pickupLng: booking.createdBy.business.lng,
+      }));
 
-    return { success: true, bookings, driverProfile: user.driver };
+    // Run matching algorithm
+    const matches = matchDriverToBookings(driver, bookingsWithCoords);
+
+    // Return only matched bookings
+    const matchedBookings = matches.map(match => match.booking);
+
+    return { 
+      success: true, 
+      bookings: matchedBookings, 
+      driverProfile: driver 
+    };
   } catch (error) {
     console.error("❌ Error fetching available bookings:", error);
     return { success: false, error: error.message };
@@ -155,7 +192,7 @@ export async function getAvailableInstantBookings() {
 }
 
 /**
- * Get available advanced bookings for DRIVERS
+ * Get available advanced bookings for DRIVERS (with matching)
  * (Shows open bookings they could bid on)
  */
 export async function getAvailableAdvancedBookings() {
@@ -182,15 +219,27 @@ export async function getAvailableAdvancedBookings() {
       return { success: false, error: "No driver profile found" };
     }
 
-    // Get open advanced bookings (still accepting bids)
-    const bookings = await prisma.advancedBooking.findMany({
+    const driver = user.driver;
+
+    // Check if driver has location set
+    if (!driver.baseLat || !driver.baseLng) {
+      return { 
+        success: true, 
+        bookings: [], 
+        driverProfile: driver,
+        error: "Driver location not set" 
+      };
+    }
+
+    // Get open advanced bookings
+    const allBookings = await prisma.advancedBooking.findMany({
       where: {
         status: "OPEN",
         pickupTime: {
-          gte: new Date(), // Future bookings only
+          gte: new Date(),
         },
         bidDeadline: {
-          gte: new Date(), // Deadline hasn't passed
+          gte: new Date(),
         },
       },
       include: {
@@ -198,11 +247,18 @@ export async function getAvailableAdvancedBookings() {
         createdBy: {
           select: {
             name: true,
+            business: {
+              select: {
+                name: true,
+                lat: true,
+                lng: true,
+              },
+            },
           },
         },
         bids: {
           where: {
-            userId: session.user.id, // Show if driver already bid
+            userId: session.user.id,
           },
           select: {
             id: true,
@@ -212,16 +268,33 @@ export async function getAvailableAdvancedBookings() {
         },
         _count: {
           select: {
-            bids: true, // Total number of bids
+            bids: true,
           },
         },
       },
       orderBy: { pickupTime: "asc" },
     });
 
-    // TODO: Filter by matching accessibility
+    // Add coordinates to bookings
+    const bookingsWithCoords = allBookings
+      .filter(booking => booking.createdBy?.business?.lat && booking.createdBy?.business?.lng)
+      .map(booking => ({
+        ...booking,
+        pickupLat: booking.createdBy.business.lat,
+        pickupLng: booking.createdBy.business.lng,
+      }));
 
-    return { success: true, bookings, driverProfile: user.driver };
+    // Run matching algorithm
+    const matches = matchDriverToBookings(driver, bookingsWithCoords);
+
+    // Return only matched bookings
+    const matchedBookings = matches.map(match => match.booking);
+
+    return { 
+      success: true, 
+      bookings: matchedBookings, 
+      driverProfile: driver 
+    };
   } catch (error) {
     console.error("❌ Error fetching available advanced bookings:", error);
     return { success: false, error: error.message };

@@ -132,7 +132,7 @@ export default function HousesManagementClient({ houses, userName }) {
                     {/* Action Buttons */}
                     <div className="flex gap-2">
                       <Link
-                        href={`/dashboard/manager/houses/${house.id}/edit`}
+                        href={`/dashboard/manager/houses/${house.id}/residents/edit`}
                         className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
                         title="Edit house"
                       >

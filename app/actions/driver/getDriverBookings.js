@@ -39,7 +39,7 @@ export async function getDriverBookingsForToday() {
       where: {
         driverId: user.driver.id,
         status: {
-          in: ["ACCEPTED", "IN_PROGRESS"], // Exclude completed/canceled
+          in: ["ACCEPTED", "IN_PROGRESS"], // Exclude completed/cancelled
         },
         pickupTime: {
           gte: today,

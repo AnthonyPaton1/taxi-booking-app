@@ -64,6 +64,7 @@ CREATE TABLE "User" (
 -- CreateTable
 CREATE TABLE "AccessibilityProfile" (
     "id" TEXT NOT NULL,
+    "vehicleType" TEXT NOT NULL DEFAULT 'either',
     "wheelchairAccess" BOOLEAN NOT NULL DEFAULT false,
     "doubleWheelchairAccess" BOOLEAN NOT NULL DEFAULT false,
     "highRoof" BOOLEAN NOT NULL DEFAULT false,
@@ -110,8 +111,19 @@ CREATE TABLE "Driver" (
     "amenities" TEXT[],
     "localPostcode" TEXT NOT NULL,
     "radiusMiles" INTEGER NOT NULL,
+    "baseLat" DOUBLE PRECISION,
+    "baseLng" DOUBLE PRECISION,
     "phone" TEXT NOT NULL,
     "approved" BOOLEAN NOT NULL DEFAULT false,
+    "hasWAV" BOOLEAN NOT NULL DEFAULT false,
+    "hasStandard" BOOLEAN NOT NULL DEFAULT true,
+    "wavOnly" BOOLEAN NOT NULL DEFAULT false,
+    "gender" TEXT,
+    "completedRides" INTEGER NOT NULL DEFAULT 0,
+    "rating" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+    "serviceAreaLat" DOUBLE PRECISION,
+    "serviceAreaLng" DOUBLE PRECISION,
+    "serviceAreaRadius" DOUBLE PRECISION DEFAULT 25.0,
     "accessibilityProfileId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -123,14 +135,14 @@ CREATE TABLE "Driver" (
 CREATE TABLE "DriverCompliance" (
     "id" TEXT NOT NULL,
     "driverId" TEXT NOT NULL,
-    "ukDrivingLicence" BOOLEAN NOT NULL DEFAULT false,
-    "licenceNumber" TEXT,
-    "localAuthorityRegistered" BOOLEAN NOT NULL DEFAULT false,
-    "dbsChecked" BOOLEAN NOT NULL DEFAULT false,
-    "publicLiabilityInsurance" BOOLEAN NOT NULL DEFAULT false,
-    "fullyCompInsurance" BOOLEAN NOT NULL DEFAULT false,
-    "healthCheckPassed" BOOLEAN NOT NULL DEFAULT false,
-    "englishProficiency" BOOLEAN NOT NULL DEFAULT false,
+    "ukDrivingLicence" BOOLEAN NOT NULL,
+    "licenceNumber" TEXT NOT NULL,
+    "localAuthorityRegistered" BOOLEAN NOT NULL,
+    "dbsChecked" BOOLEAN NOT NULL,
+    "publicLiabilityInsurance" BOOLEAN NOT NULL,
+    "fullyCompInsurance" BOOLEAN NOT NULL,
+    "healthCheckPassed" BOOLEAN NOT NULL,
+    "englishProficiency" BOOLEAN NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -150,6 +162,8 @@ CREATE TABLE "Business" (
     "postcode" TEXT,
     "approved" BOOLEAN NOT NULL DEFAULT false,
     "adminUserId" TEXT NOT NULL,
+    "lat" DOUBLE PRECISION,
+    "lng" DOUBLE PRECISION,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -197,13 +211,26 @@ CREATE TABLE "House" (
     "internalId" TEXT NOT NULL,
     "pin" TEXT NOT NULL,
     "loginName" TEXT NOT NULL,
+    "lat" DOUBLE PRECISION,
+    "lng" DOUBLE PRECISION,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "deletedAt" TIMESTAMP(3),
     "managerId" TEXT NOT NULL,
     "areaId" TEXT NOT NULL,
-    "tenants" TEXT NOT NULL,
 
     CONSTRAINT "House_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Resident" (
+    "id" TEXT NOT NULL,
+    "initials" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "houseId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Resident_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -214,7 +241,11 @@ CREATE TABLE "AdvancedBooking" (
     "pickupTime" TIMESTAMP(3) NOT NULL,
     "returnTime" TIMESTAMP(3),
     "pickupLocation" TEXT NOT NULL,
+    "pickupLatitude" DOUBLE PRECISION,
+    "pickupLongitude" DOUBLE PRECISION,
     "dropoffLocation" TEXT NOT NULL,
+    "dropoffLatitude" DOUBLE PRECISION,
+    "dropoffLongitude" DOUBLE PRECISION,
     "initials" TEXT[],
     "accessibilityProfileId" TEXT NOT NULL,
     "visibility" "AdvancedBookingVisibility" NOT NULL DEFAULT 'PRIVATE_TO_COMPANY',
@@ -224,6 +255,8 @@ CREATE TABLE "AdvancedBooking" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),
+    "cancelledAt" TIMESTAMP(3),
+    "cancellationReason" TEXT,
 
     CONSTRAINT "AdvancedBooking_pkey" PRIMARY KEY ("id")
 );
@@ -244,10 +277,16 @@ CREATE TABLE "InstantBooking" (
     "finalCostPence" INTEGER,
     "distanceMiles" DOUBLE PRECISION,
     "durationMinutes" INTEGER,
+    "pickupLatitude" DOUBLE PRECISION,
+    "pickupLongitude" DOUBLE PRECISION,
+    "dropoffLatitude" DOUBLE PRECISION,
+    "dropoffLongitude" DOUBLE PRECISION,
     "acceptedAt" TIMESTAMP(3),
     "acceptedByUserId" TEXT,
     "acceptedByBusinessId" TEXT,
     "status" "InstantBookingStatus" NOT NULL DEFAULT 'PENDING',
+    "cancelledAt" TIMESTAMP(3),
+    "cancellationReason" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -414,6 +453,9 @@ CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 CREATE INDEX "User_deletedAt_idx" ON "User"("deletedAt");
 
 -- CreateIndex
+CREATE INDEX "AccessibilityProfile_vehicleType_idx" ON "AccessibilityProfile"("vehicleType");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Driver_userId_key" ON "Driver"("userId");
 
 -- CreateIndex
@@ -421,6 +463,15 @@ CREATE UNIQUE INDEX "Driver_accessibilityProfileId_key" ON "Driver"("accessibili
 
 -- CreateIndex
 CREATE INDEX "Driver_localPostcode_approved_idx" ON "Driver"("localPostcode", "approved");
+
+-- CreateIndex
+CREATE INDEX "Driver_hasWAV_idx" ON "Driver"("hasWAV");
+
+-- CreateIndex
+CREATE INDEX "Driver_gender_idx" ON "Driver"("gender");
+
+-- CreateIndex
+CREATE INDEX "Driver_serviceAreaLat_serviceAreaLng_idx" ON "Driver"("serviceAreaLat", "serviceAreaLng");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "DriverCompliance_driverId_key" ON "DriverCompliance"("driverId");
@@ -598,6 +649,9 @@ ALTER TABLE "House" ADD CONSTRAINT "House_managerId_fkey" FOREIGN KEY ("managerI
 
 -- AddForeignKey
 ALTER TABLE "House" ADD CONSTRAINT "House_areaId_fkey" FOREIGN KEY ("areaId") REFERENCES "Area"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Resident" ADD CONSTRAINT "Resident_houseId_fkey" FOREIGN KEY ("houseId") REFERENCES "House"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "AdvancedBooking" ADD CONSTRAINT "AdvancedBooking_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

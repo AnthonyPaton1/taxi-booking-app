@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { PostcodeInput } from "@/components/shared/PostcodeInput";
 import { createPublicBooking } from "@/app/actions/bookings/createPublicBooking";
 import RideAccessibilityOptions from "./RideAccessibilityOptions";
-import PhysicalRequirementsCheckboxes from "./driver/PhysicalRequirementsCheckBoxes";
 import StatusMessage from "../shared/statusMessage";
 import { toast } from "sonner";
 
@@ -44,8 +43,6 @@ const defaultFormData = {
   // Textarea
   additionalNeeds: "",
 
-  // Vehicle requirements
-  physicalRequirements: [],
 };
 
 
@@ -94,11 +91,17 @@ const JourneyBookingForm = () => {
             wheelchairUsers: data.wheelchairUsers?.toString() || "0",
             
             // Accessibility options
-            wheelchairAccess: data.wheelchairAccess || false,
-            carerPresent: data.carerPresent || false,
-            femaleDriverOnly: data.femaleDriverOnly || false,
-            quietEnvironment: data.quietEnvironment || false,
-            // ... map all accessibility fields
+              wheelchairAccess: data.wheelchairAccess || false,
+  carerPresent: data.carerPresent || false,
+  femaleDriverOnly: data.femaleDriverOnly || false,
+  quietEnvironment: data.quietEnvironment || false,
+  walkingAid: data.walkingAid || false,
+  hearingImpairment: data.hearingImpairment || false,
+  visualImpairment: data.visualImpairment || false,
+  cognitiveSupport: data.cognitiveSupport || false,
+  mobilityScooter: data.mobilityScooter || false,
+  oxygenRequired: data.oxygenRequired || false,
+  serviceAnimal: data.serviceAnimal || false,
             
             additionalNeeds: data.additionalNeeds || "",
             // Date and time intentionally left blank!
@@ -505,7 +508,6 @@ const JourneyBookingForm = () => {
 
         {/* Extra accessibility + needs */}
 <RideAccessibilityOptions formData={formData} setFormData={setFormData} prefix="public-" />
-<PhysicalRequirementsCheckboxes formData={formData} setFormData={setFormData} />
 
 <div>
   <label htmlFor="additionalNeeds" className="block font-medium text-gray-700">

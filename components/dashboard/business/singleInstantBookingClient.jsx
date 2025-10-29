@@ -43,7 +43,7 @@ export default function SingleInstantBookingClient({ booking }) {
       PENDING: { color: "bg-yellow-100 text-yellow-800", icon: AlertCircle, text: "Awaiting Driver" },
       ACCEPTED: { color: "bg-green-100 text-green-800", icon: CheckCircle, text: "Driver Assigned" },
       COMPLETED: { color: "bg-blue-100 text-blue-800", icon: CheckCircle, text: "Completed" },
-      CANCELLED: { color: "bg-red-100 text-red-800", icon: XCircle, text: "Cancelled" },
+      CANCELED: { color: "bg-red-100 text-red-800", icon: XCircle, text: "Cancelled" },
     };
     const badge = badges[status] || badges.PENDING;
     const Icon = badge.icon;
@@ -269,7 +269,7 @@ export default function SingleInstantBookingClient({ booking }) {
                 <CheckCircle className="w-12 h-12 text-blue-600 mx-auto mb-2" />
                 <p className="font-bold text-blue-800">Journey Completed</p>
               </div>
-            ) : booking.status === "CANCELLED" ? (
+            ) : booking.status === "CANCELED" ? (
               <div className="bg-red-50 p-4 rounded-lg border-2 border-red-200 text-center">
                 <XCircle className="w-12 h-12 text-red-600 mx-auto mb-2" />
                 <p className="font-bold text-red-800">Booking Cancelled</p>

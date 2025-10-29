@@ -12,7 +12,7 @@ export default async function EditResidentPage({ params }) {
     redirect("/login");
   }
 
-  const { id: houseId, residentId } = params;
+  const { id: houseId, residentId } = await params;
 
   // Get the user
   const user = await prisma.user.findUnique({

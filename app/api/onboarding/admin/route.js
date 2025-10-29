@@ -42,7 +42,7 @@ export async function POST(req) {
       business = await prisma.business.update({
         where: { id: existingBusiness.id },
         data: {
-          name: validated.businessName,
+          name: validated.name,
           type: validated.type,
           address1: validated.address1,
           city: validated.city,
@@ -55,7 +55,7 @@ export async function POST(req) {
     } else {
       business = await prisma.business.create({
         data: {
-          name: validated.businessName,
+          name: validated.name,
           type: validated.type,
           address1: validated.address1,
           city: validated.city,

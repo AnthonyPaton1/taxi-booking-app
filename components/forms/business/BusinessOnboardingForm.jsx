@@ -204,13 +204,14 @@ export default function BusinessOnboardingForm({ prefillData = {} }) {
           onChange={handleChange}
         />
 
-        <Input
-          id="type"
-          placeholder="Business Type (e.g., Care Home, Day Center)"
-          required
-          value={formData.type}
-          onChange={handleChange}
-        />
+        <div>
+  <label>Organization Type *</label>
+  <select name="type" required>
+    <option value="">Select...</option>
+    <option value="CARE">Care Provider (Supported Living, Healthcare, etc.)</option>
+    <option value="TAXI">Transport Company (Taxi, Accessible Transport, etc.)</option>
+  </select>
+</div>
 
         <Input
           id="address1"
@@ -241,7 +242,7 @@ export default function BusinessOnboardingForm({ prefillData = {} }) {
         <Input
           id="website"
           type="url"
-          placeholder="Website (optional)"
+          placeholder="Website "
           value={formData.website}
           onChange={handleChange}
         />
@@ -288,9 +289,10 @@ export default function BusinessOnboardingForm({ prefillData = {} }) {
             />
 
             <Input
-              placeholder="Area (optional)"
+              placeholder="Area"
               value={coord.area}
               onChange={(e) => handleCoordinatorChange(index, "area", e.target.value)}
+              required
             />
           </div>
         ))}

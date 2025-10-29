@@ -310,7 +310,7 @@ const BookingCard = ({ booking }) => {
 
         {!isAccepted && hasBids && (
           <button className="bg-blue-600 text-white text-sm px-4 py-2 rounded hover:bg-blue-700">
-            Review
+            Review Bids
           </button>
         )}
       </div>

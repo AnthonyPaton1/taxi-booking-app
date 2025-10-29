@@ -1,7 +1,5 @@
 // components/dashboard/public/publicDashboardClient.jsx
 "use client";
-
-
 import Link from "next/link";
 import {
   Calendar,

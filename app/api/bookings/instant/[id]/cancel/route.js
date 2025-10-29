@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 
+
 export async function POST(request, { params }) {
   try {
     const session = await getServerSession(authOptions);
@@ -48,7 +49,7 @@ export async function POST(request, { params }) {
       );
     }
 
-    if (booking.status === "CANCELLED") {
+    if (booking.status === "CANCELED") {
       return NextResponse.json(
         { success: false, error: "Booking is already cancelled" },
         { status: 400 }
@@ -59,7 +60,7 @@ export async function POST(request, { params }) {
     await prisma.instantBooking.update({
       where: { id: bookingId },
       data: {
-        status: "CANCELLED",
+        status: "CANCELED",
       },
     });
 

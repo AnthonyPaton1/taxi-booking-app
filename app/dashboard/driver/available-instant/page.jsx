@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import AvailableInstantBookingsClient from "@/components/dashboard/driver/AvailableInstantBookingsClient";
+import { matchDriverToBookings } from "@/lib/matching/bookingMatcher";
 
 export default async function AvailableInstantBookingsPage() {
   const session = await getServerSession(authOptions);
@@ -27,6 +28,19 @@ export default async function AvailableInstantBookingsPage() {
     redirect("/dashboard/driver");
   }
 
+  const driver = user.driver;
+
+  // Check if driver has location set
+  if (!driver.baseLat || !driver.baseLng) {
+    return (
+      <AvailableInstantBookingsClient
+        driver={driver}
+        bookings={[]}
+        error="Please update your profile with a valid postcode to see available bookings."
+      />
+    );
+  }
+
   // Get all pending instant bookings that haven't been accepted yet
   const availableBookings = await prisma.instantBooking.findMany({
     where: {
@@ -44,6 +58,8 @@ export default async function AvailableInstantBookingsPage() {
           business: {
             select: {
               name: true,
+              lat: true,
+              lng: true,
             },
           },
         },
@@ -52,13 +68,37 @@ export default async function AvailableInstantBookingsPage() {
     orderBy: {
       pickupTime: "asc", // Show soonest first
     },
-    take: 50, // Limit to 50 most urgent
+    take: 100, // Get more, we'll filter by matching
   });
+
+  // Add coordinates to bookings (using business location)
+  const bookingsWithCoords = availableBookings
+    .filter(booking => booking.createdBy?.business?.lat && booking.createdBy?.business?.lng)
+    .map(booking => ({
+      ...booking,
+      pickupLat: booking.createdBy.business.lat,
+      pickupLng: booking.createdBy.business.lng,
+    }));
+
+  // Match driver to bookings using the algorithm
+  const matches = matchDriverToBookings(driver, bookingsWithCoords);
+
+  // Format matches for the client component
+  const matchedBookings = matches.map(match => ({
+    ...match.booking,
+    matchScore: match.overallScore,
+    distance: match.distance,
+    estimatedPickupMinutes: match.estimatedPickupMinutes,
+    accessibilityCompatibility: match.accessibilityMatch.compatibilityScore,
+    missingPreferences: match.accessibilityMatch.missingPreferences,
+  }));
 
   return (
     <AvailableInstantBookingsClient
-      driver={user.driver}
-      bookings={availableBookings}
+      driver={driver}
+      bookings={matchedBookings}
+      totalAvailable={availableBookings.length}
+      matchedCount={matchedBookings.length}
     />
   );
 }

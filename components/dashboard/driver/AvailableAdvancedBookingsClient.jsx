@@ -14,6 +14,8 @@ import {
   TrendingUp,
   Accessibility,
   AlertCircle,
+  PoundSterling,
+ 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import StatusMessage from "@/components/shared/statusMessage";
@@ -249,7 +251,7 @@ export default function AvailableAdvancedBookingsClient({ bookings, driverId }) 
                           onClick={() => openBidModal(booking.id)}
                           className="w-full bg-blue-600 hover:bg-blue-700"
                         >
-                          <DollarSign className="w-4 h-4 mr-2" />
+                          <PoundSterling className="w-4 h-4 mr-2" />
                           Place Bid
                         </Button>
                       )}

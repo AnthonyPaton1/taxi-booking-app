@@ -23,6 +23,8 @@ export default function AllBookingsListClient({
   currentFilter,
   currentSearch,
   bookingType,
+  currentPage,
+  totalPages
 }) {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState(currentSearch);
@@ -94,7 +96,7 @@ export default function AllBookingsListClient({
         );
       }
 
-      if (booking.status === "CANCELLED") {
+      if (booking.status === "CANCELED") {
         return (
           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
             <XCircle className="w-3 h-3 mr-1" />
@@ -138,7 +140,7 @@ export default function AllBookingsListClient({
         );
       }
 
-      if (booking.status === "CANCELLED") {
+      if (booking.status === "CANCELED") {
         return (
           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
             <XCircle className="w-3 h-3 mr-1" />
@@ -164,6 +166,8 @@ export default function AllBookingsListClient({
           { key: "pending", label: "Needs Review", count: counts.pending },
           { key: "awaiting", label: "Awaiting Bids", count: counts.awaiting },
           { key: "confirmed", label: "Confirmed", count: counts.confirmed },
+          {key: "canceled", label: "Cancelled", count: counts.canceled},
+          {key: "completed", label: "Completed", count: counts.completed}
         ]
       : [
           { key: "all", label: "All", count: counts.all },
@@ -241,7 +245,7 @@ export default function AllBookingsListClient({
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by pickup or dropoff location..."
+                placeholder="Search by Resident Initials or location..."
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -329,9 +333,9 @@ export default function AllBookingsListClient({
                   bookingType === "advanced" ? booking.bids[0] : null;
                 const isPast = new Date(booking.pickupTime) < new Date();
                 const linkHref =
-  bookingType === "advanced"
-    ? `/dashboard/manager/bookings/${booking.id}`
-    : `/dashboard/manager/bookings/${booking.id}?type=instant`;
+                  bookingType === "advanced"
+                   ? `/dashboard/manager/bookings/${booking.id}`
+                    : `/dashboard/manager/bookings/${booking.id}?type=instant`;
 
                 return (
                   <Link
@@ -412,6 +416,23 @@ export default function AllBookingsListClient({
 
                       {/* Right Side - Actions/Price */}
                       <div className="text-right space-y-2">
+                        <div className="flex items-center gap-2">
+                          {/* Booking Type Badge */}
+                            {bookingType === "instant" ? (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                              <Zap className="w-3 h-3 mr-1" />
+                            Instant
+                            </span>
+                            ) : (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            <Calendar className="w-3 h-3 mr-1" />
+                            Advanced
+                          </span>
+                            )}
+
+                          {/* Status Badge */}
+                            {getStatusBadge(booking.status)}
+                            </div>
                         {bookingType === "advanced" &&
                           booking.status === "ACCEPTED" &&
                           booking.acceptedBid && (
@@ -442,13 +463,49 @@ export default function AllBookingsListClient({
                           )}
                       </div>
                     </div>
+
                   </Link>
                 );
               })}
             </div>
           )}
         </div>
-      </div>
+             {/* ✅ ADD PAGINATION */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow">
+          <Link
+            href={`?type=${bookingType}&filter=${currentFilter}&search=${currentSearch}&page=${Math.max(1, currentPage - 1)}`}
+            className={`px-4 py-2 rounded-lg font-medium ${
+              currentPage === 1
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
+            onClick={(e) => currentPage === 1 && e.preventDefault()}
+          >
+            ← Previous
+          </Link>
+
+          <span className="text-gray-700">
+            Page {currentPage} of {totalPages}
+          </span>
+
+          <Link
+            href={`?type=${bookingType}&filter=${currentFilter}&search=${currentSearch}&page=${Math.min(totalPages, currentPage + 1)}`}
+            className={`px-4 py-2 rounded-lg font-medium ${
+              currentPage === totalPages
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
+            onClick={(e) => currentPage === totalPages && e.preventDefault()}
+          >
+            Next →
+          </Link>
+        </div>
+      )}
     </div>
+  );
+
+      </div>
+    
   );
 }
