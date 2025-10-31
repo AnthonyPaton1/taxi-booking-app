@@ -1,3 +1,4 @@
+// app/api/onboarding/manager/route.js - FIXED VERSION
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { ManagerOnboardingSchema } from "@/lib/validators";
@@ -43,25 +44,44 @@ export async function POST(req) {
 
     const businessId = coordinator.business.id;
 
- for (const house of houses) {
-  await prisma.house.create({
-    data: {
-      label: house.label,           
-      line1: house.line1,           
-      city: house.city,             
-      postcode: house.postcode,     
-      notes: house.notes || null,   
-      lat: house.lat,               
-      lng: house.lng,               
-      internalId: `house-${Math.random().toString(36).slice(2, 8)}`,
-      pin: Math.floor(1000 + Math.random() * 9000).toString(),
-      loginName: `login-${Math.random().toString(36).slice(2, 6)}`,
-      manager: { connect: { id: managerUser.id } },
-      business: { connect: { id: businessId } },
-      area: { connect: { id: areaRecord.id } },
-    },
-  });
-}
+    // ✅ NEW: Create BusinessMembership for the manager
+    await prisma.businessMembership.upsert({
+      where: {
+        userId_businessId: {
+          userId: managerUser.id,
+          businessId: businessId,
+        },
+      },
+      update: {
+        role: "MANAGER",
+      },
+      create: {
+        userId: managerUser.id,
+        businessId: businessId,
+        role: "MANAGER",
+      },
+    });
+
+    // Create houses
+    for (const house of houses) {
+      await prisma.house.create({
+        data: {
+          label: house.label,           
+          line1: house.line1,           
+          city: house.city,             
+          postcode: house.postcode,     
+          notes: house.notes || null,   
+          lat: house.lat,               
+          lng: house.lng,               
+          internalId: `house-${Math.random().toString(36).slice(2, 8)}`,
+          pin: Math.floor(1000 + Math.random() * 9000).toString(),
+          loginName: `login-${Math.random().toString(36).slice(2, 6)}`,
+          manager: { connect: { id: managerUser.id } },
+          business: { connect: { id: businessId } },
+          area: { connect: { id: areaRecord.id } },
+        },
+      });
+    }
 
     // Mark manager as onboarded
     await prisma.user.update({

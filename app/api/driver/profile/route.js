@@ -4,6 +4,23 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 
+// Move geocoding function outside the handler
+async function geocodePostcode(postcode) {
+  try {
+    const res = await fetch(`https://api.postcodes.io/postcodes/${postcode}`);
+    const data = await res.json();
+    if (data.status === 200) {
+      return {
+        lat: data.result.latitude,
+        lng: data.result.longitude,
+      };
+    }
+  } catch (error) {
+    console.error('Geocoding error:', error);
+  }
+  return null;
+}
+
 export async function PATCH(request) {
   try {
     const session = await getServerSession(authOptions);
@@ -21,49 +38,17 @@ export async function PATCH(request) {
       name,
       email,
       phone,
+      gender, // ✅ Add this to destructuring
       // Vehicle
       vehicleType,
       vehicleReg,
       // Location
       localPostcode,
       radiusMiles,
-      // Compliance
-      dbsChecked,
-      licenceNumber,
-      localAuthorityRegistered,
-      publicLiabilityInsurance,
-      fullyCompInsurance,
-      healthCheckPassed,
-      englishProficiency,
-      ukDrivingLicence,
-      // Accessibility
+      // ... rest of your fields
       wheelchairAccess,
       doubleWheelchairAccess,
-      highRoof,
-      seatTransferHelp,
-      mobilityAidStorage,
-      electricScooterStorage,
-      passengerCount,
-      wheelchairUsers,
-      quietEnvironment,
-      noConversation,
-      noScents,
-      specificMusic,
-      visualSchedule,
-      signLanguageRequired,
-      textOnlyCommunication,
-      preferredLanguage,
-      translationSupport,
-      assistanceRequired,
-      assistanceAnimal,
-      familiarDriverOnly,
-      femaleDriverOnly,
-      nonWAVvehicle,
-      medicationOnBoard,
-      medicalConditions,
-      firstAidTrained,
-      conditionAwareness,
-      additionalNeeds,
+      // ... all the accessibility fields
     } = body;
 
     // Validation
@@ -97,7 +82,7 @@ export async function PATCH(request) {
       );
     }
 
-    // Check if email is already taken by another user
+    // ✅ Fetch user FIRST
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       include: {
@@ -117,6 +102,7 @@ export async function PATCH(request) {
       );
     }
 
+    // Check email uniqueness
     if (email !== user.email) {
       const existingUser = await prisma.user.findUnique({
         where: { email },
@@ -130,6 +116,20 @@ export async function PATCH(request) {
       }
     }
 
+    // ✅ NOW check if postcode changed and geocode
+    let coordinates = {};
+    if (localPostcode.trim().toUpperCase() !== user.driver.localPostcode) {
+      console.log('Postcode changed, geocoding...', localPostcode);
+      const coords = await geocodePostcode(localPostcode.trim());
+      if (coords) {
+        coordinates = {
+          baseLat: coords.lat,
+          baseLng: coords.lng,
+        };
+        console.log('Geocoded to:', coordinates);
+      }
+    }
+
     // Update user
     await prisma.user.update({
       where: { id: session.user.id },
@@ -140,15 +140,18 @@ export async function PATCH(request) {
       },
     });
 
-    // Update driver
+    // ✅ Update driver with ALL fields
     await prisma.driver.update({
       where: { id: user.driver.id },
       data: {
+        name: name.trim(),                  // ✅ Add this!
         phone: phone.trim(),
         vehicleType: vehicleType.trim(),
         vehicleReg: vehicleReg.trim().toUpperCase(),
         localPostcode: localPostcode.trim().toUpperCase(),
         radiusMiles: parseInt(radiusMiles),
+        gender: gender?.toLowerCase() || null, // ✅ Handle gender
+        ...coordinates,                     // ✅ Spread geocoded coordinates
       },
     });
 
@@ -156,46 +159,7 @@ export async function PATCH(request) {
     await prisma.accessibilityProfile.update({
       where: { id: user.driver.accessibilityProfileId },
       data: {
-        // Mobility
-        wheelchairAccess: wheelchairAccess || false,
-        doubleWheelchairAccess: doubleWheelchairAccess || false,
-        highRoof: highRoof || false,
-        seatTransferHelp: seatTransferHelp || false,
-        mobilityAidStorage: mobilityAidStorage || false,
-        electricScooterStorage: electricScooterStorage || false,
-        
-        // Capacity
-        passengerCount: parseInt(passengerCount) || 4,
-        wheelchairUsers: parseInt(wheelchairUsers) || 0,
-        
-        // Sensory
-        quietEnvironment: quietEnvironment || false,
-        noConversation: noConversation || false,
-        noScents: noScents || false,
-        specificMusic: specificMusic?.trim() || null,
-        visualSchedule: visualSchedule || false,
-        
-        // Communication
-        signLanguageRequired: signLanguageRequired || false,
-        textOnlyCommunication: textOnlyCommunication || false,
-        preferredLanguage: preferredLanguage?.trim() || null,
-        translationSupport: translationSupport || false,
-        
-        // Special Requirements
-        assistanceRequired: assistanceRequired || false,
-        assistanceAnimal: assistanceAnimal || false,
-        familiarDriverOnly: familiarDriverOnly || false,
-        femaleDriverOnly: femaleDriverOnly || false,
-        nonWAVvehicle: nonWAVvehicle || false,
-        
-        // Health & Safety
-        medicationOnBoard: medicationOnBoard || false,
-        medicalConditions: medicalConditions?.trim() || null,
-        firstAidTrained: firstAidTrained || false,
-        conditionAwareness: conditionAwareness || false,
-        
-        // Additional
-        additionalNeeds: additionalNeeds?.trim() || null,
+        // ... your existing accessibility updates
       },
     });
 
@@ -204,29 +168,14 @@ export async function PATCH(request) {
       await prisma.driverCompliance.update({
         where: { id: user.driver.compliance.id },
         data: {
-          ukDrivingLicence: ukDrivingLicence || false,
-          licenceNumber: licenceNumber?.trim() || "",
-          localAuthorityRegistered: localAuthorityRegistered || false,
-          dbsChecked: dbsChecked || false,
-          publicLiabilityInsurance: publicLiabilityInsurance || false,
-          fullyCompInsurance: fullyCompInsurance || false,
-          healthCheckPassed: healthCheckPassed || false,
-          englishProficiency: englishProficiency || false,
+          // ... your existing compliance updates
         },
       });
     } else {
-      // Create if doesn't exist
       await prisma.driverCompliance.create({
         data: {
           driverId: user.driver.id,
-          ukDrivingLicence: ukDrivingLicence || false,
-          licenceNumber: licenceNumber?.trim() || "",
-          localAuthorityRegistered: localAuthorityRegistered || false,
-          dbsChecked: dbsChecked || false,
-          publicLiabilityInsurance: publicLiabilityInsurance || false,
-          fullyCompInsurance: fullyCompInsurance || false,
-          healthCheckPassed: healthCheckPassed || false,
-          englishProficiency: englishProficiency || false,
+          // ... your existing compliance data
         },
       });
     }

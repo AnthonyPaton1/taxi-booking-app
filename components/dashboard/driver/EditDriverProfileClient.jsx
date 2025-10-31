@@ -1,5 +1,5 @@
+//app/components/dashboard/driver/EditDriverprofileClient
 "use client";
-
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Save, User, Car, MapPin, Settings, Shield } from "lucide-react";
@@ -86,96 +86,95 @@ export default function EditDriverProfileClient({ user, driver }) {
     });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+  setError("");
 
-    try {
-      // Only validate postcode via API if it changed
-      if (formData.localPostcode !== driver.localPostcode) {
-        toast.loading("Verifying postcode...");
-        
-        const postcodeValidation = await fetch("/api/validate-postcode", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ postcode: formData.localPostcode }),
-        });
+  try {
+    // Create payload starting with current form data
+    let payload = { ...formData };
 
-        const postcodeData = await postcodeValidation.json();
-
-        
-
-        // Check if validation failed (either !ok or valid: false)
-         if (!postcodeValidation.ok || !postcodeData.valid) {
-          const errorMessage = postcodeData.error || "Postcode not found";
-          
-          
-          // Dismiss loading toast THEN show error
-          toast.dismiss();
-          toast.error(errorMessage, {
-            duration: 5000,
-          });
-          
-          
-          
-          // Switch to location tab and scroll to postcode field
-          setActiveTab("location");
-          setTimeout(() => {
-            const postcodeField = document.getElementById("driver-postcode");
-            if (postcodeField) {
-              postcodeField.scrollIntoView({ 
-                behavior: "smooth", 
-                block: "center" 
-              });
-              postcodeField.focus();
-            }
-          }, 100);
-          
-          setLoading(false);
-          return;
-        }
-
-        // Add normalized postcode and coordinates to form data
-        formData.localPostcode = postcodeData.coordinates.postcode;
-        formData.baseLat = postcodeData.coordinates.lat;
-        formData.baseLng = postcodeData.coordinates.lng;
-        
-        toast.dismiss();
-      }
-
-      toast.loading("Updating profile...");
-
-      const response = await fetch(`/api/driver/profile`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
+    // Only validate postcode via API if it changed
+    if (formData.localPostcode !== driver.localPostcode) {
+      toast.loading("Verifying postcode...");
+      
+      const postcodeValidation = await fetch("/api/validate-postcode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postcode: formData.localPostcode }),
       });
 
-      const data = await response.json();
+      const postcodeData = await postcodeValidation.json();
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || "Failed to update profile");
+      // Check if validation failed
+      if (!postcodeValidation.ok || !postcodeData.valid) {
+        const errorMessage = postcodeData.error || "Postcode not found";
+        
+        toast.dismiss();
+        toast.error(errorMessage, { duration: 5000 });
+        
+        setActiveTab("location");
+        setTimeout(() => {
+          const postcodeField = document.getElementById("driver-postcode");
+          if (postcodeField) {
+            postcodeField.scrollIntoView({ behavior: "smooth", block: "center" });
+            postcodeField.focus();
+          }
+        }, 100);
+        
+        setLoading(false);
+        return;
       }
 
-      toast.dismiss();
-      toast.success("Profile updated successfully!");
+      // ✅ Update payload with new coordinates
+      payload = {
+        ...payload,
+        localPostcode: postcodeData.coordinates.postcode,
+        baseLat: postcodeData.coordinates.lat,
+        baseLng: postcodeData.coordinates.lng,
+      };
       
-      setTimeout(() => {
-        router.push("/dashboard/driver");
-        router.refresh();
-      }, 1000);
-      
-    } catch (err) {
       toast.dismiss();
-      setError(err.message);
-      toast.error(err.message || "Failed to update profile");
-    } finally {
-      setLoading(false);
+    } else {
+      // ✅ If postcode didn't change, keep existing coordinates
+      payload = {
+        ...payload,
+        baseLat: driver.baseLat,
+        baseLng: driver.baseLng,
+      };
     }
-  };
+
+    toast.loading("Updating profile...");
+
+    const response = await fetch(`/api/driver/profile`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload), // ✅ Use payload instead of formData
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || "Failed to update profile");
+    }
+
+    toast.dismiss();
+    toast.success("Profile updated successfully!");
+    
+    setTimeout(() => {
+      router.push("/dashboard/driver");
+      router.refresh();
+    }, 1000);
+    
+  } catch (err) {
+    toast.dismiss();
+    setError(err.message);
+    toast.error(err.message || "Failed to update profile");
+  } finally {
+    setLoading(false);
+  }
+};
 
 
   return (

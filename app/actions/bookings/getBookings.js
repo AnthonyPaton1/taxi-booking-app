@@ -138,6 +138,11 @@ export async function getAvailableInstantBookings() {
       };
     }
 
+    console.log('Querying for advanced bookings with filters:');
+console.log('- status: OPEN');
+console.log('- pickupTime >=', new Date());
+console.log('- bidDeadline >=', new Date());
+
     // Get pending instant bookings
     const allBookings = await prisma.instantBooking.findMany({
       where: {
@@ -146,6 +151,7 @@ export async function getAvailableInstantBookings() {
         pickupTime: {
           gte: new Date(),
         },
+     
       },
       include: {
         accessibilityProfile: true,
@@ -165,14 +171,21 @@ export async function getAvailableInstantBookings() {
       orderBy: { pickupTime: "asc" },
     });
 
+    console.log('Query returned:', allBookings.length, 'bookings');
+
     // Add coordinates to bookings
-    const bookingsWithCoords = allBookings
-      .filter(booking => booking.createdBy?.business?.lat && booking.createdBy?.business?.lng)
-      .map(booking => ({
-        ...booking,
-        pickupLat: booking.createdBy.business.lat,
-        pickupLng: booking.createdBy.business.lng,
-      }));
+  const bookingsWithCoords = allBookings
+  .filter(booking => booking.pickupLatitude && booking.pickupLongitude)
+  .map(booking => ({
+    ...booking,
+    pickupLat: booking.pickupLatitude,
+    pickupLng: booking.pickupLongitude,
+  }));
+
+console.log('🔍 Available Advanced Debug:');
+console.log('Total bookings from DB:', allBookings.length);
+console.log('Bookings with coords:', bookingsWithCoords.length);
+console.log('Current server time:', new Date());
 
     // Run matching algorithm
     const matches = matchDriverToBookings(driver, bookingsWithCoords);
@@ -233,15 +246,22 @@ export async function getAvailableAdvancedBookings() {
 
     // Get open advanced bookings
     const allBookings = await prisma.advancedBooking.findMany({
-      where: {
-        status: "OPEN",
-        pickupTime: {
-          gte: new Date(),
-        },
-        bidDeadline: {
-          gte: new Date(),
-        },
+   where: {
+    AND: [
+      { status: "OPEN" },
+      { 
+        visibility: {
+          in: ["PUBLIC", "PRIVATE_TO_COMPANY"],
+        }
       },
+      {
+        OR: [
+          { bidDeadline: { gte: new Date() } },
+          { bidDeadline: null },
+        ],
+      },
+    ],
+  },
       include: {
         accessibilityProfile: true,
         createdBy: {
@@ -275,21 +295,24 @@ export async function getAvailableAdvancedBookings() {
       orderBy: { pickupTime: "asc" },
     });
 
-    // Add coordinates to bookings
-    const bookingsWithCoords = allBookings
-      .filter(booking => booking.createdBy?.business?.lat && booking.createdBy?.business?.lng)
-      .map(booking => ({
-        ...booking,
-        pickupLat: booking.createdBy.business.lat,
-        pickupLng: booking.createdBy.business.lng,
-      }));
 
-    // Run matching algorithm
-    const matches = matchDriverToBookings(driver, bookingsWithCoords);
+
+
+   const bookingsWithCoords = allBookings
+  .filter(booking => booking.pickupLatitude && booking.pickupLongitude)
+  .map(booking => ({
+    ...booking,
+    pickupLat: booking.pickupLatitude,
+    pickupLng: booking.pickupLongitude,
+  }));
+
+const matches = matchDriverToBookings(driver, bookingsWithCoords);
+
 
     // Return only matched bookings
     const matchedBookings = matches.map(match => match.booking);
 
+    
     return { 
       success: true, 
       bookings: matchedBookings, 

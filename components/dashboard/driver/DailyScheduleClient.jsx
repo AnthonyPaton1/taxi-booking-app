@@ -1,7 +1,7 @@
 //app/components/dashboard/driver/DailyScheduleClient
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -58,8 +58,8 @@ export default function DailyScheduleClient({
     try {
       const endpoint =
         type === "instant"
-          ? "/api/bookings/instant/complete"
-          : "/api/bookings/advanced/complete";
+          ? "/api/bookings/instant/{bookingId}/complete"
+          : "/api/bookings/advanced/{bookingId}/complete";
 
       const res = await fetch(endpoint, {
         method: "POST",

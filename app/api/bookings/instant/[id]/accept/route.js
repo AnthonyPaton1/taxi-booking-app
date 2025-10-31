@@ -1,4 +1,4 @@
-// app/api/bookings/instant/accept/route.js
+// app/api/bookings/instant/[id]/accept/route.js
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
@@ -62,7 +62,8 @@ export async function POST(request) {
       where: { id: bookingId },
       data: {
         status: "ACCEPTED",
-        assignedDriverId: user.driver.id,
+        driverId: user.driver.id,
+        acceptedAt: new Date(),
       },
     });
 

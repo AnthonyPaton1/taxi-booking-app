@@ -39,6 +39,7 @@ export default async function DriverDashboardPage() {
   if (!hasOnboarded) {
     return <DriverOnboardingForm />;
   }
+  
 
   // Fetch dashboard data
   const [statsResult, todaysBookings, availableInstant, availableAdvanced] = await Promise.all([
@@ -47,6 +48,8 @@ export default async function DriverDashboardPage() {
     getAvailableInstantBookings(),
     getAvailableAdvancedBookings(),
   ]);
+
+
 
   return (
     <DriverDashboardClient

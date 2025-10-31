@@ -54,7 +54,7 @@ export default function AvailableInstantBookingsClient({ bookings, driverId }) {
     setAccepting(bookingId);
 
     try {
-      const res = await fetch("/api/bookings/instant/accept", {
+      const res = await fetch("/api/bookings/instant/${bookingId}/accept", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ bookingId }),
@@ -65,7 +65,7 @@ export default function AvailableInstantBookingsClient({ bookings, driverId }) {
       if (data.success) {
         setStatus("✅ Booking accepted! Check your schedule.");
         setTimeout(() => {
-          router.push("/dashboard/driver/daily");
+          router.push("/dashboard/driver/schedule");
         }, 1500);
       } else {
         setStatus("❌ " + (data.error || "Failed to accept booking"));

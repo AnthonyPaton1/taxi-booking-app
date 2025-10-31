@@ -13,6 +13,7 @@ async function main() {
   drivers.forEach(d => {
     console.log(`\n  ${d.name}`);
     console.log(`    Email: ${d.user.email}`);
+    console.log(` Name: ${d.name}`);
     console.log(`    Phone: ${d.phone || 'NULL'}`);
     console.log(`    Approved: ${d.approved}`);
     console.log(`    Vehicle: WAV=${d.hasWAV}, Standard=${d.hasStandard}, WAVOnly=${d.wavOnly}`);
@@ -20,7 +21,10 @@ async function main() {
     console.log(`    Radius: ${d.radiusMiles || 'NULL'} miles`);
     console.log(`    Gender: ${d.gender || 'NULL'}`);
     console.log(`    Rating: ${d.rating}, Rides: ${d.completedRides}`);
+    
   });
+
+ 
 
   // 2. Check Businesses
   const businesses = await prisma.business.findMany({

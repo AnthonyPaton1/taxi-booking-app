@@ -71,14 +71,14 @@ export default async function AvailableInstantBookingsPage() {
     take: 100, // Get more, we'll filter by matching
   });
 
-  // Add coordinates to bookings (using business location)
-  const bookingsWithCoords = availableBookings
-    .filter(booking => booking.createdBy?.business?.lat && booking.createdBy?.business?.lng)
-    .map(booking => ({
-      ...booking,
-      pickupLat: booking.createdBy.business.lat,
-      pickupLng: booking.createdBy.business.lng,
-    }));
+//Use  booking coordinates
+const bookingsWithCoords = availableBookings
+  .filter(booking => booking.pickupLatitude && booking.pickupLongitude)
+  .map(booking => ({
+    ...booking,
+    pickupLat: booking.pickupLatitude,
+    pickupLng: booking.pickupLongitude,
+  }));
 
   // Match driver to bookings using the algorithm
   const matches = matchDriverToBookings(driver, bookingsWithCoords);
@@ -88,9 +88,8 @@ export default async function AvailableInstantBookingsPage() {
     ...match.booking,
     matchScore: match.overallScore,
     distance: match.distance,
-    estimatedPickupMinutes: match.estimatedPickupMinutes,
-    accessibilityCompatibility: match.accessibilityMatch.compatibilityScore,
-    missingPreferences: match.accessibilityMatch.missingPreferences,
+    scoreBreakdown: match.scoreBreakdown,
+  
   }));
 
   return (

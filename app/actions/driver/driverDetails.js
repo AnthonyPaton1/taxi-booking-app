@@ -79,19 +79,32 @@ export async function completeDriverOnboarding(data) {
 
       // Step 2: Create Driver
       const driver = await tx.driver.create({
-        data: {
-          userId: user.id,
-          name: validated.name,
-          vehicleType: validated.vehicleType,
-          vehicleReg: validated.vehicleReg,
-          amenities: validated.amenities || [],
-          localPostcode: validated.localPostcode,
-          radiusMiles: validated.radiusMiles,
-          phone: validated.phone,
-          approved: false, // Requires admin approval
-          accessibilityProfileId: accessibilityProfile.id,
-        },
-      });
+         data: {
+    userId: user.id,
+    name: validated.name,
+    vehicleType: validated.vehicleType,
+    vehicleReg: validated.vehicleReg,
+    amenities: validated.amenities || [],
+    localPostcode: validated.localPostcode,
+    radiusMiles: validated.radiusMiles,
+    
+   
+    baseLat: validated.baseLat,
+    baseLng: validated.baseLng,
+    serviceAreaLat: validated.baseLat,
+    serviceAreaLng: validated.baseLng,
+    serviceAreaRadius: validated.radiusMiles,
+    
+    // Vehicle type booleans
+    hasWAV: validated.vehicleType === "WAV",
+    hasStandard: validated.vehicleType === "CAR",
+    wavOnly: validated.vehicleType === "WAV",
+    
+    phone: validated.phone,
+    approved: false,
+    accessibilityProfileId: accessibilityProfile.id,
+  },
+});
 
       // Step 3: Create DriverCompliance
       await tx.driverCompliance.create({
@@ -209,15 +222,27 @@ export async function updateDriverDetails(data, driverId) {
       // Update Driver
       await tx.driver.update({
         where: { id: driverId },
-        data: {
-          name: validated.name,
-          vehicleType: validated.vehicleType,
-          vehicleReg: validated.vehicleReg,
-          amenities: validated.amenities || [],
-          localPostcode: validated.localPostcode,
-          radiusMiles: validated.radiusMiles,
-          phone: validated.phone,
-        },
+          data: {
+    name: validated.name,
+    vehicleType: validated.vehicleType,
+    vehicleReg: validated.vehicleReg,
+    amenities: validated.amenities || [],
+    localPostcode: validated.localPostcode,
+    radiusMiles: validated.radiusMiles,
+    phone: validated.phone,
+    
+    
+    baseLat: validated.baseLat,
+    baseLng: validated.baseLng,
+    serviceAreaLat: validated.baseLat,
+    serviceAreaLng: validated.baseLng,
+    serviceAreaRadius: validated.radiusMiles,
+    
+    // Vehicle type booleans
+    hasWAV: validated.vehicleType === "WAV",
+    hasStandard: validated.vehicleType === "CAR",
+    wavOnly: validated.vehicleType === "WAV",
+  },
       });
 
       // Update AccessibilityProfile
