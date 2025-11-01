@@ -20,7 +20,7 @@ export default async function SingleBookingPage({ params, searchParams }) {
   let booking = null;
 
   if (bookingType === "instant") {
-    // Fetch instant booking - FIXED: using instantBooking model
+    // Fetch instant booking
     booking = await prisma.instantBooking.findUnique({
       where: { id },
       include: {
@@ -52,21 +52,24 @@ export default async function SingleBookingPage({ params, searchParams }) {
       include: {
         accessibilityProfile: true,
         bids: {
+          where: {
+            status: {
+              in: ["PENDING", "ACCEPTED"]
+            }
+          },
           include: {
             driver: {
               select: {
+                id: true, // ✅ MUST include id
                 vehicleType: true,
                 user: {
-                   select: {
-                name: true,
-                email: true,
-                phone: true,
-                
-              },
-
+                  select: {
+                    name: true,
+                    email: true,
+                    phone: true,
+                  },
                 },
               },
-             
             },
           },
           orderBy: {
@@ -74,28 +77,26 @@ export default async function SingleBookingPage({ params, searchParams }) {
           },
         },
         acceptedBid: {
-  include: {
+          include: {
             driver: {
               select: {
+                id: true, // ✅ MUST include id
                 vehicleType: true,
-                user: {
-                   select: {
-                name: true,
-                email: true,
-                phone: true,
-                
-              },
 
+                user: {
+                  select: {
+                    name: true,
+                    email: true,
+                    phone: true,
+                  },
                 },
               },
-             
             },
           },
-},
-}
-    })
+        },
+      },
+    });
   }
-
 
   if (!booking) {
     notFound();

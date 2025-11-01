@@ -6,14 +6,14 @@ import CurrentYear from "../simples/currentYear";
 function Footer() {
   return (
     <footer
-      className="bg-blue-700 text-white py-10 mt-auto border-t border-blue-600"
+      className="bg-blue-700 text-white py-10 mt-auto border-t border-blue-600 w-full"
       aria-label="Footer"
     >
-      <div className="container mx-auto px-4">
+      <div className="w-full px-4">  {/* ✅ Changed from container mx-auto to w-full */}
         <div className="text-center mb-10">
           <h2 className="text-3xl font-bold text-white mb-4">More from NEAT</h2>
           <p className="text-blue-100 mb-8 max-w-2xl mx-auto">
-            We’re building a suite of tools to support accessible living and
+            We're building a suite of tools to support accessible living and
             ethical business — explore what else is available:
           </p>
         </div>
@@ -29,8 +29,8 @@ function Footer() {
               Perfect for families, carers, and organisations looking for
               inclusive spaces.
             </p>
-            <a
-              href="https://www.discoveraccessiblevenues.co.uk"
+            
+            <a  href="https://www.discoveraccessiblevenues.co.uk"
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 font-medium hover:underline"
@@ -49,77 +49,76 @@ function Footer() {
               mobility aids, sensory tools, and more, hand-picked by carers for
               carers.
             </p>
-            <a
-              href="/ecomm"
+            
+            <a href="/ecomm"
               className="text-blue-600 font-medium hover:underline"
             >
               Visit Store →
             </a>
           </div>
         </div>
+
         {/* Legal Links */}
-<div className="border-t border-blue-600 pt-6 pb-4">
-  <nav className="flex flex-wrap justify-center gap-6 text-sm" aria-label="Legal links">
-    <Link
-      href="/privacy"
-      className="text-blue-100 hover:text-white hover:underline transition"
-    >
-      Privacy Policy
-    </Link>
-    <Link
-      href="/terms"
-      className="text-blue-100 hover:text-white hover:underline transition"
-    >
-      Terms & Conditions
-    </Link>
-    <Link
-      href="/cookies"
-      className="text-blue-100 hover:text-white hover:underline transition"
-    >
-      Cookie Policy
-    </Link>
-    <Link
-      href="/contact"
-      className="text-blue-100 hover:text-white hover:underline transition"
-    >
-      Contact Us
-    </Link>
-    <Link
-      href="/how-it-works"
-      className="text-blue-100 hover:text-white hover:underline transition"
-    >
-      How It Works
-    </Link>
-    <Link
-      href="/faq"
-      className="text-blue-100 hover:text-white hover:underline transition"
-    >
-      FAQ
-    </Link>
-  </nav>
-</div>
+        <div className="border-t border-blue-600 pt-6 pb-4">
+          <nav className="flex flex-wrap justify-center gap-6 text-sm" aria-label="Legal links">
+            <Link
+              href="/privacy"
+              className="text-blue-100 hover:text-white hover:underline transition"
+            >
+              Privacy Policy
+            </Link>
+            <Link
+              href="/terms"
+              className="text-blue-100 hover:text-white hover:underline transition"
+            >
+              Terms & Conditions
+            </Link>
+            <Link
+              href="/cookies"
+              className="text-blue-100 hover:text-white hover:underline transition"
+            >
+              Cookie Policy
+            </Link>
+            <Link
+              href="/contact"
+              className="text-blue-100 hover:text-white hover:underline transition"
+            >
+              Contact Us
+            </Link>
+            <Link
+              href="/how-it-works"
+              className="text-blue-100 hover:text-white hover:underline transition"
+            >
+              How It Works
+            </Link>
+            <Link
+              href="/faq"
+              className="text-blue-100 hover:text-white hover:underline transition"
+            >
+              FAQ
+            </Link>
+          </nav>
+        </div>
 
-{/* Copyright - move this below the legal links */}
-<div className="text-sm text-blue-100 text-center mt-6">
-  © <CurrentYear /> NEAT Transport. All rights reserved.
-</div>
+        {/* Copyright */}
+        <div className="text-sm text-blue-100 text-center mt-6">
+          © <CurrentYear /> NEAT Transport. All rights reserved.
+        </div>
 
-       
-
-      {/* Trust Message */}
-      <div className="mt-6 text-center text-sm text-white px-4">
-        🔒 This site is protected by advanced browser security headers and{" "}
-        <a
-          href="https://www.cloudflare.com/learning/ddos/what-is-cloudflare/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline"
-        >
-          Cloudflare
-        </a>{" "}
-        for enhanced privacy and performance.
+        {/* Trust Message */}
+        <div className="mt-6 text-center text-sm text-white px-4">
+          🔒 This site is protected by advanced browser security headers and{" "}
+          
+          <a  href="https://www.cloudflare.com/learning/ddos/what-is-cloudflare/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline"
+          >
+            Cloudflare
+          </a>{" "}
+          for enhanced privacy and performance.
+        </div>
       </div>
-      </div> 
     </footer>
   );
 }

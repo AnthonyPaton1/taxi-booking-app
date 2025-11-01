@@ -300,10 +300,15 @@ const BookingCard = ({ booking }) => {
             {booking.pickupLocation} → {booking.dropoffLocation}
           </p>
 
+          {/* ✅ ADD THIS: Show passenger initials */}
+          <p className="text-xs text-gray-500 mt-1">
+            {booking.accessibilityProfile?.initials || "N/A"} • {booking.passengerCount} passenger{booking.passengerCount !== 1 ? "s" : ""}
+          </p>
+
           {isAccepted && booking.acceptedBid && (
             <p className="text-sm text-green-700 mt-2">
-              Driver: {booking.acceptedBid.driver.name} •{" "}
-              {booking.acceptedBid.driver.phone}
+              Driver: {booking.acceptedBid.driver.user.name} •{" "}
+              {booking.acceptedBid.driver.user.phone}
             </p>
           )}
         </div>
@@ -317,7 +322,6 @@ const BookingCard = ({ booking }) => {
     </Link>
   );
 };
-
 // House Card
 const HouseCard = ({ house }) => (
   <div className="border border-gray-200 rounded-lg p-4">

@@ -13,7 +13,6 @@ import {
   CheckCircle,
   AlertCircle,
   Phone,
-  Mail,
   Car,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -232,20 +231,16 @@ export default function PendingBidsClient({ bookings, totalBids }) {
                                 )}
                               </div>
 
-                              <div className="space-y-1 text-sm text-gray-600">
+                                <div className="space-y-1 text-sm text-gray-600">
                                 <div className="flex items-center">
                                   <Car className="w-4 h-4 mr-2" />
-                                  {bid.driver.vehicleType} •{" "}
-                                  {bid.driver.vehicleCapacity} seats
+                                  <span className="font-bold">{bid.driver.vehicleType}</span>
                                 </div>
                                 <div className="flex items-center">
                                   <Phone className="w-4 h-4 mr-2" />
                                   {bid.driver.phone}
                                 </div>
-                                <div className="flex items-center">
-                                  <Mail className="w-4 h-4 mr-2" />
-                                  {bid.driver.email}
-                                </div>
+                               
                               </div>
 
                               {bid.message && (

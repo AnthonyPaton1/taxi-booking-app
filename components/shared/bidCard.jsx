@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button"; // Adjust path to your Button component
+import { Button } from "@/components/ui/button"; 
 
 export default function BidCard({ onSubmit }) {
   const [formData, setFormData] = useState({

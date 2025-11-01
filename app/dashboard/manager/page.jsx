@@ -83,31 +83,41 @@ export default async function ManagerDashboardPage() {
       },
       include: {
         accessibilityProfile: true,
-        bids: {
-          include: {
-            driver: {
-              select: {
-                name: true,
-                vehicleType: true,
-                phone: true,
-              },
-            },
-          },
-          orderBy: {
-            amountCents: "asc",
+       bids: {
+  include: {
+    driver: {
+      select: {
+        id: true,
+        vehicleType: true,
+        user: {
+          select: {
+            name: true,
+            phone: true,
           },
         },
+      },
+    },
+  },
+  orderBy: {
+    amountCents: "asc",
+  },
+},
         acceptedBid: {
-          include: {
-            driver: {
-              select: {
-                name: true,
-                vehicleType: true,
-                phone: true,
-              },
-            },
+  include: {
+    driver: {
+      select: {
+        id: true,
+        vehicleType: true,
+        user: {
+          select: {
+            name: true,
+            phone: true,
           },
         },
+      },
+    },
+  },
+},
       },
       orderBy: {
         pickupTime: "asc",

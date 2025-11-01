@@ -31,12 +31,12 @@ const Navbar = () => {
 
   return (
     <nav
-      className="bg-blue-700 border-b border-blue-500"
+      className="bg-blue-700 border-b border-blue-500 w-full"
       role="navigation"
       aria-label="Main Navigation"
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex h-20 items-center justify-between">
+      <div className="w-full px-4 sm:px-6 lg:px-8">
+        <div className="flex h-20 items-center justify-between max-w-7xl mx-auto">
           {/* Logo */}
           <Link href="/" className="text-white font-semibold text-lg">
             NEAT Booking App
@@ -70,7 +70,6 @@ const Navbar = () => {
                   aria-expanded={isProfileMenuOpen}
                   aria-haspopup="true"
                 >
-                  {/* Could be avatar or initial */}
                   {user?.name?.[0] || "U"}
                 </button>
 
@@ -90,7 +89,7 @@ const Navbar = () => {
                       </p>
                     </div>
 
-                    {/* Profile Link (Optional) */}
+                    {/* Profile Link */}
                     <Link
                       href="/dashboard/profile"
                       className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"

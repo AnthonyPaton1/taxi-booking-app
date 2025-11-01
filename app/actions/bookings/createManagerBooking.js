@@ -80,13 +80,7 @@ export async function createManagerBooking(data) {
       ? 'wav' 
       : vehicleType;
 
-    console.log('📍 Using house coordinates for pickup:', {
-      houseId: data.houseId,
-      address: house.address,
-      lat: house.lat,
-      lng: house.lng,
-      vehicleType: finalVehicleType
-    });
+   
 
     // Step 1: Create AccessibilityProfile with vehicle type
     const accessibilityProfile = await prisma.accessibilityProfile.create({
@@ -175,11 +169,9 @@ export async function createManagerBooking(data) {
       },
     });
 
-    console.log(`\n🔍 Finding matching drivers for booking ${booking.id}...`);
 
         try {
       const matchedDrivers = await findMatchingDrivers(booking.id);
-      console.log(`✅ Found ${matchedDrivers.length} matching drivers`);
       
       if (matchedDrivers.length > 0) {
         console.log('Top 3 matches:', matchedDrivers.slice(0, 3).map(d => ({

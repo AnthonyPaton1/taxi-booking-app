@@ -36,7 +36,7 @@ export default function SingleAdvancedBookingClient({ booking }) {
     const activeBids = booking.bids.filter(bid => bid.status === "PENDING");
   const lowestBid = activeBids.length > 0 ? activeBids[0] : null;
   const averageBid = activeBids.length > 0 
-    ? activeBids.reduce((sum, bid) => sum + bid.amount, 0) / activeBids.length 
+    ? activeBids.reduce((sum, bid) => sum + bid.amountCents, 0) / activeBids.length 
     : 0;
 
   const formatDateTime = (date) => {
@@ -83,8 +83,8 @@ export default function SingleAdvancedBookingClient({ booking }) {
   setSelectedBidId(bidId);
 
   try {
-    // ✅ Call the API route
-    const res = await fetch('/api/bookings/accept-bid', {
+    
+    const res = await fetch(`/api/bookings/${booking.id}/accept-bid`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
@@ -133,7 +133,7 @@ const handleCancelBooking = async () => {
     const res = await fetch(`/api/bookings/advanced/${booking.id}/cancel`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reason }), // ✅ Send reason
+      body: JSON.stringify({ reason }), // Send reason
     });
 
     const data = await res.json();
@@ -334,29 +334,29 @@ const handleCancelBooking = async () => {
         {/* Right Column - Bids */}
         <div className="space-y-6">
           {/* Bid Statistics */}
-          {activeBids.length > 0 && (
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">Bid Statistics</h2>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Total Bids:</span>
-                  <span className="font-bold text-lg">{activeBids.length}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Lowest Bid:</span>
-                  <span className="font-bold text-green-600 text-lg">
-                    {formatCurrency(lowestBid.amount)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Average Bid:</span>
-                  <span className="font-medium text-gray-700">
-                    {formatCurrency(averageBid)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
+{activeBids.length > 0 && lowestBid && (
+  <div className="bg-white p-6 rounded-lg shadow-md">
+    <h2 className="text-lg font-bold text-gray-900 mb-4">Bid Statistics</h2>
+    <div className="space-y-3">
+      <div className="flex justify-between items-center">
+        <span className="text-gray-600">Total Bids:</span>
+        <span className="font-bold text-lg">{activeBids.length}</span>
+      </div>
+      <div className="flex justify-between items-center">
+        <span className="text-gray-600">Lowest Bid:</span>
+        <span className="font-bold text-green-600 text-lg">
+          {formatCurrency(lowestBid.amountCents / 100)}
+        </span>
+      </div>
+      <div className="flex justify-between items-center">
+        <span className="text-gray-600">Average Bid:</span>
+        <span className="font-medium text-gray-700">
+          {formatCurrency(averageBid)}
+        </span>
+      </div>
+    </div>
+  </div>
+)}
 
           {/* Driver Bids */}
           <div className="bg-white p-6 rounded-lg shadow-md">
@@ -365,24 +365,25 @@ const handleCancelBooking = async () => {
               Driver Bids ({activeBids.length})
             </h2>
 
-            {booking.status === "ACCEPTED" && booking.assignedDriver ? (
+            {booking.status === "ACCEPTED" && booking.acceptedBid ? (
               <div className="bg-green-50 p-4 rounded-lg border-2 border-green-200">
                 <p className="font-bold text-green-800 mb-3 flex items-center">
                   <CheckCircle className="w-5 h-5 mr-2" />
                   Driver Assigned
                 </p>
                 <div className="space-y-2">
-                  <p className="font-medium">{booking.assignedDriver.user.name}</p>
+                  <p className="font-medium">{booking.acceptedBid.driver.user.name}</p>
                   <p className="text-sm flex items-center text-gray-700">
                     <Phone className="w-4 h-4 mr-2" />
-                    {booking.assignedDriver.user.phone}
+                    {booking.acceptedBid.driver.user.phone}
                   </p>
                   <p className="text-sm flex items-center text-gray-700">
                     <Mail className="w-4 h-4 mr-2" />
-                    {booking.assignedDriver.user.email}
+                    {booking.acceptedBid.driver.user.email}
                   </p>
                   <p className="text-lg font-bold text-green-700 mt-3">
-                    {formatCurrency(booking.acceptedBidAmount)}
+                    {/* ✅ FIX: Convert cents to pounds */}
+                    {formatCurrency(booking.acceptedBid.amountCents / 100)}
                   </p>
                 </div>
               </div>
@@ -421,7 +422,8 @@ const handleCancelBooking = async () => {
 
                     <div className="flex justify-between items-center mt-3">
                       <span className="text-2xl font-bold text-gray-900">
-                        {formatCurrency(bid.amount)}
+                        {/* ✅ FIX: Convert cents to pounds */}
+                        {formatCurrency(bid.amountCents / 100)}
                       </span>
                       <Button
                         onClick={() => handleAcceptBid(bid.id)}

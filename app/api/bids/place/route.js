@@ -76,11 +76,18 @@ export async function POST(request) {
     // Create the bid
     const bid = await prisma.bid.create({
       data: {
-        advancedBookingId,
-        driverId: user.driver.id,
         amountCents,
         message: message || null,
         status: "PENDING",
+         advancedBooking: {
+      connect: { id: advancedBookingId },
+    },
+    user: {
+      connect: { id: session.user.id },  
+    },
+    driver: {
+      connect: { id: user.driver.id },   
+    },
       },
     });
 

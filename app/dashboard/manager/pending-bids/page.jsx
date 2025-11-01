@@ -37,9 +37,7 @@ export default async function PendingBidsPage() {
             select: {
               name: true,
               vehicleType: true,
-              vehicleCapacity: true,
               phone: true,
-              email: true,
             },
           },
         },

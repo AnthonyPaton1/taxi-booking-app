@@ -6,6 +6,8 @@ import Link from "next/link";
 import { Car } from "lucide-react";
 import IncidentFeedbackForm from "@/components/forms/incidentFeedbackForm";
 import { FileText, Building } from "lucide-react";
+import RecentBidsSection from "@/components/dashboard/driver/recentBidsSection";
+
 
 export default function DriverDashboardClient({
   user,
@@ -14,6 +16,7 @@ export default function DriverDashboardClient({
   todaysBookings,
   availableInstant,
   availableAdvanced,
+  recentBids
 }) {
   const [isAvailable, setIsAvailable] = useState(true);
   const [showIncidentForm, setShowIncidentForm] = useState(false);
@@ -74,26 +77,32 @@ export default function DriverDashboardClient({
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <QuickActionCard
-            title="Available Instant Bookings"
-            count={availableInstant?.length || 0}
-            href="/dashboard/driver/available-instant"
-            color="blue"
-          />
-          <QuickActionCard
-            title="Advanced Bookings (Bids)"
-            count={availableAdvanced?.length || 0}
-            href="/dashboard/driver/available-advanced"
-            color="green"
-          />
-          <QuickActionCard
-            title="Today's Schedule"
-            count={totalToday}
-            href="/dashboard/driver/schedule"
-            color="purple"
-          />
-        </div>
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+  <QuickActionCard
+    title="Available Instant Bookings"
+    count={availableInstant?.length || 0}
+    href="/dashboard/driver/available-instant"
+    color="blue"
+  />
+  <QuickActionCard
+    title="Advanced Bookings (Bids)"
+    count={availableAdvanced?.length || 0}
+    href="/dashboard/driver/available-advanced"
+    color="green"
+  />
+  <QuickActionCard
+    title="Today's Schedule"
+    count={totalToday}
+    href="/dashboard/driver/schedule"
+    color="purple"
+  />
+  <QuickActionCard
+    title="Weekly Schedule"
+    count={stats?.upcomingJobs || 0}
+    href="/dashboard/driver/weekly-schedule"
+    color="orange"
+  />
+</div>
 
         {/* Today's Jobs Preview */}
         {totalToday > 0 && (
@@ -103,7 +112,7 @@ export default function DriverDashboardClient({
                 Today's Jobs
               </h2>
               <Link
-                href="/dashboard/driver/daily"
+                href="/dashboard/driver/weekly-schedule"
                 className="text-sm text-blue-600 hover:underline"
               >
                 View all
@@ -165,6 +174,8 @@ export default function DriverDashboardClient({
             </Link>
           </div>
         </div>
+        {/* Recent Bids Section (Right) */}
+          <RecentBidsSection bids={recentBids} />
       </div>
       {/* Incident Form Modal */}
             {showIncidentForm && (

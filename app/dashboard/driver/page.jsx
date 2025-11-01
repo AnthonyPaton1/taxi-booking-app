@@ -28,6 +28,22 @@ export default async function DriverDashboardPage() {
       },
     },
   });
+  const recentBids = await prisma.bid.findMany({
+  where: {
+    driverId: user.driver.id,
+  },
+  include: {
+    advancedBooking: {
+      include: {
+        accessibilityProfile: true,
+      },
+    },
+  },
+  orderBy: {
+    createdAt: "desc",
+  },
+  take: 5, // Show last 5 bids
+});
 
   if (!user) {
     redirect("/auth/login");
@@ -59,6 +75,7 @@ export default async function DriverDashboardPage() {
       todaysBookings={todaysBookings.success ? todaysBookings : { instant: [], advanced: [] }}
       availableInstant={availableInstant.success ? availableInstant.bookings : []}
       availableAdvanced={availableAdvanced.success ? availableAdvanced.bookings : []}
+      recentBids={recentBids}
     />
   );
 }

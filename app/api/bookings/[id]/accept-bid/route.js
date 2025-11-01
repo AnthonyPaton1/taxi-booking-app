@@ -94,7 +94,7 @@ export async function POST(request) {
           id: { not: bidId },
         },
         data: {
-          status: "REJECTED",
+          status: "DECLINED",
         },
       });
     });
