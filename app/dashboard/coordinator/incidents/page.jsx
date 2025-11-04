@@ -3,13 +3,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import CoordinatorIncidentsClient from "@/components/dashboard/coordinator/CoordinatorIncidentsClient";
+import CoordinatorIncidentsClient from "@/components/dashboard/business/coordinator/coordinatorIncidentsClient";
 
 export default async function CoordinatorIncidentsPage() {
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {
-    redirect("/auth/login");
+    redirect("/auth/login");x
   }
 
   const user = await prisma.user.findUnique({
