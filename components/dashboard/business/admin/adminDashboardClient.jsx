@@ -108,8 +108,8 @@ export default function AdminDashboardClient({
           />
           <QuickAction
             title="Feedback & Complaints"
-            description="Review user feedback"
-            href="/dashboard/admin/feedback"
+            description="Review Incident forms"
+            href="/dashboard/admin/incidents"
             color="orange"
             icon="💬"
           />

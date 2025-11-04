@@ -1,7 +1,6 @@
-// components/dashboard/coordinator/CoordinatorIncidentsClient.jsx
+// components/dashboard/admin/AdminIncidentsClient.jsx
 "use client";
 
-// Same component as AdminIncidentsClient, just different header link
 import { useState } from "react";
 import Link from "next/link";
 import {
@@ -15,10 +14,11 @@ import {
   ChevronUp,
   Image as ImageIcon,
   CheckCircle,
+  XCircle,
 } from "lucide-react";
 
-export default function CoordinatorIncidentsClient({ incidents }) {
-  const [filter, setFilter] = useState("all");
+export default function AdminIncidentsClient({ incidents }) {
+  const [filter, setFilter] = useState("all"); // all, emergency, followUp, resolved
   const [expandedId, setExpandedId] = useState(null);
 
   const formatDateTime = (date) => {
@@ -45,6 +45,7 @@ export default function CoordinatorIncidentsClient({ incidents }) {
     return colors[type] || colors.Other;
   };
 
+  // Filter incidents
   const filteredIncidents = incidents.filter((incident) => {
     if (filter === "emergency") return incident.emergency;
     if (filter === "followUp") return incident.followUp && !incident.resolved;
@@ -65,7 +66,7 @@ export default function CoordinatorIncidentsClient({ incidents }) {
         {/* Header */}
         <div className="flex items-center gap-4">
           <Link
-            href="/dashboard/coordinator"
+            href="/dashboard/admin"
             className="flex items-center text-gray-600 hover:text-gray-900"
           >
             <ArrowLeft className="w-5 h-5 mr-2" />
@@ -160,7 +161,7 @@ export default function CoordinatorIncidentsClient({ incidents }) {
           </button>
         </div>
 
-        {/* Incidents List - Same as Admin */}
+        {/* Incidents List */}
         {filteredIncidents.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center">
             <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -183,6 +184,7 @@ export default function CoordinatorIncidentsClient({ incidents }) {
                   key={incident.id}
                   className="bg-white rounded-lg shadow-md overflow-hidden"
                 >
+                  {/* Incident Header */}
                   <div
                     className={`p-5 ${
                       incident.emergency
@@ -241,6 +243,7 @@ export default function CoordinatorIncidentsClient({ incidents }) {
                       </button>
                     </div>
 
+                    {/* Quick Info */}
                     <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                       <div className="flex items-center gap-1">
                         <Clock className="w-4 h-4" />
@@ -261,8 +264,10 @@ export default function CoordinatorIncidentsClient({ incidents }) {
                     </div>
                   </div>
 
+                  {/* Expanded Details */}
                   {isExpanded && (
                     <div className="p-5 border-t space-y-4">
+                      {/* Full Description */}
                       <div>
                         <h4 className="font-semibold text-gray-900 mb-2">
                           Full Description
@@ -272,6 +277,7 @@ export default function CoordinatorIncidentsClient({ incidents }) {
                         </p>
                       </div>
 
+                      {/* Actions Taken */}
                       {incident.actionsTaken && (
                         <div>
                           <h4 className="font-semibold text-gray-900 mb-2">
@@ -283,6 +289,7 @@ export default function CoordinatorIncidentsClient({ incidents }) {
                         </div>
                       )}
 
+                      {/* Witnesses */}
                       {incident.evidenceUrl && (
                         <div>
                           <h4 className="font-semibold text-gray-900 mb-2">
@@ -292,6 +299,7 @@ export default function CoordinatorIncidentsClient({ incidents }) {
                         </div>
                       )}
 
+                      {/* Evidence Photo */}
                       {incident.image && (
                         <div>
                           <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
@@ -306,6 +314,7 @@ export default function CoordinatorIncidentsClient({ incidents }) {
                         </div>
                       )}
 
+                      {/* Metadata */}
                       <div className="pt-4 border-t text-sm text-gray-500">
                         <p>
                           Reported on {formatDateTime(incident.createdAt)} by{" "}

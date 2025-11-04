@@ -1,11 +1,11 @@
-// app/dashboard/coordinator/incidents/page.jsx
+// app/dashboard/admin/incidents/page.jsx
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import CoordinatorIncidentsClient from "@/components/dashboard/coordinator/CoordinatorIncidentsClient";
+import AdminIncidentsClient from "@/components/dashboard/business/admin/AdminIncidentsClient";
 
-export default async function CoordinatorIncidentsPage() {
+export default async function AdminIncidentsPage() {
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {
@@ -15,22 +15,18 @@ export default async function CoordinatorIncidentsPage() {
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
     include: {
-      area: true,
+      adminOfBusiness: true,
     },
   });
 
-  if (!user || user.role !== "COORDINATOR" || !user.businessId) {
+  if (!user || user.role !== "ADMIN" || !user.adminOfBusiness) {
     redirect("/dashboard");
   }
 
-  // Get incidents for the coordinator's business (and optionally their area)
+  // Get all incidents for the business
   const incidents = await prisma.incident.findMany({
     where: {
-      businessId: user.businessId,
-      // Optionally filter by area if you want coordinators to only see their area
-      // user: {
-      //   areaId: user.areaId,
-      // },
+      businessId: user.adminOfBusiness.id,
     },
     include: {
       user: {
@@ -42,8 +38,8 @@ export default async function CoordinatorIncidentsPage() {
       },
       house: {
         select: {
-          name: true,
-          address1: true,
+          label: true,
+          line1: true,
         },
       },
     },
@@ -52,5 +48,5 @@ export default async function CoordinatorIncidentsPage() {
     },
   });
 
-  return <CoordinatorIncidentsClient incidents={incidents} />;
+  return <AdminIncidentsClient incidents={incidents} />;
 }
