@@ -9,7 +9,7 @@ function Footer() {
       className="bg-blue-700 text-white py-10 mt-auto border-t border-blue-600 w-full"
       aria-label="Footer"
     >
-      <div className="w-full px-4">  {/* ✅ Changed from container mx-auto to w-full */}
+      <div className="w-full px-4">  
         <div className="text-center mb-10">
           <h2 className="text-3xl font-bold text-white mb-4">More from NEAT</h2>
           <p className="text-blue-100 mb-8 max-w-2xl mx-auto">

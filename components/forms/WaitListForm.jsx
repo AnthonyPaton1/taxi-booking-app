@@ -33,12 +33,21 @@ const WaitlistForm = () => {
       return;
     }
 
-    // ✅ Map the selected business type to the correct user role
+    // Map the selected business type to the correct user role
     const mappedRole = formData.type === "TAXI" ? "DRIVER" : "ADMIN";
 
-    const payload = { ...formData, role: mappedRole };
+    const payload = { 
+    name: formData.adminName,          
+    email: formData.contactEmail,     
+    phone: formData.contactNumber,      
+    company: formData.businessName,     
+    type: formData.type,
+    role: mappedRole 
+  };
 
-    const result = await registerAndInviteUser(payload); // Changed 'res' to 'result'
+  
+
+    const result = await registerAndInviteUser(payload); 
 
     if (result.success) {
       toast.success(result.message || "User invited successfully!");

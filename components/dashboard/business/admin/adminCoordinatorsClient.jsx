@@ -85,7 +85,7 @@ export default function AdminCoordinatorsClient({ coordinators, areas }) {
             </div>
           </div>
           <Link
-            href="/dashboard/admin/coordinators/add"
+            href="/dashboard/admin/coordinator/add"
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />

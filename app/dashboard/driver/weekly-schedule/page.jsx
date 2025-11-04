@@ -95,8 +95,24 @@ export default async function DriverWeeklySchedulePage() {
 
   // Combine and organize by day
   const allBookings = [
-    ...instantBookings.map((b) => ({ ...b, type: "instant" })),
-    ...advancedBookings.map((b) => ({ ...b, type: "advanced" })),
+    ...instantBookings.map((b) => ({ 
+      ...b, 
+      type: "instant",
+      //  Convert Date objects to ISO strings for serialization
+      pickupTime: b.pickupTime.toISOString(),
+      returnTime: b.returnTime ? b.returnTime.toISOString() : null,
+      createdAt: b.createdAt.toISOString(),
+      updatedAt: b.updatedAt.toISOString(),
+    })),
+    ...advancedBookings.map((b) => ({ 
+      ...b, 
+      type: "advanced",
+      //  Convert Date objects to ISO strings for serialization
+      pickupTime: b.pickupTime.toISOString(),
+      returnTime: b.returnTime ? b.returnTime.toISOString() : null,
+      createdAt: b.createdAt.toISOString(),
+      updatedAt: b.updatedAt.toISOString(),
+    })),
   ].sort((a, b) => new Date(a.pickupTime) - new Date(b.pickupTime));
 
   // Group by day

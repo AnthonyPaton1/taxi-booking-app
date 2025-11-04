@@ -7,7 +7,7 @@ import { sendEmail } from "@/lib/email";
 
 export async function registerAndInviteUser(formData) {
   try {
-    const { name, email, role, phone } = formData;
+    const { name, email, role, phone, company, type } = formData;
 
     // Validate required fields
     if (!email || !name || !role) {
@@ -27,7 +27,7 @@ export async function registerAndInviteUser(formData) {
       };
     }
 
-    // Create user immediately
+    // Create user
     const user = await prisma.user.create({
       data: {
         name,
@@ -37,6 +37,26 @@ export async function registerAndInviteUser(formData) {
         isApproved: true,
       },
     });
+
+    // ✅ If company name provided, create the business and link it
+    if (company && type) {
+      const business = await prisma.business.create({
+        data: {
+          name: company,
+          type: type,
+          email: email,
+          phone: phone,
+          adminUserId: user.id,
+          approved: false, // Needs approval
+        },
+      });
+
+      // Link user to business
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { businessId: business.id },
+      });
+    }
 
     // Create reset token
     const token = crypto.randomBytes(32).toString("hex");
@@ -58,7 +78,7 @@ export async function registerAndInviteUser(formData) {
       subject: "Welcome to NEAT - Set up your account password",
       html: `
         <h2>Welcome to NEAT, ${name}!</h2>
-        <p>Your account has been created successfully. Click the button below to set your password and get started:</p>
+        <p>Your account has been created successfully${company ? ` for <strong>${company}</strong>` : ''}. Click the button below to set your password and get started:</p>
         <p style="margin: 30px 0;">
           <a href="${resetLink}" 
              style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">

@@ -41,6 +41,8 @@ export default async function AdminDashboardPage() {
             prefillData={{
               name: user.name,
               contactEmail: user.email,
+              businessName: user.business?.name,
+              contactNumber: user.business?.phone,
             }}
           />
         </div>

@@ -173,7 +173,7 @@ export default function WeeklyScheduleClient({
               <p className="text-gray-500 text-sm mb-4">
                 Browse available bookings to start earning
               </p>
-              <Link href="/dashboard/driver/advanced-bookings">
+              <Link href="/dashboard/driver/available-advanced">
                 <button className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
                   View Available Jobs
                 </button>

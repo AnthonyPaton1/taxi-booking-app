@@ -42,7 +42,7 @@ export async function POST(req) {
       business = await prisma.business.update({
         where: { id: existingBusiness.id },
         data: {
-          name: validated.name,
+          name: validated.businessName,
           type: validated.type,
           address1: validated.address1,
           city: validated.city,
@@ -55,7 +55,7 @@ export async function POST(req) {
     } else {
       business = await prisma.business.create({
         data: {
-          name: validated.name,
+          name: validated.businessName,
           type: validated.type,
           address1: validated.address1,
           city: validated.city,
@@ -126,7 +126,22 @@ export async function POST(req) {
       });
     }
 
-    // ✅ If no coordinators, create a default area for the business
+    if (validated.adminName) {
+  await prisma.user.update({
+    where: { id: adminUser.id },
+    data: { 
+      name: validated.adminName,
+      businessId: business.id 
+    },
+  });
+} else {
+  await prisma.user.update({
+    where: { id: adminUser.id },
+    data: { businessId: business.id },
+  });
+}
+
+    // If no coordinators, create a default area for the business
     if (coordinators.length === 0) {
       await prisma.area.upsert({
         where: { name: `${validated.businessName} - Main` },
@@ -134,6 +149,9 @@ export async function POST(req) {
         create: { name: `${validated.businessName} - Main` },
       });
     }
+     if (coordinators.length > 1) {
+    await new Promise(resolve => setTimeout(resolve, 3000));
+  }
 
     await prisma.user.update({
       where: { id: adminUser.id },

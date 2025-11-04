@@ -1,35 +1,29 @@
 // components/forms/formFields.js
 const formFields = [
   {
-    id: "name",
-    label: "Full Name",
+    id: "adminName",
+    label: "Your Full Name",
+    type: "text",
+    required: false, 
+  },
+  {
+    id: "businessName",
+    label: "Business Name",
     type: "text",
     required: true,
   },
   {
-    id: "company",
-    label: "Company Name",
-    type: "text",
-    required: true,
-  },
-  {
-    id: "email",
-    label: "Email Address",
+    id: "contactEmail",
+    label: "Business Email Address",
     type: "email",
     required: true,
   },
   {
-    id: "phone",
-    label: "Contact Number",
+    id: "contactNumber",
+    label: "Business Contact Number",
     type: "tel",
     required: true,
   },
-  // {
-  //   id: "message",
-  //   label: "Message",
-  //   type: "textarea",
-  //   required: true,
-  // },
 ];
 
 export default formFields;

@@ -66,7 +66,7 @@ export default function BusinessOnboardingForm({ prefillData = {} }) {
     setFormData((prev) => ({ ...prev, [id]: value }));
   };
 
-  // ✅ Centralized submission logic
+  //  Centralized submission logic
   const submitOnboarding = async (coordinatorsToSubmit) => {
     setSubmitting(true);
     try {
@@ -204,13 +204,60 @@ export default function BusinessOnboardingForm({ prefillData = {} }) {
           onChange={handleChange}
         />
 
-        <div>
-  <label>Organization Type *</label>
-  <select name="type" required>
-    <option value="">Select...</option>
-    <option value="CARE">Care Provider (Supported Living, Healthcare, etc.)</option>
-    <option value="TAXI">Transport Company (Taxi, Accessible Transport, etc.)</option>
-  </select>
+<div className="mb-8 mt-16">
+  <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg p-4 -mx-6 -mt-6 mb-6">
+    <h3 className="text-xl font-bold flex items-center gap-2">
+      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+        <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+      </svg>
+      What type of organization are you? <span className="text-yellow-300">*</span>
+    </h3>
+    <p className="text-blue-100 text-sm mt-1">
+      This helps us customize your experience
+    </p>
+  </div>
+  
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <label className="group cursor-pointer">
+      <input
+        type="radio"
+        name="type"
+        value="CARE"
+        required
+        className="peer hidden"
+      />
+      <div className="border-2 border-gray-200 rounded-lg p-6 peer-checked:border-blue-600 peer-checked:bg-blue-50 peer-checked:shadow-lg hover:border-blue-300 hover:shadow-md transition-all">
+        <div className="text-5xl mb-3 group-hover:scale-110 transition-transform">🏥</div>
+        <h4 className="text-lg font-bold text-gray-900 mb-2">Care Provider</h4>
+        <p className="text-sm text-gray-600">
+          Supported living, healthcare facilities, residential care homes, and care organizations
+        </p>
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <span className="text-xs font-semibold text-blue-600 uppercase">Best for care services</span>
+        </div>
+      </div>
+    </label>
+    
+    <label className="group cursor-pointer">
+      <input
+        type="radio"
+        name="type"
+        value="TAXI"
+        required
+        className="peer hidden"
+      />
+      <div className="border-2 border-gray-200 rounded-lg p-6 peer-checked:border-blue-600 peer-checked:bg-blue-50 peer-checked:shadow-lg hover:border-blue-300 hover:shadow-md transition-all">
+        <div className="text-5xl mb-3 group-hover:scale-110 transition-transform">🚖</div>
+        <h4 className="text-lg font-bold text-gray-900 mb-2">Transport Company</h4>
+        <p className="text-sm text-gray-600">
+          Taxi services, accessible transport providers, private hire vehicles, and transport businesses
+        </p>
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <span className="text-xs font-semibold text-blue-600 uppercase">Best for transport</span>
+        </div>
+      </div>
+    </label>
+  </div>
 </div>
 
         <Input

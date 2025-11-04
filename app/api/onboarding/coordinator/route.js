@@ -1,3 +1,4 @@
+// app/api/onboarding/coordinator/route.js
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
@@ -16,9 +17,16 @@ export async function POST(req) {
     });
 
     const { companyId, managers } = validated;
+    
+    console.log(`📋 Processing ${managers.length} managers...`);
+    
+    // Track email results
+    const emailResults = [];
 
     for (const manager of managers) {
-      //  CREATE OR GET THE AREA RECORD
+      console.log(`\n🔄 Processing manager: ${manager.email}`);
+      
+      // CREATE OR GET THE AREA RECORD
       let areaRecord = null;
       if (manager.area && manager.area.trim()) {
         areaRecord = await prisma.area.upsert({
@@ -26,16 +34,16 @@ export async function POST(req) {
           update: {},
           create: { name: manager.area.trim() },
         });
+        console.log(`  ✅ Area created/found: ${manager.area}`);
       }
 
-      await prisma.user.upsert({
+      const user = await prisma.user.upsert({
         where: { email: manager.email },
         update: {
           name: manager.name,
           phone: manager.phone,
           role: "MANAGER",
           businessId: companyId,
-          //  Link manager to their area
           areaId: areaRecord?.id,
         },
         create: {
@@ -44,33 +52,62 @@ export async function POST(req) {
           phone: manager.phone,
           role: "MANAGER",
           businessId: companyId,
-          //  Link manager to their area
           areaId: areaRecord?.id,
         },
       });
+      console.log(`  ✅ User created/updated: ${user.id}`);
 
-      await inviteUserToLogin({
+      // Send invitation email
+      console.log(`  📧 Sending email to: ${manager.email}`);
+      const emailResult = await inviteUserToLogin({
         email: manager.email,
         name: manager.name,
         role: "MANAGER",
       });
+      
+      emailResults.push({
+        email: manager.email,
+        ...emailResult
+      });
+      
+      if (emailResult.success) {
+        console.log(`  ✅ Email sent successfully to ${manager.email}`);
+      } else {
+        console.error(`  ❌ Email failed for ${manager.email}:`, emailResult.error);
+      }
+      
+      // Add small delay between emails (optional, helps with rate limiting)
+      if (managers.length > 1) {
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      }
+
+      
     }
     
     await prisma.user.update({
-      where: {id: coordinatorUser.id},
-      data: {coordinatorOnboarded: true},
+      where: { id: coordinatorUser.id },
+      data: { coordinatorOnboarded: true },
+    });
+    
+    console.log('\n📊 Email Results Summary:');
+    emailResults.forEach(result => {
+      console.log(`  ${result.success ? '✅' : '❌'} ${result.email}: ${result.success ? 'Sent' : result.error}`);
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ 
+      success: true,
+      emailResults // Return email results to frontend for debugging
+    });
+    
   } catch (error) {
-    console.error("Manager onboarding error:", error);
+    console.error("❌ Manager onboarding error:", error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors }, { status: 400 });
     }
 
     return NextResponse.json(
-      { error: "Failed to submit manager onboarding" },
+      { error: "Failed to submit manager onboarding", details: error.message },
       { status: 500 }
     );
   }

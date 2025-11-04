@@ -4,7 +4,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { PostcodeInput } from "@/components/shared/PostcodeInput";
 import { useSearchParams } from "next/navigation";
 import { createManagerBooking } from "@/app/actions/bookings/createManagerBooking";
@@ -12,6 +11,7 @@ import RideAccessibilityOptions from "../RideAccessibilityOptions";
 import StatusMessage from "@/components/shared/statusMessage";
 import { ArrowLeft, Timer } from "lucide-react";
 import { toast } from "sonner";
+import BlockBookingSection from "@/components/dashboard/business/manager/blockBookingsSection";
 
 const defaultFormData = {
   houseId: "",
@@ -60,6 +60,9 @@ export default function ManagerBookRideForm({ houses }) {
   const [isRepeating, setIsRepeating] = useState(false);
   const errorRef = useRef(null);
   const router = useRouter();
+   const [isBlockBooking, setIsBlockBooking] = useState(false);
+  const [blockRides, setBlockRides] = useState([]);
+  const [blockNotes, setBlockNotes] = useState("");
 
   // Filter residents based on selected house
  useEffect(() => {
@@ -154,17 +157,110 @@ export default function ManagerBookRideForm({ houses }) {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setStatus("loading");
-    setSubmitting(true);
+  e.preventDefault();
+  setStatus("loading");
+  setSubmitting(true);
 
-    if (!formData.pickupDate || !formData.pickupTime) {
-      setStatus("❌ Please select pickup date and time");
-      toast.error("Please select pickup date and time");
-      errorRef.current?.focus();
+  if (!formData.pickupDate || !formData.pickupTime) {
+    setStatus("❌ Please select pickup date and time");
+    toast.error("Please select pickup date and time");
+    errorRef.current?.focus();
+    setSubmitting(false);
+    return;
+  }
+  
+  if (isBlockBooking && blockRides.length === 0) {
+    setStatus("❌ Please select at least one date for the block booking");
+    toast.error("Please select at least one date for the block booking");
+    setSubmitting(false);
+    return;
+  }
+
+  //  Combine pickup date and time into DateTime
+  const pickupDateTime = new Date(`${formData.pickupDate}T${formData.pickupTime}:00`);
+  
+  // Handle return time if round trip
+  let returnDateTime = null;
+  if (formData.roundTrip && formData.returnTime) {
+    returnDateTime = new Date(`${formData.pickupDate}T${formData.returnTime}:00`);
+  }
+
+  //  Build booking data from the ACTUAL form state, not defaults
+  const bookingData = {
+    // Location data
+    pickupLocation: formData.pickupLocation,
+    pickupPostcode: formData.pickupPostcode,
+    dropoffLocation: formData.dropoffLocation,
+    dropoffPostcode: formData.dropoffPostcode,
+    
+    // DateTime data
+    pickupTime: pickupDateTime.toISOString(),
+    returnTime: returnDateTime ? returnDateTime.toISOString() : null,
+    roundTrip: formData.roundTrip,
+    
+    // Passenger data
+    initials: formData.residentIds, // or however you're storing resident initials
+    passengerCount: parseInt(formData.passengerCount),
+    wheelchairUsers: parseInt(formData.wheelchairUsers),
+    
+    // Accessibility requirements
+    wheelchairAccess: formData.wheelchairAccess,
+    femaleDriverOnly: formData.femaleDriverOnly,
+    carerPresent: formData.carerPresent,
+    assistanceAnimal: formData.assistanceAnimal,
+    nonWAVvehicle: formData.nonWAVvehicle,
+    quietEnvironment: formData.quietEnvironment,
+    assistanceRequired: formData.assistanceRequired,
+    noConversation: formData.noConversation,
+    visualSchedule: formData.visualSchedule,
+    familiarDriverOnly: formData.familiarDriverOnly,
+    escortRequired: formData.escortRequired,
+    signLanguageRequired: formData.signLanguageRequired,
+    textOnlyCommunication: formData.textOnlyCommunication,
+    medicationOnBoard: formData.medicationOnBoard,
+    
+    // Notes
+    additionalNeeds: formData.additionalNeeds || null,
+    managerNotes: formData.managerNotes || null,
+    
+    // 🆕 Block booking data
+    isBlockBooking: isBlockBooking,
+    blockRides: isBlockBooking ? blockRides : null,
+    totalRidesInBlock: isBlockBooking ? blockRides.length : 1,
+    blockNotes: isBlockBooking ? blockNotes : null,
+  };
+
+  try {
+    const res = await fetch("/api/bookings/advanced/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(bookingData), // ✅ Now sending actual form data
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      setStatus("✅ " + data.message);
+      toast.success(data.message);
+      
+      // Redirect after short delay
+      setTimeout(() => {
+        router.push("/dashboard/manager/bookings");
+      }, 1500);
+    } else {
+      setStatus("❌ Error: " + data.error);
+      toast.error(data.error);
       setSubmitting(false);
-      return;
     }
+  } catch (error) {
+    console.error("Error creating booking:", error);
+    setStatus("❌ Something went wrong");
+    toast.error("Something went wrong creating the booking");
+    setSubmitting(false);
+  }
+  
+  
+
 
     // Validation
     const passengerCount = parseInt(formData.passengerCount, 10) || 0;
@@ -187,7 +283,6 @@ export default function ManagerBookRideForm({ houses }) {
 }
 
     // Check if booking is at least 48 hours in advance
-    const pickupDateTime = new Date(`${formData.pickupDate}T${formData.pickupTime}`);
     const now = new Date();
     const hoursDifference = (pickupDateTime - now) / (1000 * 60 * 60);
 
@@ -662,15 +757,32 @@ export default function ManagerBookRideForm({ houses }) {
               placeholder="Internal notes for your reference..."
             />
           </div>
+          
+    
+  
+                
+                    <BlockBookingSection
+                        isBlockBooking={isBlockBooking}
+                        setIsBlockBooking={setIsBlockBooking}
+                        blockRides={blockRides}
+                        setBlockRides={setBlockRides}
+                        blockNotes={blockNotes}
+                        setBlockNotes={setBlockNotes}
+                        roundTrip={formData.roundTrip}
+                      />
+                  
+                  <button
+                        type="submit"
+                        className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700"
+                      >
+                        {isBlockBooking 
+                          ? `Create Block Booking (${blockRides.length} rides)`
+                          : "Create Advanced Booking"
+                        }
+                      </button>
 
-          {/* Submit Button */}
-          <Button
-            type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg font-medium"
-            disabled={submitting}
-          >
-            {submitting ? "Creating Booking..." : "Create Advanced Booking"}
-          </Button>
+
+          
         </form>
       </div>
     </div>

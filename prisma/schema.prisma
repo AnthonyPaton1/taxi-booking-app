@@ -469,6 +469,11 @@ model AdvancedBooking {
    dropoffLatitude  Float?  
   dropoffLongitude Float? 
   initials        String[]
+  passengerCount    Int
+  isBlockBooking      Boolean  @default(false)
+  blockRides          Json?
+  totalRidesInBlock   Int      @default(1)
+  blockNotes          String?
 
   // Accessibility (now via relation)
   accessibilityProfileId String               @unique
@@ -485,6 +490,8 @@ model AdvancedBooking {
   feedback      TripFeedback[]
   invoices      Invoice[]
   notifications Notification[]
+
+  
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
