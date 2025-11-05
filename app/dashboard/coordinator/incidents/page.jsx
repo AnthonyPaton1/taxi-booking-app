@@ -42,8 +42,8 @@ export default async function CoordinatorIncidentsPage() {
       },
       house: {
         select: {
-          name: true,
-          address1: true,
+          label: true,
+          line1: true,
         },
       },
     },

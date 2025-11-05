@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Building,
@@ -9,6 +10,7 @@ import {
   MapPin,
   Calendar,
   MessageSquare,
+  Database
 } from "lucide-react";
 
 export default function AdminDashboardClient({
@@ -18,24 +20,38 @@ export default function AdminDashboardClient({
   coordinators,
   stats,
 }) {
+  const router = useRouter()
+
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Admin Dashboard
-              </h1>
-              <p className="text-gray-600 mt-1">
-                Welcome, {user.name} • {business.name}
-              </p>
-              <ClientDate />
-            </div>
-            <Building className="w-12 h-12 text-blue-600" />
-          </div>
+  <div className="max-w-7xl mx-auto p-6 space-y-6">
+    {/* Header */}
+    <div className="bg-white rounded-lg shadow-sm p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Admin Dashboard
+          </h1>
+          <p className="text-gray-600 mt-1">
+            Welcome, {user.name} • {business.name}
+          </p>
+          <ClientDate />
         </div>
+        
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => router.push('/dashboard/admin/export')}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm"
+          >
+            <Database className="w-5 h-5" />
+            <span className="hidden sm:inline">Data Export</span>
+          </button>
+          
+          <Building className="w-12 h-12 text-blue-600" />
+        </div>
+      </div>
+    </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">

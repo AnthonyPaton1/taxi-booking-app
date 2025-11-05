@@ -13,7 +13,7 @@ export async function POST(req) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { businessId, name, email, phone, houseIds, area } = await req.json();
+    const { businessId, name, email, phone, houseIds } = await req.json();
 
     // Validate required fields
     if (!name || !email) {
@@ -35,17 +35,14 @@ export async function POST(req) {
       );
     }
 
-    // Get or create area
-    let areaRecord = null;
-    if (area) {
-      areaRecord = await prisma.area.upsert({
-        where: { name: area.trim() },
-        update: {},
-        create: { name: area.trim() },
-      });
-    }
+    // ✅ Get the coordinator's area (this is the branch/office)
+    const coordinatorUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { areaId: true },
+    });
 
     // Create the manager user
+    // ✅ Manager automatically inherits coordinator's area (branch)
     const user = await prisma.user.create({
       data: {
         email,
@@ -53,7 +50,7 @@ export async function POST(req) {
         phone: phone || null,
         role: "MANAGER",
         businessId,
-        areaId: areaRecord?.id,
+        areaId: coordinatorUser?.areaId, // ✅ Inherit coordinator's branch/area
       },
     });
 
@@ -99,3 +96,5 @@ export async function POST(req) {
     );
   }
 }
+
+//http://localhost:3000/dashboard/admin/debug-relationships

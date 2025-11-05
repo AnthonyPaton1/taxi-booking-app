@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import {useRouter} from "next/navigation";
 import Link from "next/link";
 import IncidentFeedbackForm from "@/components/forms/incidentFeedbackForm";
 import { FileText, Building } from "lucide-react";
@@ -16,32 +17,45 @@ export default  function ManagerDashboardClient({
   houseId
 }) {
   const [showIncidentForm, setShowIncidentForm] = useState(false);
+  const router = useRouter();
  
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Welcome, {user.name}
-              </h1>
-              <ClientDate />
-            </div>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setShowIncidentForm(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition shadow-sm"
-              >
-                <FileText className="w-5 h-5" />
-                <span className="hidden sm:inline">Incident & Feedback</span>
-              </button>
-              <Building className="w-12 h-12 text-blue-600" />
-            </div>
-          </div>
-        </div>
+       <div className="bg-white rounded-lg shadow-sm p-6">
+  <div className="flex items-center justify-between">
+    <div>
+      <h1 className="text-2xl font-bold text-gray-900">
+        Welcome, {user.name}
+      </h1>
+      <ClientDate />
+    </div>
+    
+    <div className="flex items-center gap-4">
+      <div className="flex gap-2">
+        <button
+          onClick={() => router.push('/dashboard/manager/invoices/monthly')}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm"
+        >
+          <FileText className="w-5 h-5" />
+          <span className="hidden sm:inline">Monthly Invoices</span>
+        </button>
+        
+        <button
+          onClick={() => setShowIncidentForm(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition shadow-sm"
+        >
+          <FileText className="w-5 h-5" />
+          <span className="hidden sm:inline">Incident & Feedback</span>
+        </button>
+      </div>
+      
+      <Building className="w-12 h-12 text-blue-600" />
+    </div>
+  </div>
+</div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

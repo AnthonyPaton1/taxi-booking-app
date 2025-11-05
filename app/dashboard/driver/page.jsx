@@ -28,22 +28,6 @@ export default async function DriverDashboardPage() {
       },
     },
   });
-  const recentBids = await prisma.bid.findMany({
-  where: {
-    driverId: user.driver.id,
-  },
-  include: {
-    advancedBooking: {
-      include: {
-        accessibilityProfile: true,
-      },
-    },
-  },
-  orderBy: {
-    createdAt: "desc",
-  },
-  take: 5, // Show last 5 bids
-});
 
   if (!user) {
     redirect("/auth/login");
@@ -55,7 +39,24 @@ export default async function DriverDashboardPage() {
   if (!hasOnboarded) {
     return <DriverOnboardingForm />;
   }
-  
+
+  // ✅ Only fetch bids AFTER confirming driver exists
+  const recentBids = await prisma.bid.findMany({
+    where: {
+      driverId: user.driver.id,
+    },
+    include: {
+      advancedBooking: {
+        include: {
+          accessibilityProfile: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 5, // Show last 5 bids
+  });
 
   // Fetch dashboard data
   const [statsResult, todaysBookings, availableInstant, availableAdvanced] = await Promise.all([
@@ -64,8 +65,6 @@ export default async function DriverDashboardPage() {
     getAvailableInstantBookings(),
     getAvailableAdvancedBookings(),
   ]);
-
-
 
   return (
     <DriverDashboardClient
