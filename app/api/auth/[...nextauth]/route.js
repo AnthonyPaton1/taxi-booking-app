@@ -10,7 +10,7 @@ import EmailProvider from "next-auth/providers/email";
 function getDashboardByRole(role) {
   switch (role) {
     case "SUPER_ADMIN":
-      return "/dashboard/super-admin/mainPage";
+      return "/dashboard/super-admin";
     case "ADMIN":
       return "/dashboard/admin";
     case "MANAGER":

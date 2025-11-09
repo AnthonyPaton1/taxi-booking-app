@@ -102,15 +102,15 @@ export default function AdminDashboardClient({
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <QuickAction
-            title="Manage Areas"
-            description="View and edit areas"
+            title="Current Areas"
+            description="See all geographic areas and assigned coordinators"
             href="/dashboard/admin/areas"
             color="blue"
             icon="🗺️"
           />
           <QuickAction
             title="Manage Coordinators"
-            description="View, add, remove coordinators"
+            description="Create areas and assign coordinators to oversee managers and houses"
             href="/dashboard/admin/coordinator"
             color="purple"
             icon="👥"

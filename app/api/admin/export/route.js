@@ -12,149 +12,128 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user is admin
-    const admin = await prisma.admin.findUnique({
-      where: { userId: session.user.id }
+    // Get admin user with business relationship
+    const adminUser = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      include: {
+        business: true, // Get the business this admin belongs to
+      }
     });
 
-    if (!admin) {
+    if (!adminUser || adminUser.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
+    if (!adminUser.businessId) {
+      return NextResponse.json({ 
+        error: 'No business associated with this admin account' 
+      }, { status: 400 });
+    }
+
+    const businessId = adminUser.businessId;
     const { format = 'json' } = await request.json();
 
-    // Fetch all data - comprehensive export for GDPR compliance
+    // Fetch ONLY data for this business
     const [
-      users,
-      admins,
-      coordinators,
+      business,
+      houses,
       managers,
-      drivers,
-      businesses,
+      residents,
       advancedBookings,
       instantBookings,
       bids,
-      areas,
-      feedbackReports
+      incidents
     ] = await Promise.all([
-      // Users (sanitized - no passwords)
+      // Business info
+      prisma.business.findUnique({
+        where: { id: businessId },
+        include: {
+          adminUser: {
+            select: {
+              email: true,
+              name: true,
+              phone: true,
+              createdAt: true
+            }
+          }
+        }
+      }),
+      
+      // Houses belonging to this business
+      prisma.house.findMany({
+        where: { 
+          businessId: businessId,
+          deletedAt: null
+        },
+        include: {
+          area: {
+            select: {
+              name: true
+            }
+          },
+          manager: {
+            select: {
+              name: true,
+              email: true,
+              phone: true
+            }
+          },
+          residents: {
+            select: {
+              id: true,
+              name: true,
+              createdAt: true
+            }
+          }
+        }
+      }),
+      
+      // Managers in this business
       prisma.user.findMany({
+        where: {
+          businessId: businessId,
+          role: 'MANAGER',
+          deletedAt: null
+        },
         select: {
           id: true,
           email: true,
           name: true,
-          role: true,
+          phone: true,
           createdAt: true,
           emailVerified: true
         }
       }),
       
-      // Admins
-      prisma.admin.findMany({
+      // Residents in houses owned by this business
+      prisma.resident.findMany({
+        where: {
+          house: {
+            businessId: businessId
+          }
+        },
         include: {
-          user: {
+          house: {
             select: {
-              email: true,
-              name: true,
-              createdAt: true
+              label: true,
+              line1: true,
+              city: true,
+              postcode: true
             }
           }
         }
       }),
       
-      // Coordinators
-      prisma.coordinator.findMany({
-        include: {
-          user: {
-            select: {
-              email: true,
-              name: true,
-              createdAt: true
-            }
-          },
-          area: true,
-          businesses: {
-            include: {
-              managers: true
-            }
-          }
-        }
-      }),
-      
-      // Managers
-      prisma.manager.findMany({
-        include: {
-          user: {
-            select: {
-              email: true,
-              name: true,
-              createdAt: true
-            }
-          },
-          business: true,
-          coordinator: {
-            include: {
-              area: true
-            }
-          }
-        }
-      }),
-      
-      // Drivers
-      prisma.driver.findMany({
-        include: {
-          user: {
-            select: {
-              email: true,
-              name: true,
-              createdAt: true
-            }
-          },
-          accessibilityProfile: true,
-          vehicle: true
-        }
-      }),
-      
-      // Businesses
-      prisma.business.findMany({
-        include: {
-          coordinator: {
-            include: {
-              area: true,
-              user: {
-                select: {
-                  email: true,
-                  name: true
-                }
-              }
-            }
-          },
-          managers: {
-            include: {
-              user: {
-                select: {
-                  email: true,
-                  name: true
-                }
-              }
-            }
-          }
-        }
-      }),
-      
-      // Advanced Bookings
+      // Advanced Bookings for this business
       prisma.advancedBooking.findMany({
+        where: {
+          businessId: businessId
+        },
         include: {
-          business: {
+          createdBy: {
             select: {
               name: true,
-              id: true
-            }
-          },
-          creator: {
-            select: {
-              email: true,
-              name: true
+              email: true
             }
           },
           bids: {
@@ -164,14 +143,15 @@ export async function POST(request) {
                   user: {
                     select: {
                       name: true,
-                      email: true
+                      email: true,
+                      phone: true
                     }
                   }
                 }
               }
             }
           },
-          winningBid: {
+          acceptedBid: {
             include: {
               driver: {
                 include: {
@@ -188,22 +168,19 @@ export async function POST(request) {
         }
       }),
 
-      // Instant Bookings
+      // Instant Bookings for this business
       prisma.instantBooking.findMany({
+        where: {
+          businessId: businessId
+        },
         include: {
-          business: {
+          createdBy: {
             select: {
               name: true,
-              id: true
+              email: true
             }
           },
-          creator: {
-            select: {
-              email: true,
-              name: true
-            }
-          },
-          acceptedDriver: {
+          driver: {
             include: {
               user: {
                 select: {
@@ -216,8 +193,13 @@ export async function POST(request) {
         }
       }),
       
-      // Bids
+      // Bids for this business's bookings
       prisma.bid.findMany({
+        where: {
+          advancedBooking: {
+            businessId: businessId
+          }
+        },
         include: {
           driver: {
             include: {
@@ -240,65 +222,44 @@ export async function POST(request) {
         }
       }),
       
-      // Areas
-      prisma.area.findMany({
+      // Incidents for this business
+      prisma.incident.findMany({
+        where: {
+          businessId: businessId
+        },
         include: {
-          coordinators: {
-            include: {
-              user: {
-                select: {
-                  name: true,
-                  email: true
-                }
-              }
-            }
-          }
-        }
-      }),
-      
-      // Feedback/Incident Reports
-      prisma.feedbackReport.findMany({
-        include: {
-          reporter: {
+          user: {
             select: {
               name: true,
               email: true,
               role: true
             }
           },
-          advancedBooking: {
+          house: {
             select: {
-              pickupLocation: true,
-              dropoffLocation: true,
-              pickupTime: true
-            }
-          },
-          instantBooking: {
-            select: {
-              pickupLocation: true,
-              dropoffLocation: true,
-              pickupTime: true
+              label: true,
+              line1: true,
+              city: true,
+              postcode: true
             }
           }
         }
       })
     ]);
 
-    // Calculate statistics
+    // Calculate statistics for THIS BUSINESS ONLY
     const stats = {
       exportDate: new Date().toISOString(),
       exportedBy: session.user.email,
-      totalUsers: users.length,
-      totalAdmins: admins.length,
-      totalCoordinators: coordinators.length,
+      businessName: business?.name,
+      businessId: businessId,
+      totalHouses: houses.length,
       totalManagers: managers.length,
-      totalDrivers: drivers.length,
-      totalBusinesses: businesses.length,
+      totalResidents: residents.length,
       totalAdvancedBookings: advancedBookings.length,
       totalInstantBookings: instantBookings.length,
       totalBids: bids.length,
-      totalAreas: areas.length,
-      totalIncidentReports: feedbackReports.length,
+      totalIncidents: incidents.length,
       advancedBookingsByStatus: {
         pending: advancedBookings.filter(r => r.status === 'PENDING').length,
         accepted: advancedBookings.filter(r => r.status === 'ACCEPTED').length,
@@ -312,11 +273,6 @@ export async function POST(request) {
         in_progress: instantBookings.filter(r => r.status === 'IN_PROGRESS').length,
         completed: instantBookings.filter(r => r.status === 'COMPLETED').length,
         cancelled: instantBookings.filter(r => r.status === 'CANCELLED').length
-      },
-      driverApprovalStatus: {
-        pending: drivers.filter(d => d.approvalStatus === 'PENDING').length,
-        approved: drivers.filter(d => d.approvalStatus === 'APPROVED').length,
-        rejected: drivers.filter(d => d.approvalStatus === 'REJECTED').length
       }
     };
 
@@ -324,23 +280,23 @@ export async function POST(request) {
       metadata: {
         exportDate: new Date().toISOString(),
         exportedBy: session.user.email,
+        businessName: business?.name,
+        businessId: businessId,
         format,
         dataRetentionPolicy: '7 years for financial records',
-        gdprCompliance: 'Full business data export as per GDPR Article 15 & 20'
+        gdprCompliance: 'Business data export as per GDPR Article 15 & 20',
+        scope: 'This export contains data only for your business'
       },
       statistics: stats,
       data: {
-        users,
-        admins,
-        coordinators,
+        business,
+        houses,
         managers,
-        drivers,
-        businesses,
+        residents,
         advancedBookings,
         instantBookings,
         bids,
-        areas,
-        incidentReports: feedbackReports
+        incidents
       }
     };
 
@@ -352,7 +308,7 @@ export async function POST(request) {
       return new NextResponse(buffer, {
         headers: {
           'Content-Type': 'application/json',
-          'Content-Disposition': `attachment; filename="neat_data_export_${new Date().toISOString().split('T')[0]}.json"`,
+          'Content-Disposition': `attachment; filename="${business?.name.replace(/\s+/g, '_')}_data_export_${new Date().toISOString().split('T')[0]}.json"`,
           'Content-Length': buffer.length.toString()
         }
       });
@@ -371,21 +327,18 @@ export async function POST(request) {
       });
 
       // Add metadata
-      archive.append(JSON.stringify(exportData.metadata, null, 2), { name: 'metadata.json' });
-      archive.append(JSON.stringify(exportData.statistics, null, 2), { name: 'statistics.json' });
+      archive.append(JSON.stringify(exportData.metadata, null, 2), { name: 'metadata.txt' });
+      archive.append(JSON.stringify(exportData.statistics, null, 2), { name: 'statistics.txt' });
 
       // Add each data type as separate file
-      archive.append(JSON.stringify(users, null, 2), { name: 'users.json' });
-      archive.append(JSON.stringify(admins, null, 2), { name: 'admins.json' });
-      archive.append(JSON.stringify(coordinators, null, 2), { name: 'coordinators.json' });
-      archive.append(JSON.stringify(managers, null, 2), { name: 'managers.json' });
-      archive.append(JSON.stringify(drivers, null, 2), { name: 'drivers.json' });
-      archive.append(JSON.stringify(businesses, null, 2), { name: 'businesses.json' });
-      archive.append(JSON.stringify(advancedBookings, null, 2), { name: 'advanced_bookings.json' });
-      archive.append(JSON.stringify(instantBookings, null, 2), { name: 'instant_bookings.json' });
-      archive.append(JSON.stringify(bids, null, 2), { name: 'bids.json' });
-      archive.append(JSON.stringify(areas, null, 2), { name: 'areas.json' });
-      archive.append(JSON.stringify(feedbackReports, null, 2), { name: 'incident_reports.json' });
+      archive.append(JSON.stringify(business, null, 2), { name: 'business.txt' });
+      archive.append(JSON.stringify(houses, null, 2), { name: 'houses.txt' });
+      archive.append(JSON.stringify(managers, null, 2), { name: 'managers.txt' });
+      archive.append(JSON.stringify(residents, null, 2), { name: 'residents.txt' });
+      archive.append(JSON.stringify(advancedBookings, null, 2), { name: 'advanced_bookings.txt' });
+      archive.append(JSON.stringify(instantBookings, null, 2), { name: 'instant_bookings.txt' });
+      archive.append(JSON.stringify(bids, null, 2), { name: 'bids.txt' });
+      archive.append(JSON.stringify(incidents, null, 2), { name: 'incidents.txt' });
 
       await archive.finalize();
       const zipBuffer = await zipPromise;
@@ -393,7 +346,7 @@ export async function POST(request) {
       return new NextResponse(zipBuffer, {
         headers: {
           'Content-Type': 'application/zip',
-          'Content-Disposition': `attachment; filename="neat_data_export_${new Date().toISOString().split('T')[0]}.zip"`,
+          'Content-Disposition': `attachment; filename="${business?.name.replace(/\s+/g, '_')}_data_export_${new Date().toISOString().split('T')[0]}.zip"`,
           'Content-Length': zipBuffer.length.toString()
         }
       });

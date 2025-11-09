@@ -153,6 +153,9 @@ export async function createManagerBooking(data) {
         pickupTime: pickupTime,
         returnTime: data.returnTime ? new Date(data.returnTime) : null,
         initials: residentInitials, // Array of resident initials
+
+        passengerCount: parseInt(data.passengerCount) || 1,
+
         
         // Link to accessibility profile
         accessibilityProfile: {

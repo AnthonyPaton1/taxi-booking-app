@@ -4,7 +4,8 @@
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
-import { matchDriverToBookings } from "@/lib/matching/bookingMatcher";
+import { matchDriverToBookings } from "@/lib/matching/enhanced-matching-algorithm";
+
 
 /**
  * Get instant bookings for current user
@@ -138,11 +139,6 @@ export async function getAvailableInstantBookings() {
       };
     }
 
-    console.log('Querying for advanced bookings with filters:');
-console.log('- status: OPEN');
-console.log('- pickupTime >=', new Date());
-console.log('- bidDeadline >=', new Date());
-
     // Get pending instant bookings
     const allBookings = await prisma.instantBooking.findMany({
       where: {
@@ -182,10 +178,7 @@ console.log('- bidDeadline >=', new Date());
     pickupLng: booking.pickupLongitude,
   }));
 
-console.log('🔍 Available Advanced Debug:');
-console.log('Total bookings from DB:', allBookings.length);
-console.log('Bookings with coords:', bookingsWithCoords.length);
-console.log('Current server time:', new Date());
+
 
     // Run matching algorithm
     const matches = matchDriverToBookings(driver, bookingsWithCoords);

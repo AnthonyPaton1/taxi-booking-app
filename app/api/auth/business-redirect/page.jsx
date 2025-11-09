@@ -1,4 +1,4 @@
-// app/auth/redirect/page.jsx
+// app/api/auth/business-redirect/page.jsx
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
@@ -16,7 +16,7 @@ export default async function AuthRedirectPage() {
 
   switch (role) {
     case "SUPER_ADMIN":
-      return "/dashboard/super-admin/mainPage";
+      return "/dashboard/super-admin";
     case "ADMIN":
       return redirect("/dashboard/admin");
     case "COORDINATOR":

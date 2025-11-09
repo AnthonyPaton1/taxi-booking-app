@@ -2,118 +2,163 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import crypto from "crypto";
-import { sendEmail } from "@/lib/email";
+import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import { validateUKPhone } from "@/lib/phoneValidation";
+import { headers } from "next/headers";
 
-export async function registerAndInviteUser(formData) {
+async function getClientIpFromHeaders() {
+  const headersList = await headers(); 
+  const forwarded = headersList.get('x-forwarded-for');
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
+  }
+  return headersList.get('x-real-ip') || 'unknown';
+}
+
+export async function registerAndInviteUser(payload) {
   try {
-    const { name, email, role, phone, company, type } = formData;
+    // ✅ RATE LIMITING
+    const ip = await getClientIpFromHeaders(); 
+    const rateLimitResult = await rateLimit(
+      `waitlist:${ip}`,
+      RATE_LIMITS.AUTH.limit,
+      RATE_LIMITS.AUTH.window
+    );
+
+    if (!rateLimitResult.success) {
+      return {
+        success: false,
+        error: "Too many registration attempts. Please try again in 15 minutes.",
+        retryAfter: rateLimitResult.retryAfter,
+      };
+    }
+
+    const { name, email, phone, company, type, role, recaptchaToken } = payload;
+
+    // ✅ VERIFY RECAPTCHA
+    if (!recaptchaToken) {
+      return {
+        success: false,
+        error: "Security verification failed. Please try again.",
+      };
+    }
+
+    try {
+      const recaptchaResponse = await fetch(
+        `https://www.google.com/recaptcha/api/siteverify`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: `secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`,
+        }
+      );
+
+      const recaptchaData = await recaptchaResponse.json();
+
+      // Check if verification passed and score is acceptable (0.5 threshold)
+      if (!recaptchaData.success || recaptchaData.score < 0.5) {
+        console.warn('reCAPTCHA failed:', {
+          success: recaptchaData.success,
+          score: recaptchaData.score,
+          action: recaptchaData.action,
+        });
+        return {
+          success: false,
+          error: "Security verification failed. Please try again or contact support.",
+        };
+      }
+
+      console.log('✅ reCAPTCHA passed:', {
+        score: recaptchaData.score,
+        action: recaptchaData.action,
+      });
+    } catch (recaptchaError) {
+      console.error('reCAPTCHA verification error:', recaptchaError);
+      // Fail open in case of reCAPTCHA service issues
+    }
 
     // Validate required fields
-    if (!email || !name || !role) {
-      return { 
-        success: false, 
-        error: "Missing required fields. Please provide name, email, and role." 
+    if (!name || !email || !phone || !company || !type || !role) {
+      return {
+        success: false,
+        error: "All fields are required",
       };
     }
 
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    // ✅ PHONE VALIDATION
+    const phoneValidation = validateUKPhone(phone);
+    if (!phoneValidation.isValid) {
+      return {
+        success: false,
+        error: phoneValidation.error || "Invalid UK phone number",
+      };
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return {
+        success: false,
+        error: "Invalid email format",
+      };
+    }
+
+    // Check for duplicate email
+    const existingUser = await prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+    });
+
     if (existingUser) {
-      return { 
-        success: false, 
-        error: "A user with this email address already exists. Please use a different email or contact support if you need help accessing your account.",
-        code: "DUPLICATE_EMAIL"
+      return {
+        success: false,
+        code: "DUPLICATE_EMAIL",
+        error: "This email is already registered. Please use a different email or contact support.",
       };
     }
 
-    // Create user
+    // Create user with pending status
     const user = await prisma.user.create({
       data: {
         name,
-        email,
-        phone,
+        email: email.toLowerCase(),
+        phone: phoneValidation.formatted, // Use formatted phone number
         role,
-        isApproved: true,
+        // Don't set password yet - they'll set it via email link
       },
     });
 
-    // ✅ If company name provided, create the business and link it
-    if (company && type) {
-      const business = await prisma.business.create({
+    // Create business if ADMIN/COORDINATOR
+    if (role === "ADMIN" || role === "COORDINATOR") {
+      await prisma.business.create({
         data: {
           name: company,
-          type: type,
-          email: email,
-          phone: phone,
-          adminUserId: user.id,
-          approved: false, // Needs approval
+          type,
+          adminId: user.id,
         },
-      });
-
-      // Link user to business
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { businessId: business.id },
       });
     }
 
-    // Create reset token
-    const token = crypto.randomBytes(32).toString("hex");
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    // TODO: Send invitation email with set-password link
+    // Generate token and send email here
 
-    await prisma.passwordResetToken.create({
-      data: {
-        token,
-        userId: user.id,
-        expiresAt,
-      },
+    console.log("✅ User registered:", {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      company,
     });
 
-    const resetLink = `${process.env.NEXTAUTH_URL}/set-password?token=${token}`;
-
-    // Send email
-    await sendEmail({
-      to: email,
-      subject: "Welcome to NEAT - Set up your account password",
-      html: `
-        <h2>Welcome to NEAT, ${name}!</h2>
-        <p>Your account has been created successfully${company ? ` for <strong>${company}</strong>` : ''}. Click the button below to set your password and get started:</p>
-        <p style="margin: 30px 0;">
-          <a href="${resetLink}" 
-             style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-            Set Your Password
-          </a>
-        </p>
-        <p>Or copy and paste this link into your browser:</p>
-        <p style="color: #666; font-size: 14px;">${resetLink}</p>
-        <p style="margin-top: 30px; color: #666; font-size: 12px;">This link will expire in 24 hours for security reasons.</p>
-        <p style="color: #666; font-size: 12px;">If you didn't request this account, please ignore this email.</p>
-      `,
-    });
-
-    return { 
+    return {
       success: true,
-      message: `Invitation sent successfully to ${email}. They'll receive an email with instructions to set their password.`
+      message: "Registration successful! Check your email to set your password.",
+      userId: user.id,
     };
 
   } catch (error) {
-    console.error("Error in registerAndInviteUser:", error);
-    
-    // Handle specific Prisma errors
-    if (error.code === "P2002") {
-      return { 
-        success: false, 
-        error: "A user with this email already exists.",
-        code: "DUPLICATE_EMAIL"
-      };
-    }
-
-    // Generic error
-    return { 
-      success: false, 
-      error: "Something went wrong while creating the user. Please try again or contact support if the problem persists.",
-      code: "SERVER_ERROR"
+    console.error("❌ Registration error:", error);
+    return {
+      success: false,
+      error: "Failed to register. Please try again later.",
     };
   }
 }

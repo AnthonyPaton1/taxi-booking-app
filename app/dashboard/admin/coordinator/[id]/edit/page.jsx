@@ -20,9 +20,12 @@ export default async function EditCoordinatorPage({ params }) {
     redirect("/dashboard");
   }
 
+  // Await params in Next.js 15
+  const { id } = await params;
+
   // Get coordinator with membership info
   const membership = await prisma.businessMembership.findUnique({
-    where: { id: params.id },
+    where: { id: id },
     include: {
       user: {
         include: {

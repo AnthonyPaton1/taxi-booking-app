@@ -9,6 +9,7 @@ const protectedRoutes = {
   "/dashboard/driver": roleAccess.driver,
   "/dashboard/coordinator": roleAccess.coordinator,
   "/dashboard/public": roleAccess.public,
+  "/dashboard/super-admin": ["SUPER_ADMIN"]
 };
 
 // Add API route protection
@@ -17,7 +18,7 @@ const protectedApiRoutes = {
   "/api/coordinator": roleAccess.coordinator,
   "/api/manager": roleAccess.manager,
   "/api/driver": roleAccess.driver,
-  "/api/bookings": ["ADMIN", "MANAGER", "COORDINATOR"], // Multiple roles allowed
+  "/api/bookings": ["ADMIN", "MANAGER", "COORDINATOR"],
   "/api/bids": ["DRIVER", "MANAGER", "ADMIN"],
   "/api/rides": ["ADMIN", "MANAGER", "COORDINATOR", "DRIVER"],
   "/api/residents": ["ADMIN", "MANAGER", "COORDINATOR"],
@@ -66,80 +67,86 @@ function applySecurityHeaders(response) {
 }
 
 export async function middleware(req) {
-  const url = new URL(req.url);
   const { pathname } = req.nextUrl;
+  const isApiRoute = pathname.startsWith('/api');
 
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  // Get token
+  const token = await getToken({ 
+    req, 
+    secret: process.env.NEXTAUTH_SECRET
+  });
 
-  // If not signed in, redirect to sign-in
+  if (DEBUG) {
+    console.log("🔍 Middleware:", pathname, "Token:", !!token, "Role:", token?.role);
+  }
+
+  
+  if (isApiRoute) {
+    // No token = return 401 JSON (don't redirect)
+    if (!token) {
+      return new NextResponse(
+        JSON.stringify({ success: false, error: 'Unauthorized' }),
+        {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Check API route permissions
+    for (const [routePrefix, allowedRoles] of Object.entries(protectedApiRoutes)) {
+      if (pathname.startsWith(routePrefix)) {
+        if (token.role === "SUPER_ADMIN" || allowedRoles.includes(token.role)) {
+          const response = NextResponse.next();
+          return applySecurityHeaders(response);
+        }
+
+        // Not allowed = return 403 JSON
+        return new NextResponse(
+          JSON.stringify({ success: false, error: 'Forbidden' }),
+          {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' }
+          }
+        );
+      }
+    }
+
+    // API route not in protected list = allow through
+    const response = NextResponse.next();
+    return applySecurityHeaders(response);
+  }
+
+  // DASHBOARD ROUTES: Redirect if not signed in
   if (!token) {
     const response = NextResponse.redirect(new URL("/api/auth/signin", req.url));
     return applySecurityHeaders(response);
   }
 
-  const onboardingRoutes = {
-    DRIVER: "/dashboard/driver/onboarding",
-    ADMIN: "/dashboard/admin/onboarding",
-  };
-
+  // Onboarding checks
   const needsDriverOnboarding = token.role === "DRIVER" && !token.driverOnboarded;
   const needsAdminOnboarding = token.role === "ADMIN" && !token.adminOnboarded;
 
-  if (needsDriverOnboarding && !url.pathname.startsWith("/dashboard/driver")) {
-    const dest = new URL("/dashboard/driver", req.url);
-    const response = NextResponse.redirect(dest);
+  if (needsDriverOnboarding && !pathname.startsWith("/dashboard/driver")) {
+    const response = NextResponse.redirect(new URL("/dashboard/driver", req.url));
     return applySecurityHeaders(response);
   }
 
-  if (needsAdminOnboarding && !url.pathname.startsWith("/dashboard/admin")) {
-    const dest = new URL("/dashboard/admin", req.url);
-    const response = NextResponse.redirect(dest);
+  if (needsAdminOnboarding && !pathname.startsWith("/dashboard/admin")) {
+    const response = NextResponse.redirect(new URL("/dashboard/admin", req.url));
     return applySecurityHeaders(response);
-  }
-
-  if (DEBUG) {
-    console.log("Token role:", token?.role);
   }
 
   // Check protected dashboard routes
   for (const [routePrefix, allowedRoles] of Object.entries(protectedRoutes)) {
     if (pathname.startsWith(routePrefix)) {
-      if (token.role === "SUPER_ADMIN") {
+      if (token.role === "SUPER_ADMIN" || allowedRoles.includes(token.role)) {
         const response = NextResponse.next();
         return applySecurityHeaders(response);
       }
 
-      if (!allowedRoles.includes(token.role)) {
-        const response = NextResponse.redirect(new URL("/unauthorised", req.url));
-        return applySecurityHeaders(response);
-      }
-    }
-  }
-
-  // 🔒 NEW: Check protected API routes
-  for (const [routePrefix, allowedRoles] of Object.entries(protectedApiRoutes)) {
-    if (pathname.startsWith(routePrefix)) {
-      // SUPER_ADMIN always allowed
-      if (token.role === "SUPER_ADMIN") {
-        const response = NextResponse.next();
-        return applySecurityHeaders(response);
-      }
-
-      if (!allowedRoles.includes(token.role)) {
-        // Return 403 Forbidden for API routes (not redirect)
-        return new NextResponse(
-          JSON.stringify({ error: 'Forbidden', message: 'Insufficient permissions' }),
-          {
-            status: 403,
-            headers: {
-              'Content-Type': 'application/json',
-              ...Object.fromEntries(
-                Object.entries(applySecurityHeaders(NextResponse.next()).headers)
-              )
-            }
-          }
-        );
-      }
+      const response = NextResponse.redirect(new URL("/unauthorised", req.url));
+      return applySecurityHeaders(response);
     }
   }
 

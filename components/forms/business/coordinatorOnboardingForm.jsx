@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { validateUKPhone } from "@/lib/phoneValidation";
 
 const CoordinatorOnboardingForm = ({companyId}) => {
   const router = useRouter();
@@ -44,6 +45,25 @@ const CoordinatorOnboardingForm = ({companyId}) => {
     if (!isValid) {
       toast.error("Please fill out all manager fields.");
       return;
+    }
+
+    // ✅ PHONE VALIDATION
+    for (let i = 0; i < managers.length; i++) {
+      const phoneValidation = validateUKPhone(managers[i].phone);
+      if (!phoneValidation.isValid) {
+        toast.error(`Manager ${i + 1}: ${phoneValidation.error || "Invalid UK phone number"}`);
+        // Scroll to the invalid phone field
+        setTimeout(() => {
+          const phoneField = document.getElementById(`manager-phone-${i}`);
+          if (phoneField) {
+            phoneField.scrollIntoView({ behavior: "smooth", block: "center" });
+            phoneField.focus();
+          }
+        }, 100);
+        return;
+      }
+      // Update with formatted phone number
+      managers[i].phone = phoneValidation.formatted;
     }
 
     try {
@@ -111,13 +131,19 @@ const CoordinatorOnboardingForm = ({companyId}) => {
                   handleManagerChange(i, "email", e.target.value)
                 }
               />
-              <Input
-                placeholder="Manager Phone Number"
-                value={manager.phone}
-                onChange={(e) =>
-                  handleManagerChange(i, "phone", e.target.value)
-                }
-              />
+              <div>
+                <Input
+                  id={`manager-phone-${i}`}
+                  placeholder="Manager Phone Number"
+                  value={manager.phone}
+                  onChange={(e) =>
+                    handleManagerChange(i, "phone", e.target.value)
+                  }
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  UK format: e.g. 07123456789 or +447123456789
+                </p>
+              </div>
 
               {managers.length > 1 && (
                 <Button

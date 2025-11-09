@@ -12,7 +12,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { data: session } = useSession();
 
-  // ✅ Role-based redirection after successful login
+  // Role-based redirection after successful login
   useEffect(() => {
     if (session?.user?.role) {
       const role = session.user.role;

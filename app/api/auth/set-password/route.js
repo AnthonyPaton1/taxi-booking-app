@@ -1,45 +1,86 @@
 // app/api/auth/set-password/route.js
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
+import { NextResponse } from "next/server";
+import { rateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limit";
 
 export async function POST(req) {
-  const { token, password } = await req.json();
-
-  const reset = await prisma.PasswordResetToken.findUnique({
-    where: { token },
-  });
-
-  if (!reset || reset.expiresAt < new Date()) {
-    return Response.json(
-      { message: "Invalid or expired token" },
-      { status: 400 }
+  try {
+    // RATE LIMITING
+    const ip = getClientIp(req);
+    const rateLimitResult = await rateLimit(
+      `set_password:${ip}`,
+      RATE_LIMITS.PASSWORD_RESET.limit,
+      RATE_LIMITS.PASSWORD_RESET.window
     );
-  }
 
-  const hashed = await bcrypt.hash(password, 10);
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { 
+          message: "Too many password attempts. Please try again later.",
+          retryAfter: rateLimitResult.retryAfter 
+        },
+        { 
+          status: 429,
+          headers: {
+            'Retry-After': rateLimitResult.retryAfter.toString(),
+          }
+        }
+      );
+    }
 
-  await prisma.user.update({
-    where: { id: reset.userId },
-    data: { password: hashed },
-  });
+    const { token, password } = await req.json();
 
-  const user = await prisma.user.findUnique({
-    where: { id: reset.userId },
-    select: { email: true, role: true },
-  });
+    // Validate password strength
+    if (!password || password.length < 8) {
+      return NextResponse.json(
+        { message: "Password must be at least 8 characters" },
+        { status: 400 }
+      );
+    }
 
-  if (!user?.email || !user?.role) {
-    return Response.json(
-      { message: "User not found after password reset." },
+    const reset = await prisma.passwordResetToken.findUnique({
+      where: { token },
+    });
+
+    if (!reset || reset.expiresAt < new Date()) {
+      return NextResponse.json(
+        { message: "Invalid or expired token" },
+        { status: 400 }
+      );
+    }
+
+    const hashed = await bcrypt.hash(password, 10);
+
+    await prisma.user.update({
+      where: { id: reset.userId },
+      data: { password: hashed },
+    });
+
+    const user = await prisma.user.findUnique({
+      where: { id: reset.userId },
+      select: { email: true, role: true },
+    });
+
+    if (!user?.email || !user?.role) {
+      return NextResponse.json(
+        { message: "User not found after password reset." },
+        { status: 500 }
+      );
+    }
+
+    await prisma.passwordResetToken.delete({ where: { id: reset.id } });
+
+    return NextResponse.json({
+      message: "Password set successfully.",
+      email: user.email,
+      role: user.role,
+    });
+  } catch (error) {
+    console.error("Set password error:", error);
+    return NextResponse.json(
+      { message: "Something went wrong" },
       { status: 500 }
     );
   }
-
-  await prisma.PasswordResetToken.delete({ where: { id: reset.id } });
-
-  return Response.json({
-    message: "Password set successfully.",
-    email: user.email,
-    role: user.role,
-  });
 }

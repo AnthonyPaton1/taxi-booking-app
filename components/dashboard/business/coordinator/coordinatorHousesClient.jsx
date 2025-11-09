@@ -9,10 +9,15 @@ import {
   MapPin,
   User,
   Search,
+  Edit3,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 
-export default function CoordinatorHousesClient({ houses, coordinatorArea }) {
+export default function CoordinatorHousesClient({ houses, managers, coordinatorArea }) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedHouses, setSelectedHouses] = useState([]);
+  const [bulkMode, setBulkMode] = useState(false);
 
   const filteredHouses = houses.filter(
     (house) =>
@@ -22,6 +27,34 @@ export default function CoordinatorHousesClient({ houses, coordinatorArea }) {
   );
 
   const totalResidents = houses.reduce((sum, h) => sum + h.residents.length, 0);
+
+  const toggleHouseSelection = (houseId) => {
+    setSelectedHouses((prev) =>
+      prev.includes(houseId)
+        ? prev.filter((id) => id !== houseId)
+        : [...prev, houseId]
+    );
+  };
+
+  const handleBulkReassign = async (newManagerId) => {
+    // API call to reassign selected houses
+    try {
+      const response = await fetch("/api/coordinator/houses/bulk-reassign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          houseIds: selectedHouses,
+          newManagerId,
+        }),
+      });
+
+      if (response.ok) {
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error("Bulk reassign failed:", error);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -47,7 +80,54 @@ export default function CoordinatorHousesClient({ houses, coordinatorArea }) {
               </p>
             </div>
           </div>
+
+          {/* Bulk Actions Toggle */}
+          <button
+            onClick={() => {
+              setBulkMode(!bulkMode);
+              setSelectedHouses([]);
+            }}
+            className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 ${
+              bulkMode
+                ? "bg-blue-600 text-white"
+                : "bg-white text-gray-700 border border-gray-300"
+            }`}
+          >
+            <Edit3 className="w-4 h-4" />
+            {bulkMode ? "Cancel Bulk Edit" : "Bulk Reassign"}
+          </button>
         </div>
+
+        {/* Bulk Action Bar */}
+        {bulkMode && selectedHouses.length > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <CheckSquare className="w-5 h-5 text-blue-600" />
+              <span className="font-medium text-blue-900">
+                {selectedHouses.length} house{selectedHouses.length !== 1 ? "s" : ""} selected
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <select
+                onChange={(e) => {
+                  if (e.target.value) {
+                    if (confirm(`Reassign ${selectedHouses.length} houses to ${e.target.options[e.target.selectedIndex].text}?`)) {
+                      handleBulkReassign(e.target.value);
+                    }
+                  }
+                }}
+                className="px-3 py-2 border border-gray-300 rounded-lg"
+              >
+                <option value="">Reassign to...</option>
+                {managers.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name} ({m.housesCount || 0} houses)
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
 
         {/* Search Bar */}
         <div className="bg-white rounded-lg shadow-sm p-4">
@@ -81,8 +161,26 @@ export default function CoordinatorHousesClient({ houses, coordinatorArea }) {
             {filteredHouses.map((house) => (
               <div
                 key={house.id}
-                className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"
+                className={`bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all ${
+                  bulkMode ? "cursor-pointer" : ""
+                } ${
+                  selectedHouses.includes(house.id)
+                    ? "ring-2 ring-blue-500"
+                    : ""
+                }`}
+                onClick={() => bulkMode && toggleHouseSelection(house.id)}
               >
+                {/* Selection Checkbox (Bulk Mode) */}
+                {bulkMode && (
+                  <div className="absolute top-4 right-4">
+                    {selectedHouses.includes(house.id) ? (
+                      <CheckSquare className="w-6 h-6 text-blue-600" />
+                    ) : (
+                      <Square className="w-6 h-6 text-gray-400" />
+                    )}
+                  </div>
+                )}
+
                 {/* House Header */}
                 <div className="flex items-start gap-3 mb-4">
                   <div className="bg-green-100 rounded-full p-2">
@@ -109,7 +207,7 @@ export default function CoordinatorHousesClient({ houses, coordinatorArea }) {
                 {/* Manager Info */}
                 <div className="flex items-center gap-2 text-sm text-gray-600 mb-4 pb-4 border-b">
                   <User className="w-4 h-4" />
-                  <div>
+                  <div className="flex-1">
                     <p className="font-medium text-gray-900">
                       {house.manager.name}
                     </p>
@@ -117,6 +215,15 @@ export default function CoordinatorHousesClient({ houses, coordinatorArea }) {
                       {house.manager.email}
                     </p>
                   </div>
+                  {!bulkMode && (
+                    <Link
+                      href={`/dashboard/coordinator/houses/${house.id}/reassign`}
+                      className="text-xs text-blue-600 hover:text-blue-700"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Change
+                    </Link>
+                  )}
                 </div>
 
                 {/* Residents Count */}
@@ -128,13 +235,14 @@ export default function CoordinatorHousesClient({ houses, coordinatorArea }) {
                       {house.residents.length !== 1 ? "s" : ""}
                     </span>
                   </div>
-                  {house.residents.length > 0 && (
+                  {house.residents.length > 0 && !bulkMode && (
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         const residentsList = house.residents
-                          .map((r) => `${r.name} (${r.initials})`)
+                          .map((r) => `• ${r.name} (${r.initials})`)
                           .join("\n");
-                        alert(`Residents:\n\n${residentsList}`);
+                        alert(`Residents at ${house.label}:\n\n${residentsList}`);
                       }}
                       className="text-xs text-blue-600 hover:text-blue-700 underline"
                     >
@@ -142,15 +250,6 @@ export default function CoordinatorHousesClient({ houses, coordinatorArea }) {
                     </button>
                   )}
                 </div>
-
-                {/* Notes if any */}
-                {house.notes && (
-                  <div className="mt-4 pt-4 border-t">
-                    <p className="text-xs text-gray-500 italic">
-                      {house.notes}
-                    </p>
-                  </div>
-                )}
               </div>
             ))}
           </div>

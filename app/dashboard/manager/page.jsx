@@ -19,8 +19,12 @@ export default async function ManagerDashboardPage() {
     where: { email: session.user.email },
     include: {
       houses: {
+        where: {
+          deletedAt: null, 
+        },
         include: {
           area: true,
+          residents: true, 
         },
       },
     },
@@ -83,41 +87,41 @@ export default async function ManagerDashboardPage() {
       },
       include: {
         accessibilityProfile: true,
-       bids: {
-  include: {
-    driver: {
-      select: {
-        id: true,
-        vehicleType: true,
-        user: {
-          select: {
-            name: true,
-            phone: true,
+        bids: {
+          include: {
+            driver: {
+              select: {
+                id: true,
+                vehicleType: true,
+                user: {
+                  select: {
+                    name: true,
+                    phone: true,
+                  },
+                },
+              },
+            },
+          },
+          orderBy: {
+            amountCents: "asc",
           },
         },
-      },
-    },
-  },
-  orderBy: {
-    amountCents: "asc",
-  },
-},
         acceptedBid: {
-  include: {
-    driver: {
-      select: {
-        id: true,
-        vehicleType: true,
-        user: {
-          select: {
-            name: true,
-            phone: true,
+          include: {
+            driver: {
+              select: {
+                id: true,
+                vehicleType: true,
+                user: {
+                  select: {
+                    name: true,
+                    phone: true,
+                  },
+                },
+              },
+            },
           },
         },
-      },
-    },
-  },
-},
       },
       orderBy: {
         pickupTime: "asc",

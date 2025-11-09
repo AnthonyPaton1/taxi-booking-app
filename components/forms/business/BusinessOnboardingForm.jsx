@@ -4,9 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
 import { PostcodeInput } from "@/components/shared/PostcodeInput";
 import { toast } from "sonner";
+import { validateUKPhone } from "@/lib/phoneValidation";
 
 export default function BusinessOnboardingForm({ prefillData = {} }) {
   const {
@@ -66,7 +66,7 @@ export default function BusinessOnboardingForm({ prefillData = {} }) {
     setFormData((prev) => ({ ...prev, [id]: value }));
   };
 
-  //  Centralized submission logic
+  // Centralized submission logic
   const submitOnboarding = async (coordinatorsToSubmit) => {
     setSubmitting(true);
     try {
@@ -81,14 +81,12 @@ export default function BusinessOnboardingForm({ prefillData = {} }) {
 
       const postcodeData = await postcodeValidation.json();
 
-      // Check BOTH response.ok AND data.valid
       if (!postcodeValidation.ok || !postcodeData.valid) {
         toast.dismiss();
         toast.error(postcodeData.error || "Postcode not found", {
           duration: 5000,
         });
         
-        // Scroll to postcode field
         setTimeout(() => {
           const postcodeField = document.getElementById("business-postcode");
           if (postcodeField) {
@@ -110,9 +108,9 @@ export default function BusinessOnboardingForm({ prefillData = {} }) {
       // Step 2: Add normalized postcode and coordinates to payload
       const payload = {
         ...formData,
-        postcode: postcodeData.coordinates.postcode, // Normalized
-        lat: postcodeData.coordinates.lat,            // Float
-        lng: postcodeData.coordinates.lng,            // Float
+        postcode: postcodeData.coordinates.postcode,
+        lat: postcodeData.coordinates.lat,
+        lng: postcodeData.coordinates.lng,
         coordinators: coordinatorsToSubmit,
       };
 
@@ -131,7 +129,6 @@ export default function BusinessOnboardingForm({ prefillData = {} }) {
       toast.dismiss();
       toast.success("Business onboarding complete!");
       
-      // ✅ Refresh to reload the page with updated adminOnboarded status
       router.refresh();
     } catch (err) {
       toast.dismiss();
@@ -142,9 +139,25 @@ export default function BusinessOnboardingForm({ prefillData = {} }) {
     }
   };
 
-  // ✅ Validate coordinators before submission
+  // ✅ Validate coordinators and phones before submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // ✅ VALIDATE BUSINESS CONTACT PHONE
+    const businessPhoneValidation = validateUKPhone(formData.contactNumber);
+    if (!businessPhoneValidation.isValid) {
+      toast.error(`Business phone: ${businessPhoneValidation.error || "Invalid UK phone number"}`);
+      setTimeout(() => {
+        const phoneField = document.getElementById("contactNumber");
+        if (phoneField) {
+          phoneField.scrollIntoView({ behavior: "smooth", block: "center" });
+          phoneField.focus();
+        }
+      }, 100);
+      return;
+    }
+    // Update with formatted phone
+    formData.contactNumber = businessPhoneValidation.formatted;
 
     // Filter out completely empty coordinators
     const filledCoordinators = coordinators.filter(
@@ -159,6 +172,24 @@ export default function BusinessOnboardingForm({ prefillData = {} }) {
     if (hasIncompleteCoordinators) {
       toast.error("Please complete all coordinator fields or remove incomplete entries");
       return;
+    }
+
+    // ✅ VALIDATE ALL COORDINATOR PHONES
+    for (let i = 0; i < filledCoordinators.length; i++) {
+      const phoneValidation = validateUKPhone(filledCoordinators[i].phone);
+      if (!phoneValidation.isValid) {
+        toast.error(`Coordinator ${i + 1}: ${phoneValidation.error || "Invalid UK phone number"}`);
+        setTimeout(() => {
+          const phoneField = document.getElementById(`coordinator-phone-${i}`);
+          if (phoneField) {
+            phoneField.scrollIntoView({ behavior: "smooth", block: "center" });
+            phoneField.focus();
+          }
+        }, 100);
+        return;
+      }
+      // Update with formatted phone
+      filledCoordinators[i].phone = phoneValidation.formatted;
     }
 
     await submitOnboarding(filledCoordinators);
@@ -187,14 +218,19 @@ export default function BusinessOnboardingForm({ prefillData = {} }) {
           onChange={handleChange}
         />
 
-        <Input
-          id="contactNumber"
-          type="tel"
-          placeholder="Contact Number"
-          required
-          value={formData.contactNumber}
-          onChange={handleChange}
-        />
+        <div>
+          <Input
+            id="contactNumber"
+            type="tel"
+            placeholder="Contact Number"
+            required
+            value={formData.contactNumber}
+            onChange={handleChange}
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            UK format: e.g. 07123456789 or +447123456789
+          </p>
+        </div>
 
         <Input
           id="name"
@@ -204,61 +240,61 @@ export default function BusinessOnboardingForm({ prefillData = {} }) {
           onChange={handleChange}
         />
 
-<div className="mb-8 mt-16">
-  <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg p-4 -mx-6 -mt-6 mb-6">
-    <h3 className="text-xl font-bold flex items-center gap-2">
-      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-        <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
-      </svg>
-      What type of organization are you? <span className="text-yellow-300">*</span>
-    </h3>
-    <p className="text-blue-100 text-sm mt-1">
-      This helps us customize your experience
-    </p>
-  </div>
-  
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <label className="group cursor-pointer">
-      <input
-        type="radio"
-        name="type"
-        value="CARE"
-        required
-        className="peer hidden"
-      />
-      <div className="border-2 border-gray-200 rounded-lg p-6 peer-checked:border-blue-600 peer-checked:bg-blue-50 peer-checked:shadow-lg hover:border-blue-300 hover:shadow-md transition-all">
-        <div className="text-5xl mb-3 group-hover:scale-110 transition-transform">🏥</div>
-        <h4 className="text-lg font-bold text-gray-900 mb-2">Care Provider</h4>
-        <p className="text-sm text-gray-600">
-          Supported living, healthcare facilities, residential care homes, and care organizations
-        </p>
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <span className="text-xs font-semibold text-blue-600 uppercase">Best for care services</span>
+        <div className="mb-8 mt-16">
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg p-4 -mx-6 -mt-6 mb-6">
+            <h3 className="text-xl font-bold flex items-center gap-2">
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+              </svg>
+              What type of organization are you? <span className="text-yellow-300">*</span>
+            </h3>
+            <p className="text-blue-100 text-sm mt-1">
+              This helps us customize your experience
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label className="group cursor-pointer">
+              <input
+                type="radio"
+                name="type"
+                value="CARE"
+                required
+                className="peer hidden"
+              />
+              <div className="border-2 border-gray-200 rounded-lg p-6 peer-checked:border-blue-600 peer-checked:bg-blue-50 peer-checked:shadow-lg hover:border-blue-300 hover:shadow-md transition-all">
+                <div className="text-5xl mb-3 group-hover:scale-110 transition-transform">🏥</div>
+                <h4 className="text-lg font-bold text-gray-900 mb-2">Care Provider</h4>
+                <p className="text-sm text-gray-600">
+                  Supported living, healthcare facilities, residential care homes, and care organizations
+                </p>
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <span className="text-xs font-semibold text-blue-600 uppercase">Best for care services</span>
+                </div>
+              </div>
+            </label>
+            
+            <label className="group cursor-pointer">
+              <input
+                type="radio"
+                name="type"
+                value="TAXI"
+                required
+                className="peer hidden"
+              />
+              <div className="border-2 border-gray-200 rounded-lg p-6 peer-checked:border-blue-600 peer-checked:bg-blue-50 peer-checked:shadow-lg hover:border-blue-300 hover:shadow-md transition-all">
+                <div className="text-5xl mb-3 group-hover:scale-110 transition-transform">🚖</div>
+                <h4 className="text-lg font-bold text-gray-900 mb-2">Transport Company</h4>
+                <p className="text-sm text-gray-600">
+                  Taxi services, accessible transport providers, private hire vehicles, and transport businesses
+                </p>
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <span className="text-xs font-semibold text-blue-600 uppercase">Best for transport</span>
+                </div>
+              </div>
+            </label>
+          </div>
         </div>
-      </div>
-    </label>
-    
-    <label className="group cursor-pointer">
-      <input
-        type="radio"
-        name="type"
-        value="TAXI"
-        required
-        className="peer hidden"
-      />
-      <div className="border-2 border-gray-200 rounded-lg p-6 peer-checked:border-blue-600 peer-checked:bg-blue-50 peer-checked:shadow-lg hover:border-blue-300 hover:shadow-md transition-all">
-        <div className="text-5xl mb-3 group-hover:scale-110 transition-transform">🚖</div>
-        <h4 className="text-lg font-bold text-gray-900 mb-2">Transport Company</h4>
-        <p className="text-sm text-gray-600">
-          Taxi services, accessible transport providers, private hire vehicles, and transport businesses
-        </p>
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <span className="text-xs font-semibold text-blue-600 uppercase">Best for transport</span>
-        </div>
-      </div>
-    </label>
-  </div>
-</div>
 
         <Input
           id="address1"
@@ -276,7 +312,6 @@ export default function BusinessOnboardingForm({ prefillData = {} }) {
           onChange={handleChange}
         />
 
-        {/* UPDATED POSTCODE INPUT */}
         <PostcodeInput
           id="business-postcode"
           value={formData.postcode}
@@ -328,12 +363,18 @@ export default function BusinessOnboardingForm({ prefillData = {} }) {
               onChange={(e) => handleCoordinatorChange(index, "email", e.target.value)}
             />
 
-            <Input
-              type="tel"
-              placeholder="Phone"
-              value={coord.phone}
-              onChange={(e) => handleCoordinatorChange(index, "phone", e.target.value)}
-            />
+            <div>
+              <Input
+                id={`coordinator-phone-${index}`}
+                type="tel"
+                placeholder="Phone"
+                value={coord.phone}
+                onChange={(e) => handleCoordinatorChange(index, "phone", e.target.value)}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                UK format: e.g. 07123456789 or +447123456789
+              </p>
+            </div>
 
             <Input
               placeholder="Area"

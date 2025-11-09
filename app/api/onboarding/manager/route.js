@@ -1,4 +1,4 @@
-// app/api/onboarding/manager/route.js - FIXED VERSION
+// app/api/onboarding/manager/route.js
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { ManagerOnboardingSchema } from "@/lib/validators";
@@ -44,7 +44,7 @@ export async function POST(req) {
 
     const businessId = coordinator.business.id;
 
-    // ✅ NEW: Create BusinessMembership for the manager
+    //  NEW: Create BusinessMembership for the manager
     await prisma.businessMembership.upsert({
       where: {
         userId_businessId: {
@@ -62,25 +62,64 @@ export async function POST(req) {
       },
     });
 
-    // Create houses
+    // Create or reclaim houses (tender change scenario)
     for (const house of houses) {
-      await prisma.house.create({
-        data: {
-          label: house.label,           
-          line1: house.line1,           
-          city: house.city,             
-          postcode: house.postcode,     
-          notes: house.notes || null,   
-          lat: house.lat,               
-          lng: house.lng,               
-          internalId: `house-${Math.random().toString(36).slice(2, 8)}`,
-          pin: Math.floor(1000 + Math.random() * 9000).toString(),
-          loginName: `login-${Math.random().toString(36).slice(2, 6)}`,
-          manager: { connect: { id: managerUser.id } },
-          business: { connect: { id: businessId } },
-          area: { connect: { id: areaRecord.id } },
+      // Check if this address was previously deleted (tender lost scenario)
+      const deletedHouse = await prisma.house.findFirst({
+        where: {
+          postcode: house.postcode,
+          line1: house.line1,
+          deletedAt: { not: null }, // Find soft-deleted houses
         },
       });
+
+      if (deletedHouse) {
+        // 🔄 RECLAIM: Restore and reassign to new business
+        console.log(`🔄 Reclaiming house: ${house.label} at ${house.line1} (tender changed hands)`);
+        
+        await prisma.house.update({
+          where: { id: deletedHouse.id },
+          data: {
+            // Restore from soft delete
+            deletedAt: null,
+            
+            // Reassign to new business/manager/area
+            businessId: businessId,
+            managerId: managerUser.id,
+            areaId: areaRecord.id,
+            
+            // Update with new data (name might change under new management)
+            label: house.label,
+            city: house.city,
+            notes: house.notes || null,
+            
+            // Update coordinates if provided
+            lat: house.lat,
+            lng: house.lng,
+            
+            // Keep existing internalId, pin, loginName (preserve history)
+          },
+        });
+      } else {
+        // ✨ CREATE NEW: No deleted house found at this address
+        await prisma.house.create({
+          data: {
+            label: house.label,           
+            line1: house.line1,           
+            city: house.city,             
+            postcode: house.postcode,     
+            notes: house.notes || null,   
+            lat: house.lat,               
+            lng: house.lng,               
+            internalId: `house-${Math.random().toString(36).slice(2, 8)}`,
+            pin: Math.floor(1000 + Math.random() * 9000).toString(),
+            loginName: `login-${Math.random().toString(36).slice(2, 6)}`,
+            manager: { connect: { id: managerUser.id } },
+            business: { connect: { id: businessId } },
+            area: { connect: { id: areaRecord.id } },
+          },
+        });
+      }
     }
 
     // Mark manager as onboarded

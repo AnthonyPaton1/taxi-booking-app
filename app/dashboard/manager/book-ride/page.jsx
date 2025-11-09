@@ -17,6 +17,9 @@ export default async function ManagerBookRidePage() {
     where: { email: session.user.email },
     include: {
       houses: {
+        where: {
+          deletedAt: null, 
+        },
         include: {
           residents: {
             orderBy: {

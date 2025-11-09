@@ -1,8 +1,36 @@
+// app/api/contact/route.js
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { rateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limit";
 
 export async function POST(request) {
   try {
+    // ✅ RATE LIMITING
+    const ip = getClientIp(request);
+    const rateLimitResult = await rateLimit(
+      `contact:${ip}`,
+      RATE_LIMITS.CONTACT.limit,
+      RATE_LIMITS.CONTACT.window
+    );
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { 
+          error: "Too many contact submissions. Please try again later.",
+          retryAfter: rateLimitResult.retryAfter 
+        },
+        { 
+          status: 429,
+          headers: {
+            'Retry-After': rateLimitResult.retryAfter.toString(),
+            'X-RateLimit-Limit': RATE_LIMITS.CONTACT.limit.toString(),
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': rateLimitResult.resetAt.toISOString(),
+          }
+        }
+      );
+    }
+
     const body = await request.json();
     const { name, email, phone, subject, category, message } = body;
 
@@ -31,10 +59,8 @@ export async function POST(request) {
       );
     }
 
-    // Store contact request in database (optional)
-    // Uncomment to save contact requests to DB
-    /*
-    const contactRequest = await prisma.contactRequest.create({
+    // Store contact request in database
+    const contactRequest = await prisma.feedback.create({
       data: {
         name,
         email,
@@ -43,49 +69,14 @@ export async function POST(request) {
         category,
         message,
         status: "NEW",
-        createdAt: new Date(),
       },
     });
-    */
 
-    // TODO: Send email notification
-    // You'll want to integrate with a service like:
-    // - Resend (resend.com) - Modern, developer-friendly
-    // - SendGrid
-    // - AWS SES
-    // - Postmark
-    
-    // Example with Resend (you'd need to install: npm install resend)
-    /*
-    import { Resend } from 'resend';
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    
-    await resend.emails.send({
-      from: 'NEAT Transport <noreply@neattransport.co.uk>',
-      to: 'support@neattransport.co.uk',
-      replyTo: email,
-      subject: `[${category.toUpperCase()}] ${subject}`,
-      html: `
-        <h2>New Contact Form Submission</h2>
-        <p><strong>From:</strong> ${name} (${email})</p>
-        ${phone ? `<p><strong>Phone:</strong> ${phone}</p>` : ''}
-        <p><strong>Category:</strong> ${category}</p>
-        <p><strong>Subject:</strong> ${subject}</p>
-        <hr />
-        <p><strong>Message:</strong></p>
-        <p>${message.replace(/\n/g, '<br>')}</p>
-      `,
-    });
-    */
-
-    // For now, just log it (remove in production)
     console.log("📧 Contact form submission:", {
+      id: contactRequest.id,
       name,
       email,
-      phone,
       category,
-      subject,
-      messagePreview: message.substring(0, 50) + "...",
     });
 
     return NextResponse.json(
@@ -93,7 +84,14 @@ export async function POST(request) {
         success: true, 
         message: "Contact request received successfully" 
       },
-      { status: 200 }
+      { 
+        status: 200,
+        headers: {
+          'X-RateLimit-Limit': RATE_LIMITS.CONTACT.limit.toString(),
+          'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+          'X-RateLimit-Reset': rateLimitResult.resetAt.toISOString(),
+        }
+      }
     );
   } catch (error) {
     console.error("❌ Error processing contact form:", error);
@@ -104,29 +102,20 @@ export async function POST(request) {
   }
 }
 
-// Optional: GET route to retrieve contact requests (admin only)
+// GET route to retrieve contact requests (admin only)
 export async function GET(request) {
   try {
-    // TODO: Add authentication check here
-    // const session = await getServerSession(authOptions);
-    // if (!session || session.user.role !== "ADMIN") {
-    //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    // }
+    const session = await getServerSession(authOptions);
+    if (!session || session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    // Uncomment if you're storing in DB
-    /*
-    const contacts = await prisma.contactRequest.findMany({
+    const contacts = await prisma.feedback.findMany({
       orderBy: { createdAt: "desc" },
-      take: 50, // Limit to 50 most recent
+      take: 50,
     });
 
     return NextResponse.json({ contacts }, { status: 200 });
-    */
-
-    return NextResponse.json(
-      { message: "Contact retrieval not yet implemented" },
-      { status: 501 }
-    );
   } catch (error) {
     console.error("❌ Error retrieving contacts:", error);
     return NextResponse.json(

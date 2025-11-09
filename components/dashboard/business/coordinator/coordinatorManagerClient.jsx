@@ -15,7 +15,7 @@ import {
   XCircle,
   Calendar,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+
 import StatusMessage from "@/components/shared/statusMessage";
 
 export default function CoordinatorManagersClient({ managers, coordinatorArea }) {

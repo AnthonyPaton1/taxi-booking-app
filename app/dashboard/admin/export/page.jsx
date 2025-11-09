@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Download, Database, Shield, Loader2, FileJson, FileArchive } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowLeft, Download, Database, Shield, Loader2, FileJson, FileArchive } from 'lucide-react';
 
 export default function AdminDataExportPage() {
   const [format, setFormat] = useState('json');
@@ -52,19 +53,31 @@ export default function AdminDataExportPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex items-center gap-3 mb-2">
-            <Database className="w-8 h-8 text-blue-600" />
+   <div className="min-h-screen bg-gray-50 py-8">
+  <div className="max-w-4xl mx-auto px-4">
+    {/* Header */}
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <Database className="w-8 h-8 text-blue-600" />
+          <div>
             <h1 className="text-2xl font-bold text-gray-900">Data Export</h1>
+            <p className="text-gray-600 mt-1">
+              Export complete business data for backup, compliance, or migration purposes.
+              This includes all users, bookings, bids, businesses, and system data.
+            </p>
           </div>
-          <p className="text-gray-600">
-            Export complete business data for backup, compliance, or migration purposes.
-            This includes all users, bookings, bids, businesses, and system data.
-          </p>
         </div>
+        
+        <Link 
+          href="/dashboard/admin"
+          className="flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors whitespace-nowrap"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          <span className="hidden sm:inline">Back to Dashboard</span>
+        </Link>
+      </div>
+    </div>
 
         {/* GDPR Compliance Notice */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">

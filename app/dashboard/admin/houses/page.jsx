@@ -12,7 +12,9 @@ export default async function AdminHousesPage({ searchParams }) {
     redirect("/login");
   }
 
-  const areaFilter = searchParams?.area || "all";
+  // Next.js 15 requires awaiting searchParams
+  const params = await searchParams;
+  const areaFilter = params?.area || "all";
 
   // Get all houses
   const houses = await prisma.house.findMany({

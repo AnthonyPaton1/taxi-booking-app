@@ -15,25 +15,26 @@ export default async function AdminAreasPage() {
   // Get all areas with counts
   const areas = await prisma.area.findMany({
     include: {
+      _count: {
+        select: {
+          house: true, // houses in this area
+          users: true, // all users in this area
+        }
+      },
       users: {
         where: {
-          role: 'COORDINATOR'
+          deletedAt: null
         },
         select: {
-          id: true,
-          name: true,
-          email: true,
-          coordinatorOnboarded: true
+          role: true
         }
       },
       house: {
+        where: {
+          deletedAt: null
+        },
         include: {
-          residents: true // Need to include residents to count them
-        }
-      },
-      _count: {
-        select: {
-          house: true
+          residents: true
         }
       }
     },
@@ -42,16 +43,28 @@ export default async function AdminAreasPage() {
     }
   });
 
-  const areasWithStats = areas.map((area) => ({
-    ...area,
-    totalResidents: area.house.reduce(
-      (sum, house) => sum + (house.residents?.length || 0),
-      0
-    ),
-    managers: area.house
-      .map((h) => h.managerId)
-      .filter((v, i, a) => v && a.indexOf(v) === i).length,
-  }));
+  // Transform data to include role-specific counts
+  const areasWithStats = areas.map(area => {
+    // Count coordinators (users with COORDINATOR role in this area)
+    const coordinatorCount = area.users.filter(u => u.role === 'COORDINATOR').length;
+    
+    // Count managers (users with MANAGER role in this area)
+    const managerCount = area.users.filter(u => u.role === 'MANAGER').length;
+    
+    // Count total residents across all houses
+    const totalResidents = area.house.reduce((sum, h) => sum + h.residents.length, 0);
+
+    return {
+      id: area.id,
+      name: area.name,
+      _count: {
+        coordinators: coordinatorCount,
+        houses: area._count.house,
+      },
+      managers: managerCount,
+      totalResidents: totalResidents
+    };
+  });
 
   return <AdminAreasClient areas={areasWithStats} />;
 }

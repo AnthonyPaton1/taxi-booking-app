@@ -1,3 +1,4 @@
+//api/manager/invoices/monthly/route.js
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
@@ -14,15 +15,19 @@ export async function POST(request) {
     }
 
     // Check if user is a manager
-    const manager = await prisma.manager.findUnique({
-      where: { userId: session.user.id },
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
       include: {
         business: true
       }
     });
 
-    if (!manager) {
+    if (!user || user.role !== 'MANAGER') {
       return NextResponse.json({ error: 'Manager access required' }, { status: 403 });
+    }
+
+    if (!user.businessId) {
+      return NextResponse.json({ error: 'No business associated with this manager' }, { status: 400 });
     }
 
     const { month, year } = await request.json();
@@ -43,7 +48,7 @@ export async function POST(request) {
     // Fetch completed advanced bookings for this business in the specified month
     const advancedBookings = await prisma.advancedBooking.findMany({
       where: {
-        businessId: manager.businessId,
+        businessId: user.businessId,
         pickupTime: {
           gte: startDate,
           lte: endDate
@@ -51,7 +56,7 @@ export async function POST(request) {
         status: 'COMPLETED'
       },
       include: {
-        winningBid: {
+        acceptedBid: {
           include: {
             driver: {
               include: {
@@ -69,7 +74,7 @@ export async function POST(request) {
     // Fetch completed instant bookings for this business in the specified month
     const instantBookings = await prisma.instantBooking.findMany({
       where: {
-        businessId: manager.businessId,
+        businessId: user.businessId,
         pickupTime: {
           gte: startDate,
           lte: endDate
@@ -77,7 +82,7 @@ export async function POST(request) {
         status: 'COMPLETED'
       },
       include: {
-        acceptedDriver: {
+        driver: {
           include: {
             user: true
           }
@@ -88,43 +93,65 @@ export async function POST(request) {
       }
     });
 
-    // Combine and normalize bookings
-    const allBookings = [
-      ...advancedBookings.map(booking => ({
-        id: booking.id,
-        type: 'ADVANCED',
-        pickupTime: booking.pickupTime,
-        pickupLocation: booking.pickupLocation,
-        dropoffLocation: booking.dropoffLocation,
-        residentInitials: booking.residentInitials,
-        amountCents: booking.winningBid?.amountCents || 0,
-        driverName: booking.winningBid?.driver?.user?.name || 'N/A'
-      })),
-      ...instantBookings.map(booking => ({
-        id: booking.id,
-        type: 'INSTANT',
-        pickupTime: booking.pickupTime,
-        pickupLocation: booking.pickupLocation,
-        dropoffLocation: booking.dropoffLocation,
-        residentInitials: booking.residentInitials,
-        amountCents: booking.finalAmountCents || 0,
-        driverName: booking.acceptedDriver?.user?.name || 'N/A'
-      }))
-    ].sort((a, b) => a.pickupTime.getTime() - b.pickupTime.getTime());
+    // Process bookings and split costs across residents
+    const allBookingItems = [];
 
-    if (allBookings.length === 0) {
+    // Process advanced bookings
+    for (const booking of advancedBookings) {
+      const totalCost = booking.acceptedBid?.amountCents || 0;
+      const initialsArray = booking.initials || [];
+      const costPerPerson = initialsArray.length > 0 ? totalCost / initialsArray.length : totalCost;
+      
+      for (const initial of initialsArray) {
+        allBookingItems.push({
+          residentInitials: initial,
+          pickupTime: booking.pickupTime,
+          pickupLocation: booking.pickupLocation,
+          dropoffLocation: booking.dropoffLocation,
+          amountCents: Math.round(costPerPerson),
+          rideType: 'Advanced',
+          driverName: booking.acceptedBid?.driver?.user?.name || 'N/A',
+          sharedWith: initialsArray.length > 1 ? initialsArray.length : null
+        });
+      }
+    }
+
+    // Process instant bookings
+    for (const booking of instantBookings) {
+      const totalCost = booking.finalCostPence || 0;
+      const initialsArray = booking.initials || [];
+      const costPerPerson = initialsArray.length > 0 ? totalCost / initialsArray.length : totalCost;
+      
+      for (const initial of initialsArray) {
+        allBookingItems.push({
+          residentInitials: initial,
+          pickupTime: booking.pickupTime,
+          pickupLocation: booking.pickupLocation,
+          dropoffLocation: booking.dropoffLocation,
+          amountCents: Math.round(costPerPerson),
+          rideType: 'Instant',
+          driverName: booking.driver?.user?.name || 'N/A',
+          sharedWith: initialsArray.length > 1 ? initialsArray.length : null
+        });
+      }
+    }
+
+    // Sort all items by pickup time
+    allBookingItems.sort((a, b) => a.pickupTime.getTime() - b.pickupTime.getTime());
+
+    if (allBookingItems.length === 0) {
       return NextResponse.json({ 
         error: 'No completed bookings found for this period' 
       }, { status: 404 });
     }
 
-    // Group bookings by resident
-    const bookingsByResident = allBookings.reduce((acc, booking) => {
-      const key = booking.residentInitials || 'Unknown';
+    // Group by resident
+    const bookingsByResident = allBookingItems.reduce((acc, item) => {
+      const key = item.residentInitials || 'Unknown';
       if (!acc[key]) {
         acc[key] = [];
       }
-      acc[key].push(booking);
+      acc[key].push(item);
       return acc;
     }, {});
 
@@ -137,7 +164,7 @@ export async function POST(request) {
         pickupLocation: booking.pickupLocation,
         dropoffLocation: booking.dropoffLocation,
         amount: booking.amountCents / 100,
-        rideType: booking.type === 'ADVANCED' ? 'Advanced' : 'Instant',
+        rideType: booking.sharedWith ? `${booking.rideType} (Shared with ${booking.sharedWith})` : booking.rideType,
         driverName: booking.driverName
       }));
 
@@ -145,7 +172,7 @@ export async function POST(request) {
       const vat = subtotal * 0.2;
       const total = subtotal + vat;
 
-      const invoiceNumber = `INV-${year}${String(month).padStart(2, '0')}-${manager.businessId.substring(0, 8)}-${residentInitials}`;
+      const invoiceNumber = `INV-${year}${String(month).padStart(2, '0')}-${user.businessId.substring(0, 8)}-${residentInitials}`;
       
       const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
                           'July', 'August', 'September', 'October', 'November', 'December'];
@@ -154,8 +181,8 @@ export async function POST(request) {
         invoiceNumber,
         residentName: residentInitials,
         residentInitials,
-        businessName: manager.business.name,
-        businessAddress: manager.business.address || 'Address on file',
+        businessName: user.business.name,
+        businessAddress: user.business.address || 'Address on file',
         month: monthNames[month - 1],
         year: String(year),
         items,

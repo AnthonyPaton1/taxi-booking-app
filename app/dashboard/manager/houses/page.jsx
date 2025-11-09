@@ -16,6 +16,10 @@ export default async function HousesManagementPage() {
     where: { email: session.user.email },
     include: {
       houses: {
+                where: {
+          deletedAt: null, 
+        },
+
         include: {
           area: true,
           residents: {
@@ -25,7 +29,7 @@ export default async function HousesManagementPage() {
           },
         },
         orderBy: {
-          label: "asc",  // ✅ Changed from 'name' to 'label'
+          label: "asc",  
         },
       },
     },
@@ -51,6 +55,7 @@ export default async function HousesManagementPage() {
         prisma.advancedBooking.count({
           where: {
             createdById: user.id,
+            
           },
         }),
       ]);

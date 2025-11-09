@@ -54,28 +54,28 @@ export default function PendingBidsClient({ bookings, totalBids }) {
     setAcceptingBid(bidId);
 
     try {
-      const res = await fetch("/api/bookings/accept-bid", {
+      const res = await fetch("/api/bookings/[id]/accept-bid", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ bookingId, bidId }),
       });
 
-      const data = await res.json();
+    const data = await res.json();
 
-      if (data.success) {
-        setStatus("✅ Bid accepted! Driver has been assigned.");
-        setTimeout(() => {
-          router.refresh();
-        }, 1500);
-      } else {
-        setStatus("❌ Failed to accept bid: " + data.error);
-      }
-    } catch (err) {
-      console.error("Error accepting bid:", err);
-      setStatus("❌ Something went wrong.");
-    } finally {
-      setAcceptingBid(null);
+    if (!data.success) {
+      throw new Error(data.error || "Failed to accept bid");
     }
+
+    
+    router.push("/dashboard/manager/bookings");
+    router.refresh();
+    
+  } catch (error) {
+    alert(`Error: ${error.message}`);
+    setStatus("error");
+  } finally {
+    setAcceptingBid(null);
+  }
   };
 
   return (

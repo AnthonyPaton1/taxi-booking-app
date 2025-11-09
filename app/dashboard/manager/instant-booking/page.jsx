@@ -16,6 +16,9 @@ export default async function InstantBookingPage() {
     where: { email: session.user.email },
     include: {
       houses: {
+        where: {
+          deletedAt: null, 
+        },
         include: {
           residents: {
             orderBy: {

@@ -466,7 +466,7 @@ model AdvancedBooking {
    pickupLatitude  Float?     
   pickupLongitude Float?    
   dropoffLocation String
-   dropoffLatitude  Float?  
+  dropoffLatitude  Float?  
   dropoffLongitude Float? 
   initials        String[]
   passengerCount    Int

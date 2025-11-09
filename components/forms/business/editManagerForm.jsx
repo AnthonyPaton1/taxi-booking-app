@@ -30,7 +30,8 @@ export default function EditManagerForm({ manager, coordinatorAreaId }) {
     setError("");
 
     try {
-      const response = await fetch(`/api/managers/${manager.id}`, {
+      // Use coordinator API endpoint
+      const response = await fetch(`/api/coordinator/${manager.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -58,7 +59,8 @@ export default function EditManagerForm({ manager, coordinatorAreaId }) {
     setError("");
 
     try {
-      const response = await fetch(`/api/managers/${manager.id}`, {
+      // Use coordinator API endpoint
+      const response = await fetch(`/api/coordinator/${manager.id}/delete`, {
         method: "DELETE",
       });
 

@@ -12,7 +12,7 @@ export default async function AddResidentPage({ params }) {
     redirect("/login");
   }
 
-  const { id: houseId } = params;
+  const { id: houseId } = await params;
 
   // Get the house and verify the manager owns it
   const user = await prisma.user.findUnique({

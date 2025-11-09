@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/authOptions";
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import EditResidentForm from "@/components/forms/business/editResidentForm";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 export default async function EditResidentPage({ params }) {
   const session = await getServerSession(authOptions);
@@ -21,7 +23,9 @@ export default async function EditResidentPage({ params }) {
 
   // Get the house and verify ownership
   const house = await prisma.house.findUnique({
-    where: { id: houseId },
+    where: { 
+      id: houseId,
+    },
     include: {
       residents: {
         select: {
@@ -33,7 +37,7 @@ export default async function EditResidentPage({ params }) {
     },
   });
 
-  if (!house || house.managerId !== user.id) {
+  if (!house || house.managerId !== user.id || house.deletedAt !== null) {
     notFound();
   }
 
@@ -49,6 +53,15 @@ export default async function EditResidentPage({ params }) {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-2xl mx-auto px-4">
+        <div className="flex items-center gap-4 mb-6">
+          <Link
+            href={`/dashboard/manager/houses/${houseId}`}
+            className="flex items-center text-gray-600 hover:text-gray-900"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Back to House
+          </Link>
+        </div>
         <EditResidentForm house={house} resident={resident} />
       </div>
     </div>

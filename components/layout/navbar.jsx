@@ -14,6 +14,7 @@ const Navbar = () => {
   function getDashboardLink(role) {
     switch (role) {
       case "SUPER_ADMIN":
+        return "/dashboard/super-admin";
       case "ADMIN":
         return "/dashboard/admin";
       case "COORDINATOR":

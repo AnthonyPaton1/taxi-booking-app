@@ -54,9 +54,13 @@ export default async function CoordinatorDashboardPage() {
     where: {
       role: "MANAGER",
       areaId: user.areaId,
+      deletedAt: null, // ✅ Only show active managers
     },
     include: {
       houses: {
+        where: {
+          deletedAt: null // ✅ Only show active houses
+        },
         include: {
           residents: true,
         },
@@ -77,6 +81,7 @@ export default async function CoordinatorDashboardPage() {
       where: {
         house: {
           areaId: user.areaId,
+          deletedAt: null, // ✅ Only count incidents for active houses
         },
       },
     }),

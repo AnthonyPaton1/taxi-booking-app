@@ -42,10 +42,13 @@ export async function POST(req) {
     // Get the user's business
     const manager = await prisma.user.findUnique({
       where: { email: session.user.email },
-      include: { managerProfile: true },
+      select: { 
+        id: true,
+        businessId: true,
+      },
     });
 
-    if (!manager?.managerProfile?.businessId) {
+    if (!manager?.businessId) {
       return NextResponse.json(
         { error: "Manager profile not found" },
         { status: 404 }
@@ -55,7 +58,7 @@ export async function POST(req) {
     // Create the booking
     const booking = await prisma.advancedBooking.create({
       data: {
-        businessId: manager.managerProfile.businessId,
+        businessId: manager.businessId,
         pickupLocation: data.pickupLocation,
         pickupPostcode: data.pickupPostcode,
         dropoffLocation: data.dropoffLocation,

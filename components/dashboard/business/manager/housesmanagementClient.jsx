@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+
 import {
   ArrowLeft,
   Home,
@@ -12,13 +14,71 @@ import {
   Edit,
   Trash2,
   ChevronRight,
+  Loader2,
 } from "lucide-react";
 
 export default function HousesManagementClient({ houses, userName }) {
+  const router = useRouter();
   const [expandedHouseId, setExpandedHouseId] = useState(null);
+  const [deletingResidentId, setDeletingResidentId] = useState(null);
+  const [deletingHouseId, setDeletingHouseId] = useState(null);
 
   const toggleHouse = (houseId) => {
     setExpandedHouseId(expandedHouseId === houseId ? null : houseId);
+  };
+
+  const handleDeleteResident = async (residentId, residentName) => {
+    if (!confirm(`Delete ${residentName}? This action cannot be undone.`)) {
+      return;
+    }
+
+    setDeletingResidentId(residentId);
+
+    try {
+      const response = await fetch(`/api/residents/${residentId}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to delete resident");
+      }
+
+      // Success - refresh page
+      router.refresh();
+    } catch (error) {
+      alert(`Error: ${error.message}`);
+    } finally {
+      setDeletingResidentId(null);
+    }
+  };
+
+  const handleDeleteHouse = async (houseId, houseName) => {
+    if (!confirm(`Delete ${houseName}? The house will be soft-deleted and can be reclaimed later if needed.`)) {
+      return;
+    }
+
+    setDeletingHouseId(houseId);
+
+    try {
+      const response = await fetch(`/api/manager/houses/${houseId}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to delete house");
+      }
+
+      // Success - refresh page
+      router.refresh();
+    } catch (error) {
+      alert(`Error: ${error.message}`);
+    } finally {
+      setDeletingHouseId(null);
+    }
   };
 
   return (
@@ -88,7 +148,7 @@ export default function HousesManagementClient({ houses, userName }) {
                       <div className="flex items-center gap-3 mb-3">
                         <Home className="w-6 h-6 text-blue-600" />
                         <h3 className="text-2xl font-bold text-gray-900">
-                          {house.name}
+                          {house.label}
                         </h3>
                       </div>
 
@@ -132,12 +192,21 @@ export default function HousesManagementClient({ houses, userName }) {
                     {/* Action Buttons */}
                     <div className="flex gap-2">
                       <Link
-                        href={`/dashboard/manager/houses/${house.id}/residents/edit`}
+                        href={`/dashboard/manager/houses/${house.id}/edit`}
                         className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
                         title="Edit house"
                       >
                         <Edit className="w-5 h-5" />
                       </Link>
+                      {house.residents.length === 0 && (
+                        <button
+                          onClick={() => handleDeleteHouse(house.id, house.label)}
+                          className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                          title="Delete house"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      )}
                       <button
                         onClick={() => toggleHouse(house.id)}
                         className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
@@ -196,11 +265,9 @@ export default function HousesManagementClient({ houses, userName }) {
                                 <p className="font-semibold text-gray-900">
                                   {resident.name}
                                 </p>
-                                {resident.roomNumber && (
-                                  <p className="text-sm text-gray-600 mt-1">
-                                    Room {resident.roomNumber}
-                                  </p>
-                                )}
+                                <p className="text-sm text-gray-600 mt-1">
+                                  {resident.initials}
+                                </p>
                               </div>
                               <div className="flex gap-1">
                                 <Link
@@ -211,20 +278,16 @@ export default function HousesManagementClient({ houses, userName }) {
                                   <Edit className="w-4 h-4" />
                                 </Link>
                                 <button
-                                  onClick={() => {
-                                    if (
-                                      confirm(
-                                        `Delete ${resident.name}? This will also delete all their bookings.`
-                                      )
-                                    ) {
-                                      // TODO: Implement delete
-                                      console.log("Delete resident:", resident.id);
-                                    }
-                                  }}
-                                  className="p-1 text-gray-500 hover:text-red-600 rounded"
+                                  onClick={() => handleDeleteResident(resident.id, resident.name)}
+                                  disabled={deletingResidentId === resident.id}
+                                  className="p-1 text-gray-500 hover:text-red-600 rounded disabled:opacity-50"
                                   title="Delete resident"
                                 >
-                                  <Trash2 className="w-4 h-4" />
+                                  {deletingResidentId === resident.id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="w-4 h-4" />
+                                  )}
                                 </button>
                               </div>
                             </div>
