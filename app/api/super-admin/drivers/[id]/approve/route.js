@@ -1,7 +1,10 @@
+//api/super-admin/drivers/[id]/approve
+
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
 import { prisma } from '@/lib/db';
+import { invalidateDriverCache } from '@/lib/matching/cached-matching-algorithm';
 
 export async function POST(request, { params }) {
   try {
@@ -64,6 +67,7 @@ export async function POST(request, { params }) {
         }
       }
     });
+    await invalidateDriverCache(updatedDriver.id);
 
     // TODO: Send approval email to driver
     // await sendDriverApprovalEmail(updatedDriver.user.email, updatedDriver.user.name);

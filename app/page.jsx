@@ -6,12 +6,13 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import WaitlistForm from "@/components/forms/WaitListForm";
 import FaqSection from "@/components/layout/FrequentlyAskedQuestion";
 import {
-  ScrollText,
+  
   Gavel,
   CalendarDays,
   LayoutDashboard,
   SlidersHorizontal,
   UserCheck,
+  Accessibility,
 } from "lucide-react";
 import InfoBoxes from "@/components/layout/InfoBoxes";
 
@@ -54,7 +55,7 @@ const HomePage = () => {
         How It Works
       </h2>
       <p className="text-gray-900 text-lg max-w-3xl mx-auto">
-        NEAT connects care companies with qualified accessible transport drivers through a simple, transparent platform.
+        NEAT connects care homes, schools, councils, and individuals with qualified accessible transport drivers through a simple, transparent platform.
       </p>
     </div>
 
@@ -67,7 +68,7 @@ const HomePage = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          Book journeys 48+ hours ahead with competitive driver bidding, or use Instant Bookings for urgent transport needs within 48 hours.
+          Book journeys 48+ hours ahead with competitive driver bidding, or use Instant Bookings for urgent transport needs within 48 hours. Perfect for regular appointments or last-minute trips.
         </CardContent>
       </Card>
 
@@ -75,35 +76,23 @@ const HomePage = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-blue-800">
             <Gavel size={20} />
-            Transparent Bidding
+            Transparent Pricing
           </CardTitle>
         </CardHeader>
         <CardContent>
-          For advanced bookings, qualified drivers submit competitive bids. You compare prices, ratings, and vehicle types to choose the best fit for your residents.
+          For advanced bookings, qualified drivers submit competitive bids. Compare prices, ratings, and vehicle types to choose the best fit for your needs. No hidden fees, no surprises.
         </CardContent>
       </Card>
 
       <Card className="hover:shadow-xl transition-shadow duration-300">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-blue-800">
-            <LayoutDashboard size={20} />
-            Role-Based Dashboards
+            <Accessibility size={20} />
+            Accessible Transport Guaranteed
           </CardTitle>
         </CardHeader>
         <CardContent>
-          Admins oversee everything, coordinators manage areas, managers book for their houses, and drivers see available jobs — everyone gets the right view.
-        </CardContent>
-      </Card>
-
-      <Card className="hover:shadow-xl transition-shadow duration-300">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-blue-800">
-            <ScrollText size={20} />
-            Full Audit Trails
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          Every booking, bid, and incident is logged with timestamps and user details. CQC-compliant records are always ready for inspection.
+          Every driver is verified for accessibility features — wheelchair access, hoists, ramps, and more. Match your specific mobility needs with the right vehicle and driver.
         </CardContent>
       </Card>
 
@@ -115,7 +104,19 @@ const HomePage = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          All drivers are verified directly through their local council — checking DBS status, licenses, and insurance. No fake credentials, no document hassles.
+          All drivers are verified directly through their local council — checking DBS status, licenses, and insurance. Travel with confidence knowing every driver is fully vetted.
+        </CardContent>
+      </Card>
+
+      <Card className="hover:shadow-xl transition-shadow duration-300">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-blue-800">
+            <LayoutDashboard size={20} />
+            Simple Dashboard Management
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          Whether you're managing transport for a care home, school, or booking for yourself, our intuitive dashboard makes scheduling, tracking, and managing trips effortless.
         </CardContent>
       </Card>
 
@@ -127,12 +128,12 @@ const HomePage = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          Choose your drivers, set your budgets, and specify accessibility needs. NEAT gives you transparency and control without the middleman markup.
+          Choose your drivers, set your preferences, and specify accessibility needs. NEAT gives you transparency and control — whether booking for one person or managing an entire organization.
         </CardContent>
       </Card>
     </Cards>
-    </div>
-    </section>
+  </div>
+</section>
 
 
 

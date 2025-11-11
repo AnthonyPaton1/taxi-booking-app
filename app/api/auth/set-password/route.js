@@ -2,7 +2,7 @@
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
-import { rateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limit";
+import { rateLimit, getClientIp, RATE_LIMITS } from "@/lib/rateLimit";
 
 export async function POST(req) {
   try {

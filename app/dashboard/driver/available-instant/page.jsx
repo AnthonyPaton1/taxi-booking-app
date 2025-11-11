@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import AvailableInstantBookingsClient from "@/components/dashboard/driver/AvailableInstantBookingsClient";
-import { matchDriverToBookings } from "@/lib/matching/bookingMatcher";
+import { matchDriverToBookingsCached } from "@/lib/matching/cached-matching-algorithm";
 
 export default async function AvailableInstantBookingsPage() {
   const session = await getServerSession(authOptions);
@@ -81,7 +81,7 @@ const bookingsWithCoords = availableBookings
   }));
 
   // Match driver to bookings using the algorithm
-  const matches = matchDriverToBookings(driver, bookingsWithCoords);
+  const matches = matchDriverToBookingsCached(driver, bookingsWithCoords);
 
   // Format matches for the client component
   const matchedBookings = matches.map(match => ({

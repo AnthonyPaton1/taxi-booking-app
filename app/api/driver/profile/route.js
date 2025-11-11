@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
-
+import { invalidateDriverCache } from '@/lib/matching/cached-matching-algorithm';
 // Move geocoding function outside the handler
 async function geocodePostcode(postcode) {
   try {
@@ -154,6 +154,7 @@ export async function PATCH(request) {
         ...coordinates,                     // ✅ Spread geocoded coordinates
       },
     });
+    
 
     // Update accessibility profile
     await prisma.accessibilityProfile.update({
@@ -179,6 +180,7 @@ export async function PATCH(request) {
         },
       });
     }
+    await invalidateDriverCache(user.driver.id);
 
     return NextResponse.json({
       success: true,

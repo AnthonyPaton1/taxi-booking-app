@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import AvailableAdvancedBookingsClient from "@/components/dashboard/driver/AvailableAdvancedBookingsClient";
-import { matchDriverToBookings } from "@/lib/matching/bookingMatcher";
+import { matchDriverToBookingsCached } from "@/lib/matching/cached-matching-algorithm";
 
 export default async function AvailableAdvancedBookingsPage() {
   const session = await getServerSession(authOptions);
@@ -102,7 +102,7 @@ export default async function AvailableAdvancedBookingsPage() {
   }));
 
   // Match driver to bookings using the algorithm
-  const matches = matchDriverToBookings(driver, bookingsWithCoords);
+  const matches = matchDriverToBookingsCached(driver, bookingsWithCoords);
   console.log('=== DRIVER AVAILABLE ADVANCED DEBUG ===');
 console.log('Total available bookings:', availableBookings.length);
 console.log('Bookings with coords:', bookingsWithCoords.length);

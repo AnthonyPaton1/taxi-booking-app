@@ -4,7 +4,7 @@
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
-import { matchDriverToBookings } from "@/lib/matching/enhanced-matching-algorithm";
+import { matchDriverToBookingsCached } from "@/lib/matching/cached-matching-algorithm";
 
 
 /**
@@ -181,7 +181,7 @@ export async function getAvailableInstantBookings() {
 
 
     // Run matching algorithm
-    const matches = matchDriverToBookings(driver, bookingsWithCoords);
+    const matches = matchDriverToBookingsCached(driver, bookingsWithCoords);
 
     // Return only matched bookings
     const matchedBookings = matches.map(match => match.booking);

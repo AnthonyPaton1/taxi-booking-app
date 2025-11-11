@@ -1,4 +1,4 @@
-//app/api/auth/[...nextauth]/route.js
+// app/api/auth/[...nextauth]/route.js
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -6,6 +6,8 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import EmailProvider from "next-auth/providers/email";
+import { headers } from "next/headers";
+import { simpleRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
 
 function getDashboardByRole(role) {
   switch (role) {
@@ -23,6 +25,16 @@ function getDashboardByRole(role) {
     default:
       return "/dashboard/public";
   }
+}
+
+// Helper to get client IP
+async function getClientIp() {
+  const headersList = await headers();
+  const forwarded = headersList.get('x-forwarded-for');
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
+  }
+  return headersList.get('x-real-ip') || 'unknown';
 }
 
 export const authOptions = {
@@ -45,6 +57,18 @@ export const authOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+        // ✅ RATE LIMITING - Check before attempting login
+        const ip = await getClientIp();
+        const rateLimitResult = await simpleRateLimit(
+          `login:${ip}`,
+          RATE_LIMITS.auth.maxRequests,
+          RATE_LIMITS.auth.windowSeconds
+        );
+
+        if (!rateLimitResult.success) {
+          throw new Error("Too many login attempts. Please try again in 15 minutes.");
+        }
+
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Missing email or password");
         }
@@ -54,22 +78,35 @@ export const authOptions = {
         });
 
         if (!user || !user.password) {
+          // ✅ Track failed attempt
+          await simpleRateLimit(
+            `failed-login:${ip}:${credentials.email}`,
+            3,
+            900 // 15 minutes
+          );
           throw new Error("Invalid credentials");
         }
 
         const isValid = await bcrypt.compare(credentials.password, user.password);
         if (!isValid) {
+          // ✅ Track failed attempt per email
+          await simpleRateLimit(
+            `failed-login:${ip}:${credentials.email}`,
+            3,
+            900
+          );
           throw new Error("Invalid credentials");
         }
 
-        console.log(process.env.EMAIL_SERVER);
+        // ✅ SUCCESSFUL LOGIN - Clear failed attempts
+        // (Optional: implement clearing logic in Redis)
 
         return {
           id: user.id,
           email: user.email,
           role: user.role,
           name: user.name,
-          businessId: user.businessId, // ✅ ADD THIS
+          businessId: user.businessId,
         };
       },
     }),
@@ -83,17 +120,17 @@ export const authOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
-        token.businessId = user.businessId; 
+        token.businessId = user.businessId;
       }
 
       if (token?.email) {
         const dbUser = await prisma.user.findUnique({
           where: { email: token.email },
-          select: { 
-            id: true, 
-            role: true, 
+          select: {
+            id: true,
+            role: true,
             driverOnboarded: true,
-            businessId: true, 
+            businessId: true,
           },
         });
 
@@ -101,7 +138,7 @@ export const authOptions = {
           token.id = dbUser.id;
           token.role = dbUser.role;
           token.driverOnboarded = dbUser.driverOnboarded;
-          token.businessId = dbUser.businessId; 
+          token.businessId = dbUser.businessId;
         }
       }
 
@@ -114,10 +151,14 @@ export const authOptions = {
         session.user.role = token.role;
         session.user.dashboardUrl = getDashboardByRole(token.role);
         session.user.driverOnboarded = Boolean(token.driverOnboarded);
-        session.user.businessId = token.businessId; 
+        session.user.businessId = token.businessId;
       }
       return session;
     },
+  },
+  pages: {
+    signIn: '/login',
+    error: '/login', // Redirect errors to login page
   },
 };
 

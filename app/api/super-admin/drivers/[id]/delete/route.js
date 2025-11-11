@@ -1,7 +1,10 @@
+//api/super-admin/drivers/[id]/delete
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
 import { prisma } from '@/lib/db';
+import { invalidateDriverCache } from '@/lib/matching/cached-matching-algorithm';
+
 
 export async function DELETE(request, { params }) {
   try {
@@ -62,6 +65,7 @@ export async function DELETE(request, { params }) {
         data: { deletedAt: new Date() }
       })
     ]);
+    await invalidateDriverCache(id);
 
     return NextResponse.json({ 
       message: 'Driver deleted successfully'

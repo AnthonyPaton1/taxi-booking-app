@@ -92,7 +92,7 @@ const faqItems = [
     id: "item-6",
     question: "How much does it cost?",
     answer:
-      "For care companies: NEAT is currently free to use. Drivers set their own rates through competitive bidding on Advanced Bookings. Payment processing will be implemented later with clear pricing announced in advance.",
+      "For care companies: NEAT is currently and always will be free to use. Drivers set their own rates through competitive bidding on Advanced Bookings. Payment processing for drivers via a subscription will be implemented later with clear pricing announced in advance.",
   },
   {
     id: "item-7",

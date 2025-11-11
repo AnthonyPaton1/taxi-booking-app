@@ -1,7 +1,9 @@
+//api/super-admin/drivers/[id]/reject
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
 import { prisma } from '@/lib/db';
+import { invalidateDriverCache } from '@/lib/matching/cached-matching-algorithm';
 
 export async function POST(request, { params }) {
   try {
@@ -62,6 +64,7 @@ export async function POST(request, { params }) {
         }
       }
     });
+    await invalidateDriverCache(updatedDriver.id);
 
     // TODO: Send rejection email to driver
     // await sendDriverRejectionEmail(updatedDriver.user.email, updatedDriver.user.name, reason);

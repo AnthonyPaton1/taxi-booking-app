@@ -5,6 +5,7 @@ import { ManagerOnboardingSchema } from "@/lib/validators";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { z } from "zod";
+import { validateEmail, validateName, validatePostcodeUK, sanitizePlainText } from "@/lib/validation";
 
 export async function POST(req) {
   try {
@@ -13,22 +14,44 @@ export async function POST(req) {
 
     const { managerEmail, houses, area, name } = validated;
 
-    // Get or create manager
+    // ===== SANITIZE MANAGER DATA =====
+    
+    // Validate and sanitize email
+    const emailValidation = validateEmail(managerEmail);
+    if (!emailValidation.valid) {
+      return NextResponse.json({ error: emailValidation.error }, { status: 400 });
+    }
+    const sanitizedEmail = emailValidation.sanitized;
+
+    // Validate and sanitize name
+    const nameValidation = validateName(name, 'Manager name');
+    if (!nameValidation.valid) {
+      return NextResponse.json({ error: nameValidation.error }, { status: 400 });
+    }
+    const sanitizedName = nameValidation.sanitized;
+
+    // Sanitize area name
+    const sanitizedArea = sanitizePlainText(area.trim()).substring(0, 100);
+    if (sanitizedArea.length < 2) {
+      return NextResponse.json({ error: "Area name must be at least 2 characters" }, { status: 400 });
+    }
+
+    // Get or create manager with sanitized data
     const managerUser = await prisma.user.upsert({
-      where: { email: managerEmail },
-      update: { name, role: "MANAGER" },
+      where: { email: sanitizedEmail },
+      update: { name: sanitizedName, role: "MANAGER" },
       create: {
-        email: managerEmail,
-        name,
+        email: sanitizedEmail,
+        name: sanitizedName,
         role: "MANAGER",
       },
     });
 
-    // ✅ CREATE OR GET AREA (fallback if not created upstream)
+    // CREATE OR GET AREA (with sanitized name)
     const areaRecord = await prisma.area.upsert({
-      where: { name: area.trim() },
+      where: { name: sanitizedArea },
       update: {},
-      create: { name: area.trim() },
+      create: { name: sanitizedArea },
     });
 
     // Get coordinator from session
@@ -44,7 +67,7 @@ export async function POST(req) {
 
     const businessId = coordinator.business.id;
 
-    //  NEW: Create BusinessMembership for the manager
+    // Create BusinessMembership for the manager
     await prisma.businessMembership.upsert({
       where: {
         userId_businessId: {
@@ -62,55 +85,81 @@ export async function POST(req) {
       },
     });
 
-    // Create or reclaim houses (tender change scenario)
+    // Create or reclaim houses (with sanitized data)
     for (const house of houses) {
-      // Check if this address was previously deleted (tender lost scenario)
+      // ===== SANITIZE HOUSE DATA =====
+      
+      // Sanitize house label
+      const sanitizedLabel = sanitizePlainText(house.label).substring(0, 200);
+      if (sanitizedLabel.length < 2) {
+        console.error(`❌ Invalid house label: ${house.label}`);
+        continue; // Skip this house
+      }
+
+      // Sanitize address fields
+      const sanitizedLine1 = sanitizePlainText(house.line1).substring(0, 200);
+      const sanitizedCity = sanitizePlainText(house.city).substring(0, 100);
+      
+      // Validate and sanitize postcode
+      const postcodeValidation = validatePostcodeUK(house.postcode);
+      if (!postcodeValidation.valid) {
+        console.error(`❌ Invalid postcode for house ${house.label}: ${house.postcode}`);
+        continue;
+      }
+      const sanitizedPostcode = postcodeValidation.sanitized;
+
+      // Sanitize notes (optional)
+      let sanitizedNotes = null;
+      if (house.notes) {
+        sanitizedNotes = sanitizePlainText(house.notes).substring(0, 500);
+      }
+
+      // Validate coordinates
+      const lat = parseFloat(house.lat);
+      const lng = parseFloat(house.lng);
+      if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        console.error(`❌ Invalid coordinates for house ${house.label}`);
+        continue;
+      }
+
+      // Check if this address was previously deleted
       const deletedHouse = await prisma.house.findFirst({
         where: {
-          postcode: house.postcode,
-          line1: house.line1,
-          deletedAt: { not: null }, // Find soft-deleted houses
+          postcode: sanitizedPostcode,
+          line1: sanitizedLine1,
+          deletedAt: { not: null },
         },
       });
 
       if (deletedHouse) {
-        // 🔄 RECLAIM: Restore and reassign to new business
-        console.log(`🔄 Reclaiming house: ${house.label} at ${house.line1} (tender changed hands)`);
+        // RECLAIM: Restore and reassign to new business
+        console.log(`🔄 Reclaiming house: ${sanitizedLabel} at ${sanitizedLine1}`);
         
         await prisma.house.update({
           where: { id: deletedHouse.id },
           data: {
-            // Restore from soft delete
             deletedAt: null,
-            
-            // Reassign to new business/manager/area
             businessId: businessId,
             managerId: managerUser.id,
             areaId: areaRecord.id,
-            
-            // Update with new data (name might change under new management)
-            label: house.label,
-            city: house.city,
-            notes: house.notes || null,
-            
-            // Update coordinates if provided
-            lat: house.lat,
-            lng: house.lng,
-            
-            // Keep existing internalId, pin, loginName (preserve history)
+            label: sanitizedLabel,
+            city: sanitizedCity,
+            notes: sanitizedNotes,
+            lat: lat,
+            lng: lng,
           },
         });
       } else {
-        // ✨ CREATE NEW: No deleted house found at this address
+        // CREATE NEW house with sanitized data
         await prisma.house.create({
           data: {
-            label: house.label,           
-            line1: house.line1,           
-            city: house.city,             
-            postcode: house.postcode,     
-            notes: house.notes || null,   
-            lat: house.lat,               
-            lng: house.lng,               
+            label: sanitizedLabel,
+            line1: sanitizedLine1,
+            city: sanitizedCity,
+            postcode: sanitizedPostcode,
+            notes: sanitizedNotes,
+            lat: lat,
+            lng: lng,
             internalId: `house-${Math.random().toString(36).slice(2, 8)}`,
             pin: Math.floor(1000 + Math.random() * 9000).toString(),
             loginName: `login-${Math.random().toString(36).slice(2, 6)}`,

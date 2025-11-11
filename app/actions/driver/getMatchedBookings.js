@@ -4,7 +4,7 @@
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
-import { matchDriverToBookings } from "@/lib/matching/bookingMatcher";
+import { matchDriverToBookingsCached } from "@/lib/matching/bookingMatcher";
 
 /**
  * Get all available advanced bookings that match this driver's capabilities
@@ -78,7 +78,7 @@ export async function getMatchedAdvancedBookingsForDriver() {
     }));
 
     // 3. Match driver to bookings using the algorithm
-    const matches = matchDriverToBookings(driver, bookingsWithCoords, {
+    const matches = matchDriverToBookingsCached(driver, bookingsWithCoords, {
       maxDistance: driver.radiusMiles,
     });
 
@@ -183,7 +183,7 @@ export async function getMatchedInstantBookingsForDriver() {
     }));
 
     // Match driver to instant bookings
-    const matches = matchDriverToBookings(driver, bookingsWithCoords);
+    const matches = matchDriverToBookingsCached(driver, bookingsWithCoords);
 
     const formattedMatches = matches.map(match => ({
       booking: {

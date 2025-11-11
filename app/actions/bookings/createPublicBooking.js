@@ -4,6 +4,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/db";
+import { sanitizeBookingData } from "@/lib/validation";
 
 export async function createPublicBooking(formData) {
   try {
@@ -14,73 +15,81 @@ export async function createPublicBooking(formData) {
       return { success: false, error: "Not authenticated" };
     }
 
+    // ===== INPUT SANITIZATION & VALIDATION =====
+    let sanitizedData;
+    try {
+      sanitizedData = sanitizeBookingData(formData);
+    } catch (validationError) {
+      return { success: false, error: validationError.message };
+    }
+
     // 2. Validate required fields
-    if (!formData.pickupLocation || !formData.dropoffLocation) {
+    if (!sanitizedData.pickupLocation || !sanitizedData.dropoffLocation) {
       return { success: false, error: "Missing pickup or dropoff location" };
     }
 
     // 3. Normalize times
-    const pickupTime = new Date(formData.pickupTime);
+    const pickupTime = new Date(sanitizedData.pickupTime);
     if (isNaN(pickupTime.getTime())) {
       return { success: false, error: "Invalid pickup time" };
     }
 
-    const returnTime = formData.returnTime
-      ? new Date(formData.returnTime)
+    const returnTime = sanitizedData.returnTime
+      ? new Date(sanitizedData.returnTime)
       : null;
 
     // 4. Decide booking type (INSTANT = today, ADVANCED = future)
     const todayStr = new Date().toISOString().split("T")[0];
-    const isInstant = formData.pickupDate === todayStr;
+    const isInstant = sanitizedData.pickupDate === todayStr;
 
     // 5. Create booking in transaction
     const result = await prisma.$transaction(async (tx) => {
-      // Step 1: Create AccessibilityProfile
+      // Step 1: Create AccessibilityProfile (using sanitized data)
       const accessibilityProfile = await tx.accessibilityProfile.create({
         data: {
           // Mobility
-          wheelchairAccess: formData.wheelchairAccess || false,
-          doubleWheelchairAccess: formData.doubleWheelchairAccess || false,
-          highRoof: formData.highRoof || false,
-          seatTransferHelp: formData.seatTransferHelp || false,
-          mobilityAidStorage: formData.mobilityAidStorage || false,
-          electricScooterStorage: formData.electricScooterStorage || false,
+          wheelchairAccess: sanitizedData.wheelchairAccess || false,
+          doubleWheelchairAccess: sanitizedData.doubleWheelchairAccess || false,
+          highRoof: sanitizedData.highRoof || false,
+          seatTransferHelp: sanitizedData.seatTransferHelp || false,
+          mobilityAidStorage: sanitizedData.mobilityAidStorage || false,
+          electricScooterStorage: sanitizedData.electricScooterStorage || false,
 
           // Passenger details
-          passengerCount: Number(formData.passengerCount) || 1,
-          wheelchairUsers: Number(formData.wheelchairUsers) || 0,
-          ageOfPassenger: formData.ageOfPassenger || null,
-          carerPresent: formData.carerPresent || false,
-          escortRequired: formData.escortRequired || false,
+          passengerCount: Number(sanitizedData.passengerCount) || 1,
+          wheelchairUsers: Number(sanitizedData.wheelchairUsers) || 0,
+          ageOfPassenger: sanitizedData.ageOfPassenger || null,
+          carerPresent: sanitizedData.carerPresent || false,
+          escortRequired: sanitizedData.escortRequired || false,
 
           // Sensory
-          quietEnvironment: formData.quietEnvironment || false,
-          noConversation: formData.noConversation || false,
-          noScents: formData.noScents || false,
-          specificMusic: formData.specificMusic || null,
-          visualSchedule: formData.visualSchedule || false,
+          quietEnvironment: sanitizedData.quietEnvironment || false,
+          noConversation: sanitizedData.noConversation || false,
+          noScents: sanitizedData.noScents || false,
+          specificMusic: sanitizedData.specificMusic || null, // SANITIZED
+          visualSchedule: sanitizedData.visualSchedule || false,
 
           // Communication
-          signLanguageRequired: formData.signLanguageRequired || false,
-          textOnlyCommunication: formData.textOnlyCommunication || false,
-          preferredLanguage: formData.preferredLanguage || null,
-          translationSupport: formData.translationSupport || false,
+          signLanguageRequired: sanitizedData.signLanguageRequired || false,
+          textOnlyCommunication: sanitizedData.textOnlyCommunication || false,
+          preferredLanguage: sanitizedData.preferredLanguage || null, // SANITIZED
+          translationSupport: sanitizedData.translationSupport || false,
 
           // Special requirements
-          assistanceRequired: formData.assistanceRequired || false,
-          assistanceAnimal: formData.assistanceAnimal || false,
-          familiarDriverOnly: formData.familiarDriverOnly || false,
-          femaleDriverOnly: formData.femaleDriverOnly || false,
-          nonWAVvehicle: formData.nonWAVvehicle || false,
+          assistanceRequired: sanitizedData.assistanceRequired || false,
+          assistanceAnimal: sanitizedData.assistanceAnimal || false,
+          familiarDriverOnly: sanitizedData.familiarDriverOnly || false,
+          femaleDriverOnly: sanitizedData.femaleDriverOnly || false,
+          nonWAVvehicle: sanitizedData.nonWAVvehicle || false,
 
           // Health
-          medicationOnBoard: formData.medicationOnBoard || false,
-          medicalConditions: formData.medicalConditions || null,
-          firstAidTrained: formData.firstAidTrained || false,
-          conditionAwareness: formData.conditionAwareness || false,
+          medicationOnBoard: sanitizedData.medicationOnBoard || false,
+          medicalConditions: sanitizedData.medicalConditions || null, // SANITIZED
+          firstAidTrained: sanitizedData.firstAidTrained || false,
+          conditionAwareness: sanitizedData.conditionAwareness || false,
 
           // Additional
-          additionalNeeds: formData.additionalNeeds || null,
+          additionalNeeds: sanitizedData.additionalNeeds || null, // SANITIZED
         },
       });
 
@@ -93,9 +102,9 @@ export async function createPublicBooking(formData) {
             createdById: session.user.id,
             pickupTime,
             returnTime,
-            pickupLocation: formData.pickupLocation,
-            dropoffLocation: formData.dropoffLocation,
-            initials: formData.initials || [], // Array of passenger initials
+            pickupLocation: sanitizedData.pickupLocation, // SANITIZED
+            dropoffLocation: sanitizedData.dropoffLocation, // SANITIZED
+            initials: sanitizedData.initials || [], // Array of passenger initials
             status: "PENDING",
             accessibilityProfileId: accessibilityProfile.id,
           },
@@ -110,9 +119,9 @@ export async function createPublicBooking(formData) {
             createdById: session.user.id,
             pickupTime,
             returnTime,
-            pickupLocation: formData.pickupLocation,
-            dropoffLocation: formData.dropoffLocation,
-            initials: formData.initials || [],
+            pickupLocation: sanitizedData.pickupLocation, // SANITIZED
+            dropoffLocation: sanitizedData.dropoffLocation, // SANITIZED
+            initials: sanitizedData.initials || [],
             status: "OPEN",
             visibility: "PUBLIC", // Public users create public bookings
             bidDeadline,

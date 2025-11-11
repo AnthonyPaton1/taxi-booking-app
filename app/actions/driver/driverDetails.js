@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/db";
 import { DriverOnboardingSchema } from "@/lib/validators";
+import { invalidateDriverCache } from '@/lib/matching/cached-matching-algorithm';
 
 export async function completeDriverOnboarding(data) {
   try {
@@ -129,6 +130,7 @@ export async function completeDriverOnboarding(data) {
 
       return driver;
     });
+    
 
     console.log("✅ Driver onboarding complete:", result.id);
 
@@ -303,6 +305,7 @@ export async function updateDriverDetails(data, driverId) {
         },
       });
     });
+    await invalidateDriverCache(result.id);
 
     console.log("✅ Driver details updated:", driverId);
 

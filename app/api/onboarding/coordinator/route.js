@@ -6,6 +6,7 @@ import { CoordinatorOnboardingSchema } from "@/lib/validators";
 import { inviteUserToLogin } from "@/app/actions/inviteUserToLogin";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { validateEmail, validateName, validatePhoneUK, sanitizePlainText } from "@/lib/validation";
 
 export async function POST(req) {
   try {
@@ -26,30 +27,91 @@ export async function POST(req) {
     for (const manager of managers) {
       console.log(`\n🔄 Processing manager: ${manager.email}`);
       
-      // CREATE OR GET THE AREA RECORD
-      let areaRecord = null;
-      if (manager.area && manager.area.trim()) {
-        areaRecord = await prisma.area.upsert({
-          where: { name: manager.area.trim() },
-          update: {},
-          create: { name: manager.area.trim() },
+      // ===== INPUT SANITIZATION & VALIDATION =====
+      
+      // Validate and sanitize email
+      const emailValidation = validateEmail(manager.email);
+      if (!emailValidation.valid) {
+        console.error(`  ❌ Invalid email: ${manager.email}`);
+        emailResults.push({
+          email: manager.email,
+          success: false,
+          error: emailValidation.error
         });
-        console.log(`  ✅ Area created/found: ${manager.area}`);
+        continue; // Skip this manager
+      }
+      const sanitizedEmail = emailValidation.sanitized;
+
+      // Validate and sanitize name
+      const nameValidation = validateName(manager.name);
+      if (!nameValidation.valid) {
+        console.error(`  ❌ Invalid name: ${manager.name}`);
+        emailResults.push({
+          email: sanitizedEmail,
+          success: false,
+          error: nameValidation.error
+        });
+        continue;
+      }
+      const sanitizedName = nameValidation.sanitized;
+
+      // Validate and sanitize phone
+      let sanitizedPhone = null;
+      if (manager.phone) {
+        const phoneValidation = validatePhoneUK(manager.phone);
+        if (!phoneValidation.valid) {
+          console.error(`  ❌ Invalid phone: ${manager.phone}`);
+          emailResults.push({
+            email: sanitizedEmail,
+            success: false,
+            error: phoneValidation.error
+          });
+          continue;
+        }
+        sanitizedPhone = phoneValidation.sanitized;
       }
 
+      // Sanitize area name
+      let sanitizedArea = null;
+      if (manager.area && manager.area.trim()) {
+        sanitizedArea = sanitizePlainText(manager.area.trim()).substring(0, 100);
+        
+        if (sanitizedArea.length < 2) {
+          console.error(`  ❌ Invalid area name: ${manager.area}`);
+          emailResults.push({
+            email: sanitizedEmail,
+            success: false,
+            error: 'Area name must be at least 2 characters'
+          });
+          continue;
+        }
+      }
+
+      // CREATE OR GET THE AREA RECORD (using sanitized area)
+      let areaRecord = null;
+      if (sanitizedArea) {
+        areaRecord = await prisma.area.upsert({
+          where: { name: sanitizedArea },
+          update: {},
+          create: { name: sanitizedArea },
+        });
+        console.log(`  ✅ Area created/found: ${sanitizedArea}`);
+      }
+
+      // Create/update user with sanitized data
       const user = await prisma.user.upsert({
-        where: { email: manager.email },
+        where: { email: sanitizedEmail },
         update: {
-          name: manager.name,
-          phone: manager.phone,
+          name: sanitizedName,
+          phone: sanitizedPhone,
           role: "MANAGER",
           businessId: companyId,
           areaId: areaRecord?.id,
         },
         create: {
-          email: manager.email,
-          name: manager.name,
-          phone: manager.phone,
+          email: sanitizedEmail,
+          name: sanitizedName,
+          phone: sanitizedPhone,
           role: "MANAGER",
           businessId: companyId,
           areaId: areaRecord?.id,
@@ -57,33 +119,32 @@ export async function POST(req) {
       });
       console.log(`  ✅ User created/updated: ${user.id}`);
 
-      // Send invitation email
-      console.log(`  📧 Sending email to: ${manager.email}`);
+      // Send invitation email (using sanitized data)
+      console.log(`  📧 Sending email to: ${sanitizedEmail}`);
       const emailResult = await inviteUserToLogin({
-        email: manager.email,
-        name: manager.name,
+        email: sanitizedEmail,
+        name: sanitizedName,
         role: "MANAGER",
       });
       
       emailResults.push({
-        email: manager.email,
+        email: sanitizedEmail,
         ...emailResult
       });
       
       if (emailResult.success) {
-        console.log(`  ✅ Email sent successfully to ${manager.email}`);
+        console.log(`  ✅ Email sent successfully to ${sanitizedEmail}`);
       } else {
-        console.error(`  ❌ Email failed for ${manager.email}:`, emailResult.error);
+        console.error(`  ❌ Email failed for ${sanitizedEmail}:`, emailResult.error);
       }
       
       // Add small delay between emails (optional, helps with rate limiting)
       if (managers.length > 1) {
         await new Promise(resolve => setTimeout(resolve, 3000));
       }
-
-      
     }
     
+    // Mark coordinator as onboarded
     await prisma.user.update({
       where: { id: coordinatorUser.id },
       data: { coordinatorOnboarded: true },

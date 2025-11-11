@@ -1,57 +1,35 @@
-// export async function inviteUserToLogin({ email, name, role }) {
-//   try {
-//     if (!email) throw new Error("Email is required");
-
-//     const user = await prisma.user.upsert({
-//       where: { email },
-//       update: { name, role },
-//       create: { email, name, role },
-//     });
-    
-//     console.log("Sending invite to:", email);
-//     console.log("Callback URL:", `${process.env.NEXTAUTH_URL}/set-password`);
-
-//     const response = await fetch(`${process.env.NEXTAUTH_URL}/api/auth/signin/email`, {
-//       method: "POST",
-//       headers: { "Content-Type": "application/x-www-form-urlencoded" },
-//       body: new URLSearchParams({
-//         callbackUrl: `${process.env.NEXTAUTH_URL}/set-password`,
-//         email,
-//       }),
-//     });
-
-//     console.log("Email API response status:", response.status);
-//     const responseText = await response.text();
-//     console.log("Email API response:", responseText);
-
-//     if (!response.ok) {
-//       throw new Error(`Email API failed: ${responseText}`);
-//     }
-
-//     return { success: true, message: `Invite sent to ${email}` };
-//   } catch (err) {
-//     console.error("Invite failed:", err);
-//     return { success: false, error: err.message };
-//   }
+//app/actions/inviteUserToLogin
 
 import { prisma } from "@/lib/db";
 import nodemailer from "nodemailer";
 import { nanoid } from "nanoid";
 import { addHours } from "date-fns";
+import { validateEmail, validateName } from "@/lib/validation";
 
 export async function inviteUserToLogin({ email, name, role }) {
   try {
-    // Validate required fields
-    if (!email) throw new Error("Email is required");
-    if (!role) throw new Error("Role is required");
+    // ===== INPUT SANITIZATION & VALIDATION =====
     
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      throw new Error("Invalid email format");
+    // Validate and sanitize email
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.valid) {
+      throw new Error(emailValidation.error);
+    }
+    const sanitizedEmail = emailValidation.sanitized;
+
+    // Validate and sanitize name (optional)
+    let sanitizedName = null;
+    if (name) {
+      const nameValidation = validateName(name);
+      if (!nameValidation.valid) {
+        throw new Error(nameValidation.error);
+      }
+      sanitizedName = nameValidation.sanitized;
     }
 
-    // Validate role is one of the expected values
+    // Validate role
+    if (!role) throw new Error("Role is required");
+    
     const validRoles = ["DRIVER", "MANAGER", "COORDINATOR", "ADMIN"];
     if (!validRoles.includes(role)) {
       throw new Error(`Invalid role. Must be one of: ${validRoles.join(", ")}`);
@@ -59,26 +37,26 @@ export async function inviteUserToLogin({ email, name, role }) {
 
     // Check if user exists and has already set a password
     const existingUser = await prisma.user.findUnique({
-      where: { email },
+      where: { email: sanitizedEmail },
       select: { id: true, password: true },
     });
 
     if (existingUser?.password) {
-      console.log("⚠️ User already has a password set:", email);
+      console.log("⚠️ User already has a password set:", sanitizedEmail);
       return { 
         success: false, 
         error: "User already has an active account. Use password reset instead." 
       };
     }
 
-    // Upsert user
+    // Upsert user with sanitized data
     const user = await prisma.user.upsert({
-      where: { email },
-      update: { name, role },
-      create: { email, name, role },
+      where: { email: sanitizedEmail },
+      update: { name: sanitizedName, role },
+      create: { email: sanitizedEmail, name: sanitizedName, role },
     });
 
-    console.log("📬 Sending direct invite to:", email);
+    console.log("📬 Sending direct invite to:", sanitizedEmail);
 
     // Delete any existing tokens for this user to prevent token reuse
     await prisma.passwordResetToken.deleteMany({
@@ -117,15 +95,16 @@ export async function inviteUserToLogin({ email, name, role }) {
       throw new Error("Email service configuration error");
     }
 
-    // Prepare email content
+    // Prepare email content (use sanitized name)
     const appName = process.env.APP_NAME || "NEAT Taxi Booking App";
     const fromEmail = process.env.EMAIL_FROM || "noreply@example.com";
+    const displayName = sanitizedName || "there";
 
     const mailOptions = {
       from: `"${appName}" <${fromEmail}>`,
-      to: email,
+      to: sanitizedEmail,
       subject: `Welcome to ${appName} - Set up your account`,
-      text: `Hi ${name || "there"},\n\nYou've been invited to join ${appName} as a ${role}.\n\nClick the link below to set your password and get started:\n\n${onboardingUrl}\n\nThis link will expire in 24 hours.\n\nIf you didn't expect this invitation, please ignore this email.\n\nBest regards,\nThe ${appName} Team`,
+      text: `Hi ${displayName},\n\nYou've been invited to join ${appName} as a ${role}.\n\nClick the link below to set your password and get started:\n\n${onboardingUrl}\n\nThis link will expire in 24 hours.\n\nIf you didn't expect this invitation, please ignore this email.\n\nBest regards,\nThe ${appName} Team`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -137,7 +116,7 @@ export async function inviteUserToLogin({ email, name, role }) {
             <div style="background-color: #f8f9fa; padding: 30px; border-radius: 10px;">
               <h1 style="color: #0070f3; margin-top: 0;">Welcome to ${appName}!</h1>
               
-              <p>Hi ${name || "there"},</p>
+              <p>Hi ${displayName},</p>
               
               <p>You've been invited to join <strong>${appName}</strong> as a <strong>${role}</strong>.</p>
               
@@ -173,7 +152,7 @@ export async function inviteUserToLogin({ email, name, role }) {
 
     return { 
       success: true, 
-      message: `Invitation sent to ${email}`,
+      message: `Invitation sent to ${sanitizedEmail}`,
       userId: user.id 
     };
     

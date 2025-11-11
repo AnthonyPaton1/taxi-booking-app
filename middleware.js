@@ -2,6 +2,8 @@
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import { roleAccess } from "@/lib/roles";
+// REMOVED: Rate limiting doesn't work in Edge Runtime
+// import { rateLimit, getClientIp } from "@/lib/rateLimit";
 
 const protectedRoutes = {
   "/dashboard/admin": roleAccess.admin,
@@ -80,6 +82,8 @@ export async function middleware(req) {
     console.log("🔍 Middleware:", pathname, "Token:", !!token, "Role:", token?.role);
   }
 
+  // NOTE: Rate limiting is now handled in individual API routes with Redis
+  // Middleware runs on Edge Runtime which doesn't support Redis/ioredis
   
   if (isApiRoute) {
     // No token = return 401 JSON (don't redirect)

@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { findMatchingDrivers } from "@/lib/matching/bookingMatcher";
+import { sanitizeBookingData, validateResidentIds } from "@/lib/validation";
 
 export async function createManagerBooking(data) {
   try {
@@ -14,24 +15,38 @@ export async function createManagerBooking(data) {
       return { success: false, error: "Unauthorized" };
     }
 
+    // ===== INPUT SANITIZATION & VALIDATION =====
+    let sanitizedData;
+    try {
+      sanitizedData = sanitizeBookingData(data);
+    } catch (validationError) {
+      return { success: false, error: validationError.message };
+    }
+
     // Validate required fields
-    if (!data.houseId || !data.residentIds || data.residentIds.length === 0) {
+    if (!sanitizedData.houseId || !sanitizedData.residentIds || sanitizedData.residentIds.length === 0) {
       return { success: false, error: "House and at least one resident are required" };
     }
 
-    if (!data.pickupTime || !data.pickupLocation || !data.dropoffLocation) {
+    // Validate resident IDs
+    const residentValidation = validateResidentIds(sanitizedData.residentIds);
+    if (!residentValidation.valid) {
+      return { success: false, error: residentValidation.error };
+    }
+
+    if (!sanitizedData.pickupTime || !sanitizedData.pickupLocation || !sanitizedData.dropoffLocation) {
       return { success: false, error: "Missing required booking details" };
     }
 
     // Verify house and residents exist
     const residents = await prisma.resident.findMany({
       where: { 
-        id: { in: data.residentIds },
-        houseId: data.houseId
+        id: { in: sanitizedData.residentIds },
+        houseId: sanitizedData.houseId
       },
     });
 
-    if (residents.length !== data.residentIds.length) {
+    if (residents.length !== sanitizedData.residentIds.length) {
       return { success: false, error: "One or more residents not found or not in selected house" };
     }
 
@@ -50,14 +65,14 @@ export async function createManagerBooking(data) {
 
     // Get house for coordinates
     const house = await prisma.house.findUnique({
-      where: { id: data.houseId },
+      where: { id: sanitizedData.houseId },
       select: {
-  line1: true,
-  city: true,
-  postcode: true,
-  lat: true,
-  lng: true,
-}
+        line1: true,
+        city: true,
+        postcode: true,
+        lat: true,
+        lng: true,
+      }
     });
 
     if (!house) {
@@ -73,89 +88,81 @@ export async function createManagerBooking(data) {
     }
 
     // Vehicle type handling with proper fallback
-    const vehicleType = data.vehicleType || 'either';
+    const vehicleType = sanitizedData.vehicleType || 'either';
     
     // If wheelchair user is checked but vehicle type is not WAV, auto-set to WAV
-    const finalVehicleType = data.wheelchairAccess && vehicleType === 'either' 
+    const finalVehicleType = sanitizedData.wheelchairAccess && vehicleType === 'either' 
       ? 'wav' 
       : vehicleType;
 
-   
-
-    // Step 1: Create AccessibilityProfile with vehicle type
+    // Step 1: Create AccessibilityProfile with vehicle type (using sanitized data)
     const accessibilityProfile = await prisma.accessibilityProfile.create({
       data: {
-        // ===== NEW: Vehicle Type =====
-        vehicleType: finalVehicleType, // 'wav', 'standard', or 'either'
+        vehicleType: finalVehicleType,
         
         // Passenger details
-        passengerCount: parseInt(data.passengerCount) || 1,
-        wheelchairUsers: parseInt(data.wheelchairUsers) || 0,
-        carerPresent: data.carerPresent || false,
-        escortRequired: data.escortRequired || false,
+        passengerCount: parseInt(sanitizedData.passengerCount) || 1,
+        wheelchairUsers: parseInt(sanitizedData.wheelchairUsers) || 0,
+        carerPresent: sanitizedData.carerPresent || false,
+        escortRequired: sanitizedData.escortRequired || false,
         
         // Mobility & Physical
-        wheelchairAccess: data.wheelchairAccess || false,
-        doubleWheelchairAccess: data.doubleWheelchairAccess || false,
-        highRoof: data.highRoof || false,
-        seatTransferHelp: data.seatTransferHelp || false,
-        mobilityAidStorage: data.mobilityAidStorage || false,
-        electricScooterStorage: data.electricScooterStorage || false,
+        wheelchairAccess: sanitizedData.wheelchairAccess || false,
+        doubleWheelchairAccess: sanitizedData.doubleWheelchairAccess || false,
+        highRoof: sanitizedData.highRoof || false,
+        seatTransferHelp: sanitizedData.seatTransferHelp || false,
+        mobilityAidStorage: sanitizedData.mobilityAidStorage || false,
+        electricScooterStorage: sanitizedData.electricScooterStorage || false,
         
         // Sensory preferences
-        quietEnvironment: data.quietEnvironment || false,
-        noConversation: data.noConversation || false,
-        noScents: data.noScents || false,
-        visualSchedule: data.visualSchedule || false,
+        quietEnvironment: sanitizedData.quietEnvironment || false,
+        noConversation: sanitizedData.noConversation || false,
+        noScents: sanitizedData.noScents || false,
+        visualSchedule: sanitizedData.visualSchedule || false,
         
         // Communication
-        signLanguageRequired: data.signLanguageRequired || false,
-        textOnlyCommunication: data.textOnlyCommunication || false,
+        signLanguageRequired: sanitizedData.signLanguageRequired || false,
+        textOnlyCommunication: sanitizedData.textOnlyCommunication || false,
         
         // Special requirements
-        assistanceRequired: data.assistanceRequired || false,
-        assistanceAnimal: data.assistanceAnimal || false,
-        familiarDriverOnly: data.familiarDriverOnly || false,
-        
-        // ===== UPDATED: Female Driver (Preference, not requirement) =====
-        femaleDriverOnly: data.femaleDriverOnly || false, // Soft preference
-        
-        nonWAVvehicle: data.nonWAVvehicle || false,
+        assistanceRequired: sanitizedData.assistanceRequired || false,
+        assistanceAnimal: sanitizedData.assistanceAnimal || false,
+        familiarDriverOnly: sanitizedData.familiarDriverOnly || false,
+        femaleDriverOnly: sanitizedData.femaleDriverOnly || false,
+        nonWAVvehicle: sanitizedData.nonWAVvehicle || false,
         
         // Health & safety
-        medicationOnBoard: data.medicationOnBoard || false,
-        firstAidTrained: data.firstAidTrained || false,
+        medicationOnBoard: sanitizedData.medicationOnBoard || false,
+        firstAidTrained: sanitizedData.firstAidTrained || false,
         
-        // Additional
-        additionalNeeds: data.additionalNeeds || null,
+        // Additional (SANITIZED)
+        additionalNeeds: sanitizedData.additionalNeeds || null,
       },
     });
-    
 
     // Step 2: Calculate bid deadline (48 hours before pickup)
-    const pickupTime = new Date(data.pickupTime);
-    const bidDeadline = new Date(pickupTime.getTime() - (48 * 60 * 60 * 1000)); // 48 hours before
+    const pickupTime = new Date(sanitizedData.pickupTime);
+    const bidDeadline = new Date(pickupTime.getTime() - (48 * 60 * 60 * 1000));
 
-    // Step 3: Create the AdvancedBooking with accessibility profile
+    // Step 3: Create the AdvancedBooking with accessibility profile (using sanitized data)
     const booking = await prisma.advancedBooking.create({
       data: {
-        status: "OPEN", // Available for bidding
+        status: "OPEN",
         
-        // ===== UPDATED: Use house coordinates for pickup =====
-        pickupLocation: data.pickupLocation,
+        // Use sanitized location strings and validated coordinates
+        pickupLocation: sanitizedData.pickupLocation,
         pickupLatitude: house.lat,   
         pickupLongitude: house.lng,  
         
-        dropoffLocation: data.dropoffLocation,
-        dropoffLatitude: data.dropoffLat,   
-        dropoffLongitude: data.dropoffLng,  
+        dropoffLocation: sanitizedData.dropoffLocation,
+        dropoffLatitude: sanitizedData.dropoffLat,   
+        dropoffLongitude: sanitizedData.dropoffLng,  
         
         pickupTime: pickupTime,
-        returnTime: data.returnTime ? new Date(data.returnTime) : null,
-        initials: residentInitials, // Array of resident initials
+        returnTime: sanitizedData.returnTime ? new Date(sanitizedData.returnTime) : null,
+        initials: residentInitials,
 
-        passengerCount: parseInt(data.passengerCount) || 1,
-
+        passengerCount: parseInt(sanitizedData.passengerCount) || 1,
         
         // Link to accessibility profile
         accessibilityProfile: {
@@ -163,7 +170,7 @@ export async function createManagerBooking(data) {
         },
         
         // Bidding settings
-        visibility: "PRIVATE_TO_COMPANY", // or "PUBLIC" if you want
+        visibility: "PRIVATE_TO_COMPANY",
         bidDeadline: bidDeadline,
         
         // Relations
@@ -172,8 +179,7 @@ export async function createManagerBooking(data) {
       },
     });
 
-
-        try {
+    try {
       const matchedDrivers = await findMatchingDrivers(booking.id);
       
       if (matchedDrivers.length > 0) {
@@ -187,7 +193,7 @@ export async function createManagerBooking(data) {
       console.error('❌ Matcher error:', matchError.message);
     }
 
-     return {
+    return {
       success: true,
       bookingId: booking.id,
       message: "Booking created successfully. Drivers can now bid.",
@@ -195,14 +201,14 @@ export async function createManagerBooking(data) {
       usedHouseCoordinates: true,
       coordinates: {
         pickup: { lat: house.lat, lng: house.lng },
-        dropoff: { lat: data.dropoffLat, lng: data.dropoffLng }
+        dropoff: { lat: sanitizedData.dropoffLat, lng: sanitizedData.dropoffLng }
       }
     };
- } catch (error) {
-  console.error("❌ Error creating manager booking:", error);
-  return { 
-    success: false, 
-    error: "Failed to create booking. Please try again." 
-  };
-}
+  } catch (error) {
+    console.error("❌ Error creating manager booking:", error);
+    return { 
+      success: false, 
+      error: "Failed to create booking. Please try again." 
+    };
+  }
 }

@@ -4,8 +4,11 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
 import Link from "next/link";
+import { useSearchParams } from 'next/navigation';
 
 export default function LoginPage() {
+  const searchParams = useSearchParams();
+  const isTimeout = searchParams.get('timeout') === 'true';
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -49,10 +52,18 @@ export default function LoginPage() {
   };
 
   return (
+    
     <main className="max-w-md mx-auto mt-20 p-8 mb-30 bg-white shadow rounded">
       <h1 className="text-xl font-bold mb-6 text-center" id="login-heading">
         Login
       </h1>
+      {isTimeout && (
+  <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+    <p className="text-yellow-800 text-sm">
+      ⏱️ Your session has expired due to inactivity. Please log in again.
+    </p>
+  </div>
+)}
 
       <form
         onSubmit={handleCredentialsLogin}

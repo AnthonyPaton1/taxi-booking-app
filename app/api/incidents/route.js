@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
+import { validateTextArea, sanitizePlainText } from "@/lib/validation";
 
 export async function POST(request) {
   try {
@@ -30,22 +31,55 @@ export async function POST(request) {
       emergency,
       witnesses,
       image,
-      houseId, // Optional - if manager reporting from house context
+      houseId,
     } = body;
 
-    // Validation
-    if (!description || !time) {
+    // ===== INPUT SANITIZATION & VALIDATION =====
+    
+    // Validate and sanitize description
+    const descriptionValidation = validateTextArea(description, 10, 2000);
+    if (!descriptionValidation.valid) {
       return NextResponse.json(
-        { success: false, error: "Description and time are required" },
+        { success: false, error: descriptionValidation.error },
+        { status: 400 }
+      );
+    }
+    const sanitizedDescription = descriptionValidation.sanitized;
+
+    // Validate time
+    if (!time) {
+      return NextResponse.json(
+        { success: false, error: "Time is required" },
         { status: 400 }
       );
     }
 
+    // Validate incident type if it's an incident
     if (type === "INCIDENT" && !incidentType) {
       return NextResponse.json(
         { success: false, error: "Incident type is required for incidents" },
         { status: 400 }
       );
+    }
+
+    // Sanitize actionsTaken (optional)
+    let sanitizedActionsTaken = null;
+    if (actionsTaken) {
+      const actionsValidation = validateTextArea(actionsTaken, 0, 1000);
+      sanitizedActionsTaken = actionsValidation.valid ? actionsValidation.sanitized : null;
+    }
+
+    // Sanitize witnesses (optional)
+    const sanitizedWitnesses = witnesses ? sanitizePlainText(witnesses).substring(0, 500) : null;
+
+    // Sanitize image URL (optional) - basic validation
+    let sanitizedImage = null;
+    if (image) {
+      const imageStr = sanitizePlainText(image).substring(0, 500);
+      // Basic URL validation
+      if (imageStr.startsWith('http://') || imageStr.startsWith('https://') || imageStr.startsWith('data:image/')) {
+        sanitizedImage = imageStr;
+      }
     }
 
     // Get user's business for linking
@@ -67,20 +101,20 @@ export async function POST(request) {
 
     // Determine if this is incident or feedback
     if (type === "INCIDENT") {
-      // Create incident record
+      // Create incident record with sanitized data
       const incident = await prisma.incident.create({
         data: {
           userId: user.id,
           businessId: user.businessId,
           houseId: houseId || null,
           type: incidentType,
-          description: description.trim(),
+          description: sanitizedDescription,
           time: new Date(time),
-          actionsTaken: actionsTaken?.trim() || null,
-          followUp: followUp || false,
-          emergency: emergency || false,
-          image: image || null,
-          evidenceUrl: witnesses || null, // Store witnesses in evidenceUrl field
+          actionsTaken: sanitizedActionsTaken,
+          followUp: Boolean(followUp),
+          emergency: Boolean(emergency),
+          image: sanitizedImage,
+          evidenceUrl: sanitizedWitnesses,
         },
       });
 
@@ -90,12 +124,12 @@ export async function POST(request) {
         message: "Incident reported successfully",
       });
     } else {
-      // Create feedback record
+      // Create feedback record with sanitized data
       const feedback = await prisma.tripFeedback.create({
         data: {
           userId: user.id,
           type: "NOTE",
-          message: description.trim(),
+          message: sanitizedDescription,
           resolved: false,
         },
       });
