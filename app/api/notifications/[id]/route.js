@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { markAsRead } from '@/lib/notifications';
+import { markAsRead } from '@/lib/notification';
 
 export async function PATCH(request, { params }) {
   try {
