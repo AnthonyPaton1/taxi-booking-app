@@ -1,4 +1,5 @@
 // app/dashboard/driver/page.jsx
+
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/db";
 import { authOptions } from "@/lib/authOptions";
@@ -18,7 +19,7 @@ const DriverOnboardingForm = dynamic(
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     ),
-    ssr: false
+    
   }
 );
 
