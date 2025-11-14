@@ -49,9 +49,9 @@ export default function ContactUs() {
         setStatus("error");
       }
     } catch (error) {
-      console.error("Error submitting form:", error);
-      setStatus("error");
-    }
+  console.error("Error creating booking:", error);
+  toast.error("Unable to create booking. Please try again or contact support.");
+}
   };
 
   return (

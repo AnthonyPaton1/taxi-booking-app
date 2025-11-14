@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { validateUKPhone } from "@/lib/phoneValidation";
+import { validatePhoneUK } from "@/lib/phoneValidation";
 
 const CoordinatorOnboardingForm = ({companyId}) => {
   const router = useRouter();
@@ -47,11 +47,11 @@ const CoordinatorOnboardingForm = ({companyId}) => {
       return;
     }
 
-    // ✅ PHONE VALIDATION
+    // ✅ PHONE VALIDATION - Using validatePhoneUK with correct properties
     for (let i = 0; i < managers.length; i++) {
-      const phoneValidation = validateUKPhone(managers[i].phone);
-      if (!phoneValidation.isValid) {
-        toast.error(`Manager ${i + 1}: ${phoneValidation.error || "Invalid UK phone number"}`);
+      const phoneValidation = validatePhoneUK(managers[i].phone);
+      if (!phoneValidation.valid) {
+        toast.error(`Manager ${i + 1}: ${phoneValidation.message || "Invalid UK phone number"}`);
         // Scroll to the invalid phone field
         setTimeout(() => {
           const phoneField = document.getElementById(`manager-phone-${i}`);
@@ -69,7 +69,7 @@ const CoordinatorOnboardingForm = ({companyId}) => {
     try {
       setSubmitting(true);
       const payload = { companyId, managers };
-      console.log("Submitting payload:", payload);
+//       console.log("Submitting payload:", payload);
       
       const res = await fetch("/api/onboarding/coordinator", {
         method: "POST",

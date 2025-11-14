@@ -175,7 +175,7 @@ const generalFAQs = [
   {
     id: "gen-2",
     question: "Who can use NEAT Transport?",
-    answer: "NEAT is designed for care companies, residential homes, and organizations that need to book accessible transport for their residents or service users. Drivers who are licensed private hire vehicle operators can also register to offer their services through our platform.",
+    answer: "NEAT is designed for for everyone from care companies, residential homes, and organizations to the general public that need to book accessible transport for their residents, service users, family members or yourself. Drivers who are licensed private hire vehicle operators can also register to offer their services through our platform.",
   },
   {
     id: "gen-3",
@@ -190,7 +190,7 @@ const generalFAQs = [
   {
     id: "gen-5",
     question: "How much does NEAT cost?",
-    answer: "For care companies: NEAT is currently free to use. Drivers: Payment processing is not yet implemented. When it launches, pricing will be announced in advance. There are NO hidden fees or commission charges on bookings.",
+    answer: "For care companies: NEAT is currently and always will be free to use. Drivers: Payment processing is not yet implemented. When it launches, pricing will be announced in advance. There are NO hidden fees or commission charges on bookings.",
   },
 ];
 
@@ -198,7 +198,7 @@ const careCompaniesFAQs = [
   {
     id: "care-1",
     question: "How do I sign up my care company?",
-    answer: "Create an account on our platform and provide your business details, CQC registration (if applicable), and contact information. You can then set up your organizational structure with coordinators (for different areas) and managers (for individual houses).",
+    answer: "Create an account on our platform and provide your business details and contact information. You can then set up your organizational structure with coordinators (for different areas) and managers (for individual houses).",
   },
   {
     id: "care-2",
@@ -223,7 +223,7 @@ const careCompaniesFAQs = [
   {
     id: "care-6",
     question: "What if I need to cancel a booking?",
-    answer: "Cancellations made 24+ hours in advance are free. 12-24 hours notice incurs a 50% fee. Less than 12 hours is 100%. Emergency cancellations (illness, hospital admission) are handled case-by-case. Cancel through your dashboard or call our emergency line.",
+    answer: "Cancellations made 24+ hours in advance are free. 12-24 hours notice incurs a 50% fee (currently under consultation). Less than 12 hours is 100%. Emergency cancellations (illness, hospital admission) are handled case-by-case. Cancel through your dashboard or call our emergency line.",
   },
 ];
 
@@ -241,12 +241,12 @@ const driverFAQs = [
   {
     id: "driver-3",
     question: "How do I get paid?",
-    answer: "Payment is currently arranged directly between you and the care company. When we implement PayPal integration, payment terms will be updated and communicated clearly.",
+    answer: "Payment is currently arranged directly between you and the care company or passenger. We do not and will never take a % of the ride as a fee.",
   },
   {
     id: "driver-4",
     question: "Can I set my own rates?",
-    answer: "Yes! You're an independent contractor, not an employee. For Advanced Bookings, you submit bids with your own pricing. For Instant Bookings, you can accept or decline based on the offered rate.",
+    answer: "Yes! You're an independent contractor, not an employee. For Advanced Bookings and Instant Bookings, you submit bids with your own pricing.",
   },
   {
     id: "driver-5",
@@ -279,7 +279,7 @@ const bookingFAQs = [
   {
     id: "book-4",
     question: "What if no drivers bid on my Advanced Booking?",
-    answer: "This is rare but can happen during peak times. Options: Increase your maximum bid amount, convert to an Instant Booking for immediate dispatch, adjust the pickup time if flexible, or contact our support team who can reach out to drivers directly.",
+    answer: "This is rare but can happen during peak times. Options: Convert to an Instant Booking for immediate dispatch, adjust the pickup time if flexible, or contact our support team who can reach out to drivers directly.",
   },
   {
     id: "book-5",

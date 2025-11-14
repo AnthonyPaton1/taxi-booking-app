@@ -1,0 +1,242 @@
+
+/* Black & White High Contrast */
+html.contrast-black-white {
+  filter: grayscale(100%) contrast(150%);
+}
+
+html.contrast-black-white body {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+html.contrast-black-white * {
+  background-color: inherit;
+  color: inherit;
+  border-color: #000000 !important;
+}
+
+html.contrast-black-white a {
+  color: #0000ff !important;
+  text-decoration: underline;
+}
+
+html.contrast-black-white button {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border: 2px solid #000000 !important;
+}
+
+/* Yellow on Black */
+html.contrast-yellow-black body {
+  background-color: #000000 !important;
+  color: #ffff00 !important;
+}
+
+html.contrast-yellow-black * {
+  background-color: #000000 !important;
+  color: #ffff00 !important;
+  border-color: #ffff00 !important;
+}
+
+html.contrast-yellow-black a {
+  color: #00ffff !important;
+  text-decoration: underline;
+}
+
+html.contrast-yellow-black button {
+  background-color: #ffff00 !important;
+  color: #000000 !important;
+  border: 2px solid #ffff00 !important;
+}
+
+html.contrast-yellow-black input,
+html.contrast-yellow-black textarea,
+html.contrast-yellow-black select {
+  background-color: #000000 !important;
+  color: #ffff00 !important;
+  border: 2px solid #ffff00 !important;
+}
+
+/* Blue on Yellow */
+html.contrast-blue-yellow body {
+  background-color: #ffff00 !important;
+  color: #0000ff !important;
+}
+
+html.contrast-blue-yellow * {
+  background-color: #ffff00 !important;
+  color: #0000ff !important;
+  border-color: #0000ff !important;
+}
+
+html.contrast-blue-yellow a {
+  color: #ff0000 !important;
+  text-decoration: underline;
+  font-weight: bold;
+}
+
+html.contrast-blue-yellow button {
+  background-color: #0000ff !important;
+  color: #ffff00 !important;
+  border: 2px solid #0000ff !important;
+}
+
+html.contrast-blue-yellow input,
+html.contrast-blue-yellow textarea,
+html.contrast-blue-yellow select {
+  background-color: #ffff00 !important;
+  color: #0000ff !important;
+  border: 2px solid #0000ff !important;
+}
+
+/* ============================================
+   DYSLEXIA-FRIENDLY FONT
+   ============================================ */
+
+html.dyslexia-font,
+html.dyslexia-font * {
+  font-family: 'OpenDyslexic', Arial, sans-serif !important;
+  letter-spacing: 0.05em !important;
+  word-spacing: 0.1em !important;
+  line-height: 1.8 !important;
+}
+
+/* ============================================
+   HIDE IMAGES
+   ============================================ */
+
+html.hide-images img,
+html.hide-images picture,
+html.hide-images video,
+html.hide-images canvas,
+html.hide-images svg {
+  opacity: 0.1 !important;
+  filter: grayscale(100%);
+}
+
+/* Keep accessibility icon visible */
+html.hide-images [aria-label*="Accessibility"],
+html.hide-images [aria-label*="accessibility"] {
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+/* ============================================
+   REDUCED COLOR (Grayscale)
+   ============================================ */
+
+html.reduced-color {
+  filter: grayscale(100%);
+}
+
+/* ============================================
+   ENHANCED FOCUS INDICATORS
+   ============================================ */
+
+/* Improve focus visibility for keyboard navigation */
+*:focus-visible {
+  outline: 3px solid #2563eb !important;
+  outline-offset: 2px !important;
+  border-radius: 4px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid #2563eb !important;
+  outline-offset: 2px !important;
+}
+
+/* ============================================
+   LINK UNDERLINES (Accessibility Enhancement)
+   ============================================ */
+
+/* Make links more distinguishable */
+html.contrast-black-white a,
+html.contrast-yellow-black a,
+html.contrast-blue-yellow a {
+  text-decoration: underline !important;
+  font-weight: 600 !important;
+}
+
+/* ============================================
+   BUTTON ENHANCEMENTS FOR HIGH CONTRAST
+   ============================================ */
+
+html.contrast-black-white button:hover,
+html.contrast-yellow-black button:hover,
+html.contrast-blue-yellow button:hover {
+  opacity: 0.8;
+  transform: scale(1.02);
+  transition: all 0.2s ease;
+}
+
+/* ============================================
+   PRESERVE ACCESSIBILITY TOOLBAR IN ALL MODES
+   ============================================ */
+
+/* Ensure the accessibility toolbar remains visible and functional */
+[role="dialog"][aria-label="Accessibility options"],
+[aria-label*="accessibility menu"] {
+  filter: none !important;
+  opacity: 1 !important;
+}
+
+/* ============================================
+   ANIMATIONS & TRANSITIONS
+   ============================================ */
+
+/* Smooth transitions for accessibility changes */
+html {
+  transition: filter 0.3s ease, background-color 0.3s ease, color 0.3s ease, font-size 0.3s ease;
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  html,
+  html *,
+  html *::before,
+  html *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================
+   SCREEN READER ONLY UTILITY CLASS
+   ============================================ */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ============================================
+   PRINT STYLES (Remove accessibility modifications)
+   ============================================ */
+
+@media print {
+  html.contrast-black-white,
+  html.contrast-yellow-black,
+  html.contrast-blue-yellow,
+  html.reduced-color {
+    filter: none !important;
+  }
+  
+  html.hide-images img,
+  html.hide-images picture,
+  html.hide-images video {
+    opacity: 1 !important;
+    filter: none !important;
+  }
+}

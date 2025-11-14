@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Save, User, Car, MapPin, Settings, Shield } from "lucide-react";
 import { PostcodeInput } from "@/components/shared/PostcodeInput";
 import { toast } from "sonner";
+import { validatePhoneUK } from "@/lib/phoneValidation";
 
 export default function EditDriverProfileClient({ user, driver }) {
   const router = useRouter();
@@ -95,9 +96,30 @@ export default function EditDriverProfileClient({ user, driver }) {
     // Create payload starting with current form data
     let payload = { ...formData };
 
+    if (formData.phone) {
+  const phoneValidation = validatePhoneUK(formData.phone);
+  if (!phoneValidation.valid) {
+    toast.error(phoneValidation.message || "Invalid UK phone number");
+    setActiveTab("personal");
+    setTimeout(() => {
+      const phoneField = document.getElementById("phone");
+      if (phoneField) {
+        phoneField.scrollIntoView({ behavior: "smooth", block: "center" });
+        phoneField.focus();
+      }
+    }, 100);
+    setLoading(false);
+    return;
+  }
+  // Update with formatted phone
+  formData.phone = phoneValidation.formatted;
+}
+
     // Only validate postcode via API if it changed
     if (formData.localPostcode !== driver.localPostcode) {
       toast.loading("Verifying postcode...");
+
+
       
       const postcodeValidation = await fetch("/api/validate-postcode", {
         method: "POST",

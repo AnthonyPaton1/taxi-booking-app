@@ -2,7 +2,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Check, X } from "lucide-react";
+import { Check, X, EyeClosed, Eye } from "lucide-react";
+
 
 /**
  * Password Strength Indicator Component
@@ -22,6 +23,8 @@ export default function PasswordStrengthInput({
     color: "text-red-600",
     barColor: "bg-red-500",
   });
+  const [showPassword, setShowPassword] = useState(false);
+const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const requirements = [
     {
@@ -96,67 +99,75 @@ export default function PasswordStrengthInput({
     <div className="space-y-4">
       {/* Password Input */}
       <div>
-        <label
-          htmlFor="password"
-          className="block text-sm font-medium text-gray-700 mb-2"
-        >
-          Password
-        </label>
-        <input
-          id="password"
-          type="password"
-          placeholder="Enter a strong password"
-          value={password}
-          onChange={(e) => onPasswordChange(e.target.value)}
-          className={`appearance-none rounded border w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:border-transparent ${
-            password && !allRequirementsMet
-              ? "border-red-300 focus:ring-red-500"
-              : password && allRequirementsMet
-              ? "border-green-300 focus:ring-green-500"
-              : "border-gray-300 focus:ring-blue-500"
-          }`}
-          required
-          disabled={disabled}
-        />
-      </div>
+  <label
+    htmlFor="password"
+    className="block text-sm font-medium text-gray-700 mb-2"
+  >
+    Password
+  </label>
+  <div className="relative">
+    <input
+      id="password"
+      type={showPassword ? "text" : "password"}  // 👈 Changed this
+      placeholder="Enter a strong password"
+      value={password}
+      onChange={(e) => onPasswordChange(e.target.value)}
+      className={`appearance-none rounded border w-full py-2 px-3 pr-10 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:border-transparent ${
+        password && !allRequirementsMet
+          ? "border-red-300 focus:ring-red-500"
+          : password && allRequirementsMet
+          ? "border-green-300 focus:ring-green-500"
+          : "border-gray-300 focus:ring-blue-500"
+      }`}
+      required
+      disabled={disabled}
+    />
+    <button
+      type="button"
+      onClick={() => setShowPassword(!showPassword)}
+      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+    >
+      {showPassword ? <Eye className="w-5 h-5" /> : <EyeClosed className="w-5 h-5" />}
+    </button>
+  </div>
+</div>
 
-      {/* Strength Meter - Only show when typing */}
-      {password && (
-        <div className="space-y-2">
-          {/* Progress Bar */}
-          <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-            <div
-              className={`h-full ${strength.barColor} transition-all duration-300`}
-              style={{ width: `${strength.score}%` }}
-            />
-          </div>
-
-          {/* Strength Label */}
-          <p className={`text-sm font-medium ${strength.color}`}>
-            Password strength: {strength.label}
-          </p>
-
-          {/* Requirements Checklist */}
-          <div className="bg-gray-50 rounded-lg p-3 space-y-2">
-            <p className="text-xs font-semibold text-gray-700 mb-2">
-              Password must contain:
-            </p>
-            {requirements.map((req, index) => (
-              <div key={index} className="flex items-center gap-2 text-sm">
-                {req.met ? (
-                  <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
-                ) : (
-                  <X className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                )}
-                <span
-                  className={req.met ? "text-green-700" : "text-gray-600"}
-                >
-                  {req.label}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
+{/* Same for Confirm Password */}
+{showConfirm && (
+  <div>
+    <label
+      htmlFor="confirm-password"
+      className="block text-sm font-medium text-gray-700 mb-2"
+    >
+      Confirm Password
+    </label>
+    <div className="relative">
+      <input
+        id="confirm-password"
+        type={showConfirmPassword ? "text" : "password"}  // 👈 Changed this
+        placeholder="Re-enter your password"
+        value={confirmPassword}
+        onChange={(e) => onConfirmPasswordChange(e.target.value)}
+        className={`appearance-none rounded border w-full py-2 px-3 pr-10 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:border-transparent ${
+          confirmPassword && !passwordsMatch
+            ? "border-red-300 focus:ring-red-500"
+            : confirmPassword && passwordsMatch
+            ? "border-green-300 focus:ring-green-500"
+            : "border-gray-300 focus:ring-blue-500"
+        }`}
+        required
+        disabled={disabled}
+      />
+      <button
+        type="button"
+        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+      >
+        {showConfirmPassword ? <Eye className="w-5 h-5" /> : <EyeClosed className="w-5 h-5" />}
+      </button>
+    </div>
+    {/* Match validation messages stay the same */}
+  </div>
       )}
 
       {/* Confirm Password */}
@@ -198,6 +209,7 @@ export default function PasswordStrengthInput({
           )}
         </div>
       )}
+     
     </div>
   );
 }

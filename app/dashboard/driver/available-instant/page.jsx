@@ -81,7 +81,7 @@ const bookingsWithCoords = availableBookings
   }));
 
   // Match driver to bookings using the algorithm
-  const matches = matchDriverToBookingsCached(driver, bookingsWithCoords);
+  const matches = await matchDriverToBookingsCached(driver, bookingsWithCoords);
 
   // Format matches for the client component
   const matchedBookings = matches.map(match => ({

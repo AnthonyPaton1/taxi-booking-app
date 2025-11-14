@@ -470,7 +470,7 @@ export default function AllBookingsListClient({
             </div>
           )}
         </div>
-             {/* ✅ ADD PAGINATION */}
+             {/* PAGINATION */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow">
           <Link

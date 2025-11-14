@@ -18,7 +18,6 @@ export default function AddCoordinatorForm({ businessId, existingAreas }) {
     createNewArea: false,
     newAreaName: "",
   });
-  const [status, setStatus] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
 
@@ -32,14 +31,12 @@ export default function AddCoordinatorForm({ businessId, existingAreas }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setStatus("loading");
     setSubmitting(true);
 
     // Validate area
     const areaName = formData.createNewArea ? formData.newAreaName : formData.area;
     if (!areaName) {
       toast.error("Please select or create an area");
-      setStatus("");
       setSubmitting(false);
       return;
     }
@@ -57,25 +54,22 @@ export default function AddCoordinatorForm({ businessId, existingAreas }) {
         }),
       });
 
-      const data = await res.json();
+     const data = await res.json();
 
-      if (data.success) {
-        setStatus("✅ Coordinator added successfully! Email invitation sent.");
-        toast.success("Coordinator added and invited!");
-        setTimeout(() => {
-          router.push("/dashboard/admin/coordinators");
-        }, 2000);
-      } else {
-        setStatus("❌ " + (data.error || "Failed to add coordinator"));
-        toast.error(data.error || "Failed to add coordinator");
-        setSubmitting(false);
-      }
-    } catch (error) {
-      console.error("Error adding coordinator:", error);
-      setStatus("❌ Something went wrong");
-      toast.error("Something went wrong");
-      setSubmitting(false);
-    }
+  if (data.success) {
+    toast.success("Coordinator added!");
+    setTimeout(() => {
+      router.push("/dashboard/admin/coordinators");
+    }, 1500);
+  } else {
+    toast.error(data.error || "Failed to add a coordinator");
+    setSubmitting(false);
+  }
+} catch (error) {
+  console.error("Error adding coordinator:", error);
+  toast.error("Something went wrong. Please try again or contact support.");
+  setSubmitting(false);
+}
   };
 
   return (

@@ -3,8 +3,8 @@
 import React, { useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
-import { FaBell } from "react-icons/fa";
-import { Lock, LogOut, User } from "lucide-react";
+import { Lock, LogOut, Trash2 } from "lucide-react";
+import NotificationBell from "@/components/NotificationBell"
 
 const Navbar = () => {
   const { data: session } = useSession();
@@ -56,11 +56,7 @@ const Navbar = () => {
                 </Link>
               )}
 
-              {/* Notification Bell */}
-              <Link href="/messages" className="relative">
-                <span className="sr-only">View messages</span>
-                <FaBell className="text-white h-5 w-5 hover:text-gray-300" />
-              </Link>
+              <NotificationBell />
 
               {/* Profile Dropdown */}
               <div className="relative">
@@ -89,17 +85,6 @@ const Navbar = () => {
                         {user?.email}
                       </p>
                     </div>
-
-                    {/* Profile Link */}
-                    <Link
-                      href="/dashboard/profile"
-                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                      onClick={() => setIsProfileMenuOpen(false)}
-                    >
-                      <User className="w-4 h-4" />
-                      Profile
-                    </Link>
-
                     {/* Change Password Link */}
                     <Link
                       href="/dashboard/settings/security"
@@ -108,6 +93,15 @@ const Navbar = () => {
                     >
                       <Lock className="w-4 h-4" />
                       Change Password
+                    </Link>
+                    {/* Profile Link */}
+                    <Link
+                      href="/dashboard/settings/delete-account"
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete Account
                     </Link>
 
                     {/* Logout */}

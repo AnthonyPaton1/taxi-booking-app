@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PostcodeInput } from "@/components/shared/PostcodeInput";
 import { toast } from "sonner";
-import { validateUKPhone } from "@/lib/phoneValidation";
+import { validatePhoneUK } from "@/lib/phoneValidation"; // ✅ Already correct
 
 export default function BusinessOnboardingForm({ prefillData = {} }) {
   const {
@@ -143,10 +143,10 @@ export default function BusinessOnboardingForm({ prefillData = {} }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // ✅ VALIDATE BUSINESS CONTACT PHONE
-    const businessPhoneValidation = validateUKPhone(formData.contactNumber);
-    if (!businessPhoneValidation.isValid) {
-      toast.error(`Business phone: ${businessPhoneValidation.error || "Invalid UK phone number"}`);
+    // ✅ VALIDATE BUSINESS CONTACT PHONE - Using validatePhoneUK with correct properties
+    const businessPhoneValidation = validatePhoneUK(formData.contactNumber);
+    if (!businessPhoneValidation.valid) {
+      toast.error(`Business phone: ${businessPhoneValidation.message || "Invalid UK phone number"}`);
       setTimeout(() => {
         const phoneField = document.getElementById("contactNumber");
         if (phoneField) {
@@ -174,11 +174,11 @@ export default function BusinessOnboardingForm({ prefillData = {} }) {
       return;
     }
 
-    // ✅ VALIDATE ALL COORDINATOR PHONES
+    // ✅ VALIDATE ALL COORDINATOR PHONES - Using validatePhoneUK with correct properties
     for (let i = 0; i < filledCoordinators.length; i++) {
-      const phoneValidation = validateUKPhone(filledCoordinators[i].phone);
-      if (!phoneValidation.isValid) {
-        toast.error(`Coordinator ${i + 1}: ${phoneValidation.error || "Invalid UK phone number"}`);
+      const phoneValidation = validatePhoneUK(filledCoordinators[i].phone);
+      if (!phoneValidation.valid) {
+        toast.error(`Coordinator ${i + 1}: ${phoneValidation.message || "Invalid UK phone number"}`);
         setTimeout(() => {
           const phoneField = document.getElementById(`coordinator-phone-${i}`);
           if (phoneField) {

@@ -150,40 +150,17 @@ model User {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
-
-  @@index([deletedAt])
+  
+  @@index([email]) // Already unique, but helps with lookups
+  @@index([role, deletedAt]) // Fast role-based queries (get all drivers, etc.)
+  @@index([deletedAt]) // Soft delete filtering
+  
 }
-// model ContactRequest {
-//   id        String   @id @default(cuid())
-//   name      String
-//   email     String
-//   phone     String?
-//   subject   String
-//   category  String   // general, support, booking, driver, business, complaint, feedback, partnership
-//   message   String   @db.Text
-//   status    String   @default("NEW") // NEW, READ, REPLIED, RESOLVED, ARCHIVED
-  
-//   // Audit fields
-//   createdAt DateTime @default(now())
-//   updatedAt DateTime @updatedAt
-  
-//   // Optional: Link to user if they're logged in
-//   userId    String?
-//   user      User?    @relation(fields: [userId], references: [id])
-  
-//   // Optional: Admin notes
-//   adminNotes String? @db.Text
-//   resolvedBy String?
-//   resolvedAt DateTime?
 
-//   @@index([status])
-//   @@index([category])
-//   @@index([createdAt])
-// }
 
 /**
  * ======================
- * NEW: Accessibility Profile (Shared)
+ *  Accessibility Profile (Shared)
  * ======================
  */
 model AccessibilityProfile {
@@ -243,7 +220,14 @@ model AccessibilityProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+
+    deletedAt             DateTime?
+  
+  @@index([wheelchairAccess, femaleDriverOnly]) // Most common matching filters
+  @@index([assistanceAnimal]) // Another common filter
+  @@index([deletedAt]) // Soft delete filtering
   @@index([vehicleType])
+
 }
 
 /**
@@ -281,6 +265,11 @@ serviceAreaLat     Float?
 serviceAreaLng     Float?
 serviceAreaRadius  Float?  @default(25.0)
 
+ suspended Boolean @default(false)
+  suspendedReason String?
+  suspendedDate   DateTime?
+  suspendedBy     String?  // Admin who suspended
+
   // Relations
   accessibilityProfileId String              @unique
   accessibilityProfile   AccessibilityProfile @relation("DriverAccessibility", fields: [accessibilityProfileId], references: [id], onDelete: Cascade)
@@ -292,11 +281,13 @@ serviceAreaRadius  Float?  @default(25.0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 
-  @@index([localPostcode, approved])
-  @@index([hasWAV])
-@@index([gender])
-@@index([serviceAreaLat, serviceAreaLng])
+@@index([approved, suspended, deletedAt, hasWAV]) // ← Extended! Most important query
+@@index([baseLat, baseLng]) // Geospatial searches
+@@index([serviceAreaLat, serviceAreaLng]) // Alternative location search
+@@index([userId]) // User->driver lookup
+@@index([accessibilityProfileId]) // Join optimization
 }
 
 model DriverCompliance {
@@ -318,8 +309,24 @@ model DriverCompliance {
   healthCheckPassed  Boolean
   englishProficiency Boolean
 
+    // NEW: DBS Update Service fields
+  dbsIssueDate               DateTime?
+  dbsUpdateServiceNumber     String?   // Encrypted 12-digit number
+  dbsUpdateServiceConsent    Boolean   @default(false)
+  dbsUpdateServiceConsentDate DateTime?
+  lastDbsCheck               DateTime?
+  nextDbsCheckDue            DateTime?
+  dbsStatus                  String?   // CLEAR, ISSUE, PENDING
+  dbsCheckedBy               String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  deletedAt               DateTime?
+
+   @@index([driverId]) // Already unique, helps with joins
+  @@index([nextDbsCheckDue, deletedAt]) // Find drivers needing DBS checks
+  @@index([dbsStatus]) // Filter by compliance status
 }
 
 model Business {
@@ -356,6 +363,12 @@ model Business {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  @@index([adminUserId])
+@@index([lat, lng])
+@@index([postcode])
+@@index([deletedAt])
 }
 
 model BusinessMembership {
@@ -491,8 +504,6 @@ model AdvancedBooking {
   invoices      Invoice[]
   notifications Notification[]
 
-  
-
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
@@ -500,10 +511,16 @@ model AdvancedBooking {
 cancellationReason String? 
   schedule RideSchedule?
 
-  @@index([businessId, pickupTime])
-  @@index([status, pickupTime])
-  @@index([bidDeadline])
-  @@index([deletedAt])
+ @@index([status, pickupTime, deletedAt]) // Find open bookings
+@@index([status, bidDeadline, deletedAt]) // Bookings accepting bids
+@@index([createdById, deletedAt]) // User's booking history
+@@index([businessId, status, deletedAt]) // NEW - Business bookings
+@@index([pickupLatitude, pickupLongitude]) // Geospatial
+@@index([accessibilityProfileId]) // Join optimization
+@@index([acceptedBidId]) // Accepted bid lookup
+ 
+  
+ 
 }
 
 model InstantBooking {
@@ -557,8 +574,13 @@ cancellationReason String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([status, pickupTime])
-  @@index([driverId])
+   deletedAt         DateTime?
+  
+@@index([status, pickupTime, deletedAt]) 
+@@index([driverId, status]) 
+@@index([createdById, deletedAt]) 
+@@index([pickupLatitude, pickupLongitude]) 
+@@index([accessibilityProfileId]) 
 }
 
 /**
@@ -592,9 +614,10 @@ model Bid {
   idempotencyKey String?          @unique
   deletedAt      DateTime?
 
-  @@index([advancedBookingId, status, amountCents])
-  @@index([userId, createdAt])
-  @@index([deletedAt])
+ @@index([advancedBookingId, status, amountCents]) // Best for: Get all bids for booking, sorted by price
+  @@index([userId, createdAt]) // Best for: User's bid history
+  @@index([deletedAt]) // Soft delete filtering
+  @@index([status, createdAt]) // Recent pending bids across all bookings
 }
 
 model RideSchedule {

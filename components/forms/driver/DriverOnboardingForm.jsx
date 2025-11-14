@@ -26,6 +26,7 @@ const requiredBooleans = [
   "fullyCompInsurance",
   "healthCheckPassed",
   "englishProficiency",
+
 ];
 
 const defaultFormData = {
@@ -45,6 +46,9 @@ const defaultFormData = {
   fullyCompInsurance: false,
   healthCheckPassed: false,
   englishProficiency: false,
+    dbsIssueDate: '',
+  dbsUpdateServiceNumber: '',
+  dbsUpdateServiceConsent: false,
 
   // Accessibility Options (aligned with Prisma)
   wheelchairAccess: false,
@@ -434,6 +438,68 @@ export default function DriverOnboardingForm({ onSubmit }) {
     )}
   </div>
 ))}
+<div className="space-y-4 mt-6">
+  <h3 className="text-lg font-semibold">DBS Update Service</h3>
+  <p className="text-sm text-gray-600">
+    All drivers must subscribe to the DBS Update Service (£16/year).
+    <a 
+      href="https://www.gov.uk/dbs-update-service" 
+      target="_blank"
+      className="text-blue-600 hover:underline ml-1"
+    >
+      Learn more
+    </a>
+  </p>
+
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-1">
+      DBS Certificate Issue Date *
+    </label>
+    <input
+      type="date"
+      name="dbsIssueDate"
+      value={formData.dbsIssueDate}
+      onChange={handleChange}
+      required
+      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+    />
+  </div>
+
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-1">
+      DBS Update Service Number * (12 digits)
+    </label>
+    <input
+      type="text"
+      name="dbsUpdateServiceNumber"
+      value={formData.dbsUpdateServiceNumber}
+      onChange={handleChange}
+      placeholder="000123456789"
+      pattern="[0-9]{12}"
+      maxLength={12}
+      required
+      className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono"
+    />
+    <p className="text-xs text-gray-500 mt-1">
+      Find this on your DBS Update Service confirmation
+    </p>
+  </div>
+
+  <div className="flex items-start">
+    <input
+      type="checkbox"
+      name="dbsUpdateServiceConsent"
+      checked={formData.dbsUpdateServiceConsent}
+      onChange={(e) => setFormData({...formData, dbsUpdateServiceConsent: e.target.checked})}
+      required
+      className="mt-1 mr-2"
+    />
+    <label className="text-sm text-gray-700">
+      I consent to NEAT Transport checking my DBS status through the 
+      DBS Update Service for ongoing compliance verification *
+    </label>
+  </div>
+</div>
       </fieldset>
 <div className='mb-6'>
 

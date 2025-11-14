@@ -8,6 +8,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import StatusMessage from "@/components/shared/statusMessage";
 import { toast } from "sonner";
+import { validatePhoneUK } from "@/lib/phoneValidation"; // ✅ Added validation
 
 export default function EditCoordinatorForm({ coordinator, existingAreas }) {
   const [formData, setFormData] = useState({
@@ -18,7 +19,6 @@ export default function EditCoordinatorForm({ coordinator, existingAreas }) {
     createNewArea: false,
     newAreaName: "",
   });
-  const [status, setStatus] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
 
@@ -32,49 +32,64 @@ export default function EditCoordinatorForm({ coordinator, existingAreas }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setStatus("loading");
     setSubmitting(true);
+
+    // ✅ VALIDATE PHONE NUMBER
+    if (formData.phone) {
+      const phoneValidation = validatePhoneUK(formData.phone);
+      if (!phoneValidation.valid) {
+        toast.error(phoneValidation.message || "Invalid UK phone number");
+        setSubmitting(false);
+        // Focus the phone field
+        setTimeout(() => {
+          const phoneField = document.querySelector('input[name="phone"]');
+          if (phoneField) {
+            phoneField.scrollIntoView({ behavior: "smooth", block: "center" });
+            phoneField.focus();
+          }
+        }, 100);
+        return;
+      }
+      // Update with formatted phone number
+      formData.phone = phoneValidation.formatted;
+    }
 
     // Validate area
     const areaName = formData.createNewArea ? formData.newAreaName : formData.area;
     if (!areaName) {
       toast.error("Please select or create an area");
-      setStatus("");
       setSubmitting(false);
       return;
     }
 
     try {
-      const res = await fetch(`/api/admin/coordinators/${coordinator.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          area: areaName,
-        }),
-      });
+  const res = await fetch(`/api/admin/coordinators/${coordinator.id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      area: areaName,
+    }),
+  });
 
-      const data = await res.json();
+  const data = await res.json();
 
-      if (data.success) {
-        setStatus("✅ Coordinator updated successfully!");
-        toast.success("Coordinator updated!");
-        setTimeout(() => {
-          router.push("/dashboard/admin/coordinators");
-        }, 1500);
-      } else {
-        setStatus("❌ " + (data.error || "Failed to update coordinator"));
-        toast.error(data.error || "Failed to update coordinator");
-        setSubmitting(false);
-      }
-    } catch (error) {
-      console.error("Error updating coordinator:", error);
-      setStatus("❌ Something went wrong");
-      toast.error("Something went wrong");
-      setSubmitting(false);
-    }
+  if (data.success) {
+    toast.success("Coordinator updated!");
+    setTimeout(() => {
+      router.push("/dashboard/admin/coordinators");
+    }, 1500);
+  } else {
+    toast.error(data.error || "Failed to update coordinator");
+    setSubmitting(false);
+  }
+} catch (error) {
+  console.error("Error updating coordinator:", error);
+  toast.error("Something went wrong. Please try again or contact support.");
+  setSubmitting(false);
+}
   };
 
   return (
@@ -150,8 +165,12 @@ export default function EditCoordinatorForm({ coordinator, existingAreas }) {
               value={formData.phone}
               onChange={handleChange}
               disabled={submitting}
+              placeholder="e.g., 07700 900000"
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
+            <p className="text-xs text-gray-500 mt-1">
+              UK format: e.g. 07123456789 or +447123456789
+            </p>
           </div>
 
           {/* Area Selection */}

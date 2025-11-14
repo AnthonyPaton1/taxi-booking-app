@@ -1,0 +1,11 @@
+components/forms/business/admin/addAreaForm.jsx:21:     console.log('🚀 Submitting to:', '/api/admin/areas/add');
+components/forms/business/admin/addAreaForm.jsx:22:  console.log('📦 Data:', formData);
+components/forms/business/coordinatorOnboardingForm.jsx:72:      console.log("Submitting payload:", payload);
+components/shared/journeyCard.jsx:20:    console.log("🟦 Bid Submitted:", formData, "for booking:", booking.id);
+components/set-password/setPasswordClient.jsx:51:      console.log("🚀 Sending request with token:", token);
+components/set-password/setPasswordClient.jsx:59:      console.log("📡 Response status:", res.status);
+app/dashboard/driver/available-advanced/page.jsx:106:  console.log('=== DRIVER AVAILABLE ADVANCED DEBUG ===');
+app/dashboard/driver/available-advanced/page.jsx:107:console.log('Total available bookings:', availableBookings.length);
+app/dashboard/driver/available-advanced/page.jsx:108:console.log('Bookings with coords:', bookingsWithCoords.length);
+app/dashboard/driver/available-advanced/page.jsx:109:console.log('Matched bookings:', matches.length);
+app/dashboard/driver/available-advanced/page.jsx:110:console.log('Matches:', matches.map(m => ({

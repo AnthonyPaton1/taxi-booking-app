@@ -102,12 +102,12 @@ export default async function AvailableAdvancedBookingsPage() {
   }));
 
   // Match driver to bookings using the algorithm
-  const matches = matchDriverToBookingsCached(driver, bookingsWithCoords);
-  console.log('=== DRIVER AVAILABLE ADVANCED DEBUG ===');
-console.log('Total available bookings:', availableBookings.length);
-console.log('Bookings with coords:', bookingsWithCoords.length);
-console.log('Matched bookings:', matches.length);
-console.log('Matches:', matches.map(m => ({
+  const matches = await matchDriverToBookingsCached(driver, bookingsWithCoords);
+//   console.log('=== DRIVER AVAILABLE ADVANCED DEBUG ===');
+// console.log('Total available bookings:', availableBookings.length);
+// console.log('Bookings with coords:', bookingsWithCoords.length);
+// console.log('Matched bookings:', matches.length);
+// console.log('Matches:', matches.map(m => ({
   id: m.booking.id.substring(0, 8),
   pickup: m.booking.pickupLocation,
   score: m.score,

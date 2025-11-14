@@ -6,6 +6,8 @@ import Navbar from "@/components/layout/navbar";
 import Footer from "@/components/layout/footer";
 import CookieConsentBanner from "@/components/CookieConsentBanner";
 import { Toaster } from "sonner";
+import AccessibilityToolbar from '@/components/AccessibilityToolbar';
+
 
 const geistSans = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
 const geistMono = Geist_Mono({
@@ -26,6 +28,7 @@ export default function RootLayout({ children }) {
       >
         <Providers>
           <Navbar />
+          <AccessibilityToolbar />
           <Toaster position="top-center" richColors />
           {children}
           <Footer />

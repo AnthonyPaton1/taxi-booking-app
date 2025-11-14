@@ -48,7 +48,7 @@ export default function SetPasswordClient() {
     setLoading(true);
 
     try {
-      console.log("🚀 Sending request with token:", token);
+//       console.log("🚀 Sending request with token:", token);
       
       const res = await fetch("/api/auth/set-password", {
         method: "POST",
@@ -56,7 +56,7 @@ export default function SetPasswordClient() {
         body: JSON.stringify({ token, password }),
       });
       
-      console.log("📡 Response status:", res.status);
+//       console.log("📡 Response status:", res.status);
 
       // Handle non-JSON responses
       const contentType = res.headers.get("content-type");

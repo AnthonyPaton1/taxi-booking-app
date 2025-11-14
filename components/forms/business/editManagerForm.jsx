@@ -1,8 +1,11 @@
+//components/forms/business/editManagerForm.jsx
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Save, Trash2 } from "lucide-react";
+import { validatePhoneUK } from "@/lib/phoneValidation"; // ✅ Added validation
+import { toast } from "sonner"; // ✅ Added toast for validation errors
 
 export default function EditManagerForm({ manager, coordinatorAreaId }) {
   const router = useRouter();
@@ -29,6 +32,26 @@ export default function EditManagerForm({ manager, coordinatorAreaId }) {
     setLoading(true);
     setError("");
 
+    // ✅ VALIDATE PHONE NUMBER
+    if (formData.phone) {
+      const phoneValidation = validatePhoneUK(formData.phone);
+      if (!phoneValidation.valid) {
+        toast.error(phoneValidation.message || "Invalid UK phone number");
+        setLoading(false);
+        // Focus the phone field
+        setTimeout(() => {
+          const phoneField = document.getElementById("phone");
+          if (phoneField) {
+            phoneField.scrollIntoView({ behavior: "smooth", block: "center" });
+            phoneField.focus();
+          }
+        }, 100);
+        return;
+      }
+      // Update with formatted phone number
+      formData.phone = phoneValidation.formatted;
+    }
+
     try {
       // Use coordinator API endpoint
       const response = await fetch(`/api/coordinator/${manager.id}`, {
@@ -45,10 +68,12 @@ export default function EditManagerForm({ manager, coordinatorAreaId }) {
         throw new Error(data.error || "Failed to update manager");
       }
 
+      toast.success("Manager updated successfully!");
       router.push("/dashboard/coordinator/managers");
       router.refresh();
     } catch (err) {
       setError(err.message);
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
@@ -70,10 +95,12 @@ export default function EditManagerForm({ manager, coordinatorAreaId }) {
         throw new Error(data.error || "Failed to delete manager");
       }
 
+      toast.success("Manager deleted successfully!");
       router.push("/dashboard/coordinator/managers");
       router.refresh();
     } catch (err) {
       setError(err.message);
+      toast.error(err.message);
       setDeleting(false);
       setShowDeleteConfirm(false);
     }
@@ -143,6 +170,9 @@ export default function EditManagerForm({ manager, coordinatorAreaId }) {
             placeholder="e.g. 07700 900000"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
+          <p className="text-xs text-gray-500 mt-1">
+            UK format: e.g. 07123456789 or +447123456789
+          </p>
         </div>
 
         <div className="pt-4">

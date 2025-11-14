@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
 import Link from "next/link";
 import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
+import {Eye, EyeClosed} from "lucide-react"
+
 
 export default function LoginPage() {
   const searchParams = useSearchParams();
@@ -14,6 +17,9 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const router = useRouter();
   const { data: session } = useSession();
+  const [showPassword, setShowPassword] = useState(false);
+
+    
 
   // Role-based redirection after successful login
   useEffect(() => {
@@ -52,7 +58,7 @@ export default function LoginPage() {
   };
 
   return (
-    
+    <Suspense fallback={<div>Loading...</div>}>
     <main className="max-w-md mx-auto mt-20 p-8 mb-30 bg-white shadow rounded">
       <h1 className="text-xl font-bold mb-6 text-center" id="login-heading">
         Login
@@ -103,9 +109,12 @@ export default function LoginPage() {
           <label htmlFor="password" className="block text-sm font-medium text-gray-700">
             Password <span className="text-red-500">*</span>
           </label>
+          <div className="relative">
+
+          
           <input
             id="password"
-            type="password"
+            type={showPassword ? "text" : "password"}
             required
             autoComplete="current-password"
             aria-required="true"
@@ -114,6 +123,14 @@ export default function LoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
+            <button
+      type="button"
+      onClick={() => setShowPassword(!showPassword)}
+      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+    >
+      {showPassword ? <Eye className="w-5 h-5" /> : <EyeClosed className="w-5 h-5" />}
+    </button>
+    </div>
           <div className="text-right mt-2">
             <Link
               href="/forgot-password"
@@ -133,5 +150,6 @@ export default function LoginPage() {
         </button>
       </form>
     </main>
+    </Suspense>
   );
 }

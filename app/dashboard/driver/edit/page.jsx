@@ -3,9 +3,20 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import EditDriverProfileClient from "@/components/dashboard/driver/EditDriverProfileClient";
-import Link from "next/link";
+import dynamic from 'next/dynamic';import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+
+const EditDriverProfileClient = dynamic(
+  () => import('@/components/dashboard/driver/EditDriverProfileClient'),
+  {
+    loading: () => (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    ),
+    ssr: false
+  }
+);
 
 export default async function EditDriverPage() {
   const session = await getServerSession(authOptions);

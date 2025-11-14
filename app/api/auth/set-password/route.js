@@ -14,20 +14,15 @@ export async function POST(req) {
       RATE_LIMITS.PASSWORD_RESET.window
     );
 
-    if (!rateLimitResult.success) {
-      return NextResponse.json(
-        { 
-          message: "Too many password attempts. Please try again later.",
-          retryAfter: rateLimitResult.retryAfter 
-        },
-        { 
-          status: 429,
-          headers: {
-            'Retry-After': rateLimitResult.retryAfter.toString(),
-          }
-        }
-      );
-    }
+    if (rateLimitResult && !rateLimitResult.success) {
+  return NextResponse.json(
+    { 
+      message: "Too many password attempts. Please try again later.",
+      retryAfter: rateLimitResult.retryAfter 
+    },
+    { status: 429 }
+  );
+}
 
     const { token, password } = await req.json();
 

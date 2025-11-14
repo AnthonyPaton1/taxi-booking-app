@@ -3,7 +3,21 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import ManagerBookRideForm from "@/components/forms/business/managerBookRideForm";
+
+
+import dynamic from 'next/dynamic';
+
+const ManagerBookRideForm = dynamic(
+  () => import('@/components/forms/business/managerBookRideForm'),
+  {
+    loading: () => (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    ),
+    ssr: false
+  }
+);
 
 
 export default async function ManagerBookRidePage() {

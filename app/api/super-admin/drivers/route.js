@@ -76,7 +76,8 @@ export async function GET(request) {
     const stats = {
       total: drivers.length,
       pending: drivers.filter(d => !d.approved).length,
-      approved: drivers.filter(d => d.approved).length,
+      approved: drivers.filter(d => d.approved && !d.suspended).length, 
+      suspended: drivers.filter(d => d.suspended).length, 
       rejected: 0 // Not tracked in current schema
     };
 

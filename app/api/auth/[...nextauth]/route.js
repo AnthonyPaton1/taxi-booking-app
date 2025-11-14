@@ -75,6 +75,15 @@ export const authOptions = {
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
+          select: {
+            id: true,
+            email: true,
+            password: true,
+            role: true,
+            name: true,
+            businessId: true,
+            driverOnboarded: true,
+          },
         });
 
         if (!user || !user.password) {
@@ -98,15 +107,14 @@ export const authOptions = {
           throw new Error("Invalid credentials");
         }
 
-        // ✅ SUCCESSFUL LOGIN - Clear failed attempts
-        // (Optional: implement clearing logic in Redis)
-
+        // ✅ SUCCESSFUL LOGIN - Return all needed data (including driverOnboarded)
         return {
           id: user.id,
           email: user.email,
           role: user.role,
           name: user.name,
           businessId: user.businessId,
+          driverOnboarded: user.driverOnboarded,
         };
       },
     }),
@@ -114,16 +122,22 @@ export const authOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
+      // 🚀 OPTIMIZATION: On sign in, attach ALL user data to token
       if (user) {
         token.id = user.id;
         token.role = user.role;
         token.businessId = user.businessId;
+        token.driverOnboarded = user.driverOnboarded;
       }
 
-      if (token?.email) {
+      // CRITICAL: Only fetch from DB on explicit update trigger
+      // This eliminates DB hit on EVERY page load (was causing 3+ sec delays)
+      // Token refresh happens automatically via JWT, no DB needed
+      if (trigger === "update" && token?.email) {
         const dbUser = await prisma.user.findUnique({
           where: { email: token.email },
           select: {
@@ -158,7 +172,7 @@ export const authOptions = {
   },
   pages: {
     signIn: '/login',
-    error: '/login', // Redirect errors to login page
+    error: '/login',
   },
 };
 

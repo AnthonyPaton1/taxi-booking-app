@@ -17,7 +17,7 @@ export default function JourneyCard({ booking }) {
 
   const handleBidSubmit = async (formData) => {
     // 🔧 You'll handle the actual bid submission here
-    console.log("🟦 Bid Submitted:", formData, "for booking:", booking.id);
+//     console.log("🟦 Bid Submitted:", formData, "for booking:", booking.id);
 
     // TODO: Call server action to save bid in DB
 

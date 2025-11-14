@@ -8,7 +8,7 @@ import { PostcodeInput } from "@/components/shared/PostcodeInput";
 import { useSearchParams } from "next/navigation";
 import { createManagerBooking } from "@/app/actions/bookings/createManagerBooking";
 import RideAccessibilityOptions from "../RideAccessibilityOptions";
-import StatusMessage from "@/components/shared/statusMessage";
+
 import { ArrowLeft, Timer } from "lucide-react";
 import { toast } from "sonner";
 import BlockBookingSection from "@/components/dashboard/business/manager/blockBookingsSection";
@@ -51,7 +51,6 @@ const defaultFormData = {
 };
 
 export default function ManagerBookRideForm({ houses }) {
-  const [status, setStatus] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState(defaultFormData);
   const [selectedHouse, setSelectedHouse] = useState(null);
@@ -75,11 +74,7 @@ export default function ManagerBookRideForm({ houses }) {
   }
 }, [formData.houseId, houses]);
 
-  useEffect(() => {
-    if (status && errorRef.current) {
-      errorRef.current.focus();
-    }
-  }, [status]);
+
 
   useEffect(() => {
   if (formData.residentIds.length > 0) {
@@ -158,19 +153,15 @@ export default function ManagerBookRideForm({ houses }) {
 
   const handleSubmit = async (e) => {
   e.preventDefault();
-  setStatus("loading");
   setSubmitting(true);
 
   if (!formData.pickupDate || !formData.pickupTime) {
-    setStatus("❌ Please select pickup date and time");
-    toast.error("Please select pickup date and time");
     errorRef.current?.focus();
     setSubmitting(false);
     return;
   }
   
   if (isBlockBooking && blockRides.length === 0) {
-    setStatus("❌ Please select at least one date for the block booking");
     toast.error("Please select at least one date for the block booking");
     setSubmitting(false);
     return;
@@ -184,90 +175,12 @@ export default function ManagerBookRideForm({ houses }) {
   if (formData.roundTrip && formData.returnTime) {
     returnDateTime = new Date(`${formData.pickupDate}T${formData.returnTime}:00`);
   }
-
-  //  Build booking data from the ACTUAL form state, not defaults
-  const bookingData = {
-    // Location data
-    pickupLocation: formData.pickupLocation,
-    pickupPostcode: formData.pickupPostcode,
-    dropoffLocation: formData.dropoffLocation,
-    dropoffPostcode: formData.dropoffPostcode,
-    
-    // DateTime data
-    pickupTime: pickupDateTime.toISOString(),
-    returnTime: returnDateTime ? returnDateTime.toISOString() : null,
-    roundTrip: formData.roundTrip,
-    
-    // Passenger data
-    initials: formData.residentIds, // or however you're storing resident initials
-    passengerCount: parseInt(formData.passengerCount),
-    wheelchairUsers: parseInt(formData.wheelchairUsers),
-    
-    // Accessibility requirements
-    wheelchairAccess: formData.wheelchairAccess,
-    femaleDriverOnly: formData.femaleDriverOnly,
-    carerPresent: formData.carerPresent,
-    assistanceAnimal: formData.assistanceAnimal,
-    nonWAVvehicle: formData.nonWAVvehicle,
-    quietEnvironment: formData.quietEnvironment,
-    assistanceRequired: formData.assistanceRequired,
-    noConversation: formData.noConversation,
-    visualSchedule: formData.visualSchedule,
-    familiarDriverOnly: formData.familiarDriverOnly,
-    escortRequired: formData.escortRequired,
-    signLanguageRequired: formData.signLanguageRequired,
-    textOnlyCommunication: formData.textOnlyCommunication,
-    medicationOnBoard: formData.medicationOnBoard,
-    
-    // Notes
-    additionalNeeds: formData.additionalNeeds || null,
-    managerNotes: formData.managerNotes || null,
-    
-    // 🆕 Block booking data
-    isBlockBooking: isBlockBooking,
-    blockRides: isBlockBooking ? blockRides : null,
-    totalRidesInBlock: isBlockBooking ? blockRides.length : 1,
-    blockNotes: isBlockBooking ? blockNotes : null,
-  };
-
-  try {
-    const res = await fetch("/api/bookings/advanced/create", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(bookingData), // ✅ Now sending actual form data
-    });
-
-    const data = await res.json();
-
-    if (data.success) {
-      setStatus("✅ " + data.message);
-      toast.success(data.message);
-      
-      // Redirect after short delay
-      setTimeout(() => {
-        router.push("/dashboard/manager/bookings");
-      }, 1500);
-    } else {
-      setStatus("❌ Error: " + data.error);
-      toast.error(data.error);
-      setSubmitting(false);
-    }
-  } catch (error) {
-    console.error("Error creating booking:", error);
-    setStatus("❌ Something went wrong");
-    toast.error("Something went wrong creating the booking");
-    setSubmitting(false);
-  }
   
-  
-
-
     // Validation
     const passengerCount = parseInt(formData.passengerCount, 10) || 0;
     const wheelchairUsers = parseInt(formData.wheelchairUsers, 10) || 0;
 
     if (wheelchairUsers > passengerCount) {
-      setStatus("❌ Wheelchair users cannot exceed total passengers.");
       toast.error("Wheelchair users cannot exceed total passengers");
       errorRef.current?.focus();
       setSubmitting(false);
@@ -275,7 +188,6 @@ export default function ManagerBookRideForm({ houses }) {
     }
 
     if (!formData.houseId || formData.residentIds.length === 0) {
-  setStatus("❌ Please select a house and at least one resident.");
   toast.error("Please select a house and at least one resident");
   errorRef.current?.focus();
   setSubmitting(false);
@@ -287,7 +199,6 @@ export default function ManagerBookRideForm({ houses }) {
     const hoursDifference = (pickupDateTime - now) / (1000 * 60 * 60);
 
     if (hoursDifference < 48) {
-      setStatus("❌ Advanced bookings must be at least 48 hours in advance.");
       toast.error("Advanced bookings must be at least 48 hours in advance");
       errorRef.current?.focus();
       setSubmitting(false);
@@ -328,7 +239,6 @@ export default function ManagerBookRideForm({ houses }) {
           }
         }, 100);
         
-        setStatus("❌ " + pickupData.error);
         setSubmitting(false);
         return;
       }
@@ -363,7 +273,6 @@ export default function ManagerBookRideForm({ houses }) {
           }
         }, 100);
         
-        setStatus("❌ " + dropoffData.error);
         setSubmitting(false);
         return;
       }
@@ -395,21 +304,18 @@ export default function ManagerBookRideForm({ houses }) {
       if (res.success) {
         toast.dismiss();
         toast.success("Booking created! Drivers can now bid.");
-        setStatus("✅ Booking created! Drivers can now bid.");
         setTimeout(() => {
           router.push(`/dashboard/manager/bookings/${res.bookingId}`);
         }, 1500);
       } else {
         toast.dismiss();
         toast.error(res.error || "Failed to create booking");
-        setStatus("❌ Failed: " + res.error);
         errorRef.current?.focus();
       }
     } catch (err) {
       toast.dismiss();
       console.error("💥 Error:", err);
       toast.error("Something went wrong. Please try again.");
-      setStatus("❌ Something went wrong.");
       errorRef.current?.focus();
     } finally {
       setSubmitting(false);
@@ -446,12 +352,11 @@ export default function ManagerBookRideForm({ houses }) {
           </div>
         </div>
 
-        {/* Status Message */}
-        {status && (
+       
+        
           <div ref={errorRef} tabIndex={-1}>
-            <StatusMessage message={status} />
           </div>
-        )}
+      
 
         {isRepeating && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">

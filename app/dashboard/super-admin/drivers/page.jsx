@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
-  CheckCircle, XCircle, Trash2, Search, Filter, 
-  Eye, AlertCircle, Loader2, Car, FileText, ArrowLeft 
+  CheckCircle, XCircle, Trash2, Search,  
+   AlertCircle, Loader2, Car,  ArrowLeft, PlayCircle, PauseCircle 
 } from 'lucide-react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 
 export default function SuperAdminDriversPage() {
   const [drivers, setDrivers] = useState([]);
@@ -19,6 +21,7 @@ export default function SuperAdminDriversPage() {
   const [rejectReason, setRejectReason] = useState('');
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const router = useRouter();
 
   useEffect(() => {
     fetchDrivers();
@@ -98,6 +101,40 @@ export default function SuperAdminDriversPage() {
       setTimeout(() => setSuccess(null), 3000);
     }
   };
+  const handleSuspend = async (driverId, shouldSuspend) => {
+  if (!confirm(shouldSuspend 
+    ? 'Are you sure you want to suspend this driver? They will not appear in any bookings.' 
+    : 'Are you sure you want to activate this driver?'
+  )) {
+    return;
+  }
+
+  setActionLoading(driverId);
+
+  try {
+    const response = await fetch(`/api/super-admin/drivers/${driverId}/suspend`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        suspended: shouldSuspend,
+        reason: shouldSuspend ? 'Suspended by admin' : null 
+      }),
+    });
+
+    if (response.ok) {
+      toast.success(shouldSuspend ? 'Driver suspended' : 'Driver activated');
+      router.refresh();
+    } else {
+      const data = await response.json();
+      toast.error(data.error || 'Failed to update driver');
+    }
+  } catch (error) {
+    console.error('Suspend error:', error);
+    toast.error('An error occurred');
+  } finally {
+    setActionLoading(null);
+  }
+};
 
   const handleDelete = async (driverId) => {
     if (!confirm('Are you sure you want to delete this driver? This cannot be undone.')) return;
@@ -124,10 +161,23 @@ export default function SuperAdminDriversPage() {
     }
   };
 
-  const filteredDrivers = drivers.filter(driver =>
-    driver.user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    driver.user.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+const filteredDrivers = drivers.filter(driver => {
+  // Filter by status
+  if (filter === 'PENDING') return !driver.approved && !driver.suspended;
+  if (filter === 'APPROVED') return driver.approved && !driver.suspended;
+  if (filter === 'SUSPENDED') return driver.suspended; // ← NEW
+  
+  // Search filter
+  if (searchTerm) {
+    const search = searchTerm.toLowerCase();
+    return (
+      driver.user.name?.toLowerCase().includes(search) ||
+      driver.user.email?.toLowerCase().includes(search)
+    );
+  }
+  
+  return true; // ALL
+});
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -165,7 +215,13 @@ export default function SuperAdminDriversPage() {
               <div className="text-2xl font-bold text-green-900">{stats.approved}</div>
               <div className="text-sm text-green-700">Approved</div>
             </div>
+            <div className="bg-red-50 p-4 rounded-lg">
+              <div className="text-2xl font-bold text-red-900">{stats.suspended}</div>
+              <div className="text-sm text-red-700">Suspended</div>
+            </div>
+            
           </div>
+          
         </div>
 
         {/* Filters & Search */}
@@ -187,7 +243,7 @@ export default function SuperAdminDriversPage() {
 
             {/* Filter Buttons */}
             <div className="flex gap-2">
-              {['ALL', 'PENDING', 'APPROVED'].map((f) => (
+              {['ALL', 'PENDING', 'APPROVED', 'SUSPENDED'].map((f) => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
@@ -237,15 +293,16 @@ export default function SuperAdminDriversPage() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Driver</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vehicle</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Registered</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-                  </tr>
-                </thead>
+  <tr>
+    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Driver</th>
+    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
+    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vehicle</th>
+    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Compliance</th> 
+    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Registered</th>
+    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+  </tr>
+</thead>
                 <tbody className="divide-y divide-gray-200">
                   {filteredDrivers.map((driver) => (
                     <tr key={driver.id} className="hover:bg-gray-50">
@@ -271,11 +328,54 @@ export default function SuperAdminDriversPage() {
                           {driver.approved ? 'APPROVED' : 'PENDING'}
                         </span>
                       </td>
+                      <td className="px-6 py-4">
+  <div className="flex flex-col gap-1">
+    {/* DBS Status */}
+    {driver.compliance?.dbsUpdateServiceNumber ? (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+        ✓ DBS Clear
+      </span>
+    ) : (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+        ✗ DBS Missing
+      </span>
+    )}
+    
+    {/* License Status */}
+    {driver.compliance?.licenceNumber ? (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+        ✓ License OK
+      </span>
+    ) : (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+        ✗ License Missing
+      </span>
+    )}
+  </div>
+</td>
                       <td className="px-6 py-4 text-sm text-gray-500">
                         {new Date(driver.user.createdAt).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
+                            <button
+    onClick={() => handleSuspend(driver.id, !driver.suspended)}
+    disabled={actionLoading === driver.id}
+    className={`p-2 rounded-lg transition disabled:opacity-50 ${
+      driver.suspended 
+        ? 'text-green-600 hover:bg-green-50' 
+        : 'text-amber-600 hover:bg-amber-50'
+    }`}
+    title={driver.suspended ? 'Activate Driver' : 'Suspend Driver'}
+  >
+    {actionLoading === driver.id ? (
+      <Loader2 className="w-5 h-5 animate-spin" />
+    ) : driver.suspended ? (
+      <PlayCircle className="w-5 h-5" />
+    ) : (
+      <PauseCircle className="w-5 h-5" />
+    )}
+  </button>
                           {!driver.approved && (
                             <>
                               <button

@@ -8,8 +8,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PostcodeInput } from "@/components/shared/PostcodeInput";
 import RideAccessibilityOptions from "../RideAccessibilityOptions";
-// import PhysicalRequirementsCheckboxes from "../driver/PhysicalRequirementsCheckBoxes";
-import StatusMessage from "@/components/shared/statusMessage";
 import { ArrowLeft, Zap, Clock } from "lucide-react";
 import { toast } from "sonner";
 
@@ -50,7 +48,6 @@ const defaultFormData = {
 };
 
 export default function InstantBookingForm({ houses, userName }) {
-  const [status, setStatus] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState(defaultFormData);
   const [selectedHouse, setSelectedHouse] = useState(null);
@@ -91,11 +88,7 @@ export default function InstantBookingForm({ houses, userName }) {
   }
 }, [formData.houseId, houses]);
 
-  useEffect(() => {
-    if (status && errorRef.current) {
-      errorRef.current.focus();
-    }
-  }, [status]);
+
 
   useEffect(() => {
   if (formData.residentIds.length > 0) {
@@ -175,7 +168,6 @@ export default function InstantBookingForm({ houses, userName }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setStatus("loading");
     setSubmitting(true);
 
     // Validation
@@ -183,14 +175,12 @@ export default function InstantBookingForm({ houses, userName }) {
     const wheelchairUsers = parseInt(formData.wheelchairUsers, 10) || 0;
 
     if (wheelchairUsers > passengerCount) {
-      setStatus("❌ Wheelchair users cannot exceed total passengers.");
       toast.error("Wheelchair users cannot exceed total passengers");
       errorRef.current?.focus();
       setSubmitting(false);
       return;
     }
     if (!formData.houseId || formData.residentIds.length === 0) {
-  setStatus("❌ Please select a house and at least one resident.");
   toast.error("Please select a house and at least one resident");
   errorRef.current?.focus();
   setSubmitting(false);
@@ -200,7 +190,6 @@ export default function InstantBookingForm({ houses, userName }) {
 
 
     if (!formData.pickupDate || !formData.pickupTime) {
-      setStatus("❌ Pickup date and time are required.");
       toast.error("Pickup date and time are required");
       errorRef.current?.focus();
       setSubmitting(false);
@@ -212,7 +201,6 @@ export default function InstantBookingForm({ houses, userName }) {
     const now = new Date();
     
     if (pickupDateTime < now) {
-      setStatus("❌ Pickup time cannot be in the past.");
       toast.error("Pickup time cannot be in the past");
       errorRef.current?.focus();
       setSubmitting(false);
@@ -223,7 +211,6 @@ export default function InstantBookingForm({ houses, userName }) {
     const hoursDifference = (pickupDateTime - now) / (1000 * 60 * 60);
     
     if (hoursDifference > 48) {
-      setStatus("❌ For bookings 48+ hours ahead, please use Advanced Booking.");
       toast.error("For bookings 48+ hours ahead, please use Advanced Booking");
       errorRef.current?.focus();
       setSubmitting(false);
@@ -264,7 +251,6 @@ export default function InstantBookingForm({ houses, userName }) {
           }
         }, 100);
         
-        setStatus("❌ " + pickupData.error);
         setSubmitting(false);
         return;
       }
@@ -299,7 +285,6 @@ export default function InstantBookingForm({ houses, userName }) {
           }
         }, 100);
         
-        setStatus("❌ " + dropoffData.error);
         setSubmitting(false);
         return;
       }
@@ -336,21 +321,18 @@ export default function InstantBookingForm({ houses, userName }) {
       if (res.ok && data.success) {
         toast.dismiss();
         toast.success("Instant booking created! Drivers are being notified.");
-        setStatus("✅ Instant booking created! Drivers are being notified.");
         setTimeout(() => {
           router.push("/dashboard/manager");
         }, 1500);
       } else {
         toast.dismiss();
         toast.error(data.error || "Failed to create booking");
-        setStatus("❌ Failed: " + (data.error || "Unknown error"));
         errorRef.current?.focus();
       }
     } catch (err) {
       toast.dismiss();
       console.error("💥 Error:", err);
       toast.error("Something went wrong. Please try again.");
-      setStatus("❌ Something went wrong.");
       errorRef.current?.focus();
     } finally {
       setSubmitting(false);

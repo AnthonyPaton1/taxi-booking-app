@@ -6,6 +6,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/db";
 import { DriverOnboardingSchema } from "@/lib/validators";
 import { invalidateDriverCache } from '@/lib/matching/cached-matching-algorithm';
+import { encrypt } from '@/lib/encryption';
 
 export async function completeDriverOnboarding(data) {
   try {
@@ -80,45 +81,51 @@ export async function completeDriverOnboarding(data) {
 
       // Step 2: Create Driver
       const driver = await tx.driver.create({
-         data: {
-    userId: user.id,
-    name: validated.name,
-    vehicleType: validated.vehicleType,
-    vehicleReg: validated.vehicleReg,
-    amenities: validated.amenities || [],
-    localPostcode: validated.localPostcode,
-    radiusMiles: validated.radiusMiles,
-    
-   
-    baseLat: validated.baseLat,
-    baseLng: validated.baseLng,
-    serviceAreaLat: validated.baseLat,
-    serviceAreaLng: validated.baseLng,
-    serviceAreaRadius: validated.radiusMiles,
-    
-    // Vehicle type booleans
-    hasWAV: validated.vehicleType === "WAV",
-    hasStandard: validated.vehicleType === "CAR",
-    wavOnly: validated.vehicleType === "WAV",
-    
-    phone: validated.phone,
-    approved: false,
-    accessibilityProfileId: accessibilityProfile.id,
-  },
-});
+        data: {
+          userId: user.id,
+          name: validated.name,
+          vehicleType: validated.vehicleType,
+          vehicleReg: validated.vehicleReg,
+          amenities: validated.amenities || [],
+          localPostcode: validated.localPostcode,
+          radiusMiles: validated.radiusMiles,
+          
+          baseLat: validated.baseLat,
+          baseLng: validated.baseLng,
+          serviceAreaLat: validated.baseLat,
+          serviceAreaLng: validated.baseLng,
+          serviceAreaRadius: validated.radiusMiles,
+          
+          // Vehicle type booleans
+          hasWAV: validated.vehicleType === "WAV",
+          hasStandard: validated.vehicleType === "CAR",
+          wavOnly: validated.vehicleType === "WAV",
+          
+          phone: validated.phone,
+          approved: false,
+          accessibilityProfileId: accessibilityProfile.id,
+        },
+      });
 
-      // Step 3: Create DriverCompliance
+      // Step 3: Create DriverCompliance (ENCRYPT SENSITIVE DATA)
       await tx.driverCompliance.create({
         data: {
           driverId: driver.id,
           ukDrivingLicence: validated.ukDrivingLicence,
-          licenceNumber: validated.licenceNumber,
+          licenceNumber: encrypt(validated.licenceNumber), // 🔐 ENCRYPTED
           localAuthorityRegistered: validated.localAuthorityRegistered,
           dbsChecked: validated.dbsChecked,
           publicLiabilityInsurance: validated.publicLiabilityInsurance,
           fullyCompInsurance: validated.fullyCompInsurance,
           healthCheckPassed: validated.healthCheckPassed,
           englishProficiency: validated.englishProficiency,
+          dbsIssueDate: new Date(validated.dbsIssueDate),
+          dbsUpdateServiceNumber: encrypt(validated.dbsUpdateServiceNumber), // 🔐 ENCRYPTED
+          dbsUpdateServiceConsent: validated.dbsUpdateServiceConsent,
+          dbsUpdateServiceConsentDate: validated.dbsUpdateServiceConsent ? new Date() : null,
+          lastDbsCheck: new Date(),
+          nextDbsCheckDue: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+          dbsStatus: 'CLEAR',
         },
       });
 
@@ -131,6 +138,7 @@ export async function completeDriverOnboarding(data) {
       return driver;
     });
     
+    await invalidateDriverCache(result.id);
 
     console.log("✅ Driver onboarding complete:", result.id);
 
@@ -138,7 +146,6 @@ export async function completeDriverOnboarding(data) {
   } catch (error) {
     console.error("❌ Driver onboarding failed:", error);
 
-    // Handle Zod validation errors
     if (error.name === "ZodError") {
       return {
         success: false,
@@ -154,7 +161,6 @@ export async function completeDriverOnboarding(data) {
   }
 }
 
-// Keep your existing completeOnboarding function for other roles
 export async function completeOnboarding(role) {
   const session = await getServerSession(authOptions);
 
@@ -188,7 +194,6 @@ export async function completeOnboarding(role) {
   }
 }
 
-// NEW: Update existing driver details
 export async function updateDriverDetails(data, driverId) {
   try {
     const session = await getServerSession(authOptions);
@@ -197,10 +202,8 @@ export async function updateDriverDetails(data, driverId) {
       return { success: false, error: "Not authenticated" };
     }
 
-    // Validate input
     const validated = DriverOnboardingSchema.parse(data);
 
-    // Get driver with relations
     const driver = await prisma.driver.findUnique({
       where: { id: driverId },
       include: {
@@ -214,37 +217,33 @@ export async function updateDriverDetails(data, driverId) {
       return { success: false, error: "Driver not found" };
     }
 
-    // Check ownership
     if (driver.user.email !== session.user.email) {
       return { success: false, error: "Unauthorized" };
     }
 
-    // Update in transaction
     await prisma.$transaction(async (tx) => {
       // Update Driver
       await tx.driver.update({
         where: { id: driverId },
-          data: {
-    name: validated.name,
-    vehicleType: validated.vehicleType,
-    vehicleReg: validated.vehicleReg,
-    amenities: validated.amenities || [],
-    localPostcode: validated.localPostcode,
-    radiusMiles: validated.radiusMiles,
-    phone: validated.phone,
-    
-    
-    baseLat: validated.baseLat,
-    baseLng: validated.baseLng,
-    serviceAreaLat: validated.baseLat,
-    serviceAreaLng: validated.baseLng,
-    serviceAreaRadius: validated.radiusMiles,
-    
-    // Vehicle type booleans
-    hasWAV: validated.vehicleType === "WAV",
-    hasStandard: validated.vehicleType === "CAR",
-    wavOnly: validated.vehicleType === "WAV",
-  },
+        data: {
+          name: validated.name,
+          vehicleType: validated.vehicleType,
+          vehicleReg: validated.vehicleReg,
+          amenities: validated.amenities || [],
+          localPostcode: validated.localPostcode,
+          radiusMiles: validated.radiusMiles,
+          phone: validated.phone,
+          
+          baseLat: validated.baseLat,
+          baseLng: validated.baseLng,
+          serviceAreaLat: validated.baseLat,
+          serviceAreaLng: validated.baseLng,
+          serviceAreaRadius: validated.radiusMiles,
+          
+          hasWAV: validated.vehicleType === "WAV",
+          hasStandard: validated.vehicleType === "CAR",
+          wavOnly: validated.vehicleType === "WAV",
+        },
       });
 
       // Update AccessibilityProfile
@@ -290,22 +289,30 @@ export async function updateDriverDetails(data, driverId) {
         },
       });
 
-      // Update DriverCompliance
+      // Update DriverCompliance (ENCRYPT SENSITIVE DATA)
       await tx.driverCompliance.update({
         where: { driverId },
         data: {
           ukDrivingLicence: validated.ukDrivingLicence,
-          licenceNumber: validated.licenceNumber,
+          licenceNumber: encrypt(validated.licenceNumber), // 🔐 ENCRYPTED
           localAuthorityRegistered: validated.localAuthorityRegistered,
           dbsChecked: validated.dbsChecked,
           publicLiabilityInsurance: validated.publicLiabilityInsurance,
           fullyCompInsurance: validated.fullyCompInsurance,
           healthCheckPassed: validated.healthCheckPassed,
           englishProficiency: validated.englishProficiency,
+          dbsIssueDate: new Date(validated.dbsIssueDate),
+          dbsUpdateServiceNumber: encrypt(validated.dbsUpdateServiceNumber), // 🔐 ENCRYPTED
+          dbsUpdateServiceConsent: validated.dbsUpdateServiceConsent,
+          dbsUpdateServiceConsentDate: validated.dbsUpdateServiceConsent ? new Date() : null,
+          lastDbsCheck: new Date(),
+          nextDbsCheckDue: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          dbsStatus: 'CLEAR',
         },
       });
     });
-    await invalidateDriverCache(result.id);
+    
+    await invalidateDriverCache(driverId); // ✅ FIXED - use driverId, not result.id
 
     console.log("✅ Driver details updated:", driverId);
 

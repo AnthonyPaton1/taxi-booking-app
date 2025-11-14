@@ -3,7 +3,7 @@
 
 import { prisma } from "@/lib/db";
 import { simpleRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
-import { validateUKPhone } from "@/lib/phoneValidation";
+import { validatePhoneUK } from "@/lib/phoneValidation"; // ✅ Changed to validatePhoneUK
 import { validateEmail, validateName, sanitizePlainText } from "@/lib/validation";
 import { headers } from "next/headers";
 import nodemailer from "nodemailer";
@@ -112,12 +112,12 @@ export async function registerAndInviteUser(payload) {
     }
     const sanitizedEmail = emailValidation.sanitized;
 
-    // Validate phone
-    const phoneValidation = validateUKPhone(phone);
-    if (!phoneValidation.isValid) {
+    // ✅ VALIDATE PHONE - Using validatePhoneUK with correct properties
+    const phoneValidation = validatePhoneUK(phone);
+    if (!phoneValidation.valid) {
       return {
         success: false,
-        error: phoneValidation.error || "Invalid UK phone number",
+        error: phoneValidation.message || "Invalid UK phone number",
       };
     }
     const sanitizedPhone = phoneValidation.formatted;

@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import AllBookingsListClient from "@/components/dashboard/business/allBookingsListClient";
+import { toast } from "sonner";
 
 export default async function AllBookingsPage({ searchParams }) {
   const session = await getServerSession(authOptions);
@@ -113,7 +114,7 @@ const [total, pending, awaiting, confirmed, upcoming, canceled, completed] = awa
       createdById: user.id,
       status: { in: ["OPEN", "ACCEPTED"] }
     } 
-  }).catch(e => { console.error('Query 1 failed:', e.message); throw e; }),
+  }).catch(e => { console.error('Query 1 failed:', e.message); throw e;  }),
   
   prisma.advancedBooking.count({
     where: { createdById: user.id, status: "OPEN", bids: { some: {} } },
