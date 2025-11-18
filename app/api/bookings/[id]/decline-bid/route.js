@@ -66,7 +66,6 @@ export async function POST(request) {
       data: { status: "REJECTED" },
     });
 
-    // TODO: Send notification to driver
 
     return NextResponse.json({
       success: true,

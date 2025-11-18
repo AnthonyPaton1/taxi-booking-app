@@ -48,15 +48,11 @@ export default function SetPasswordClient() {
     setLoading(true);
 
     try {
-//       console.log("🚀 Sending request with token:", token);
-      
       const res = await fetch("/api/auth/set-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, password }),
       });
-      
-//       console.log("📡 Response status:", res.status);
 
       // Handle non-JSON responses
       const contentType = res.headers.get("content-type");
@@ -139,7 +135,7 @@ export default function SetPasswordClient() {
             </div>
           )}
 
-          {/* Password Strength Component */}
+          {/* Password Strength Component with unique ID */}
           <PasswordStrengthInput
             password={password}
             onPasswordChange={setPassword}
@@ -147,6 +143,7 @@ export default function SetPasswordClient() {
             onConfirmPasswordChange={setConfirmPassword}
             disabled={loading}
             showConfirm={true}
+            idPrefix="set-password"
           />
 
           <button

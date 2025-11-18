@@ -18,7 +18,7 @@ export async function PUT(req, { params }) {
 
     const { id: houseId } = await params;
     const body = await req.json();
-    const { number, street, city, postcode, lat, lng } = body;
+    const { label, line1, city, postcode, lat, lng, notes } = body;
 
     // Verify the house belongs to this manager
     const house = await prisma.house.findUnique({
@@ -44,12 +44,13 @@ export async function PUT(req, { params }) {
     const updatedHouse = await prisma.house.update({
       where: { id: houseId },
       data: {
-        number,
-        street,
+        label,
+        line1,
         city: city || null,
         postcode,
         lat,
         lng,
+        notes: notes || null,
       },
     });
 

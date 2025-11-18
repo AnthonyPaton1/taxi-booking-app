@@ -85,6 +85,7 @@ export default async function AdminCoordinatorsPage() {
       coordinators={coordinatorsWithStats}
       areas={areas}
       businessId={user.businessId}
+      
     />
   );
 }

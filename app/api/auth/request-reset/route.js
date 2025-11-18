@@ -24,7 +24,7 @@ export async function POST(req) {
     // Build reset link
     const resetLink = `${process.env.NEXTAUTH_URL}/reset-password?token=${token}`;
 
-    // TODO: configure transporter with SMTP creds
+    
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: 587,

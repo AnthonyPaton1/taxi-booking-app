@@ -64,10 +64,7 @@ export async function POST(request, { params }) {
       },
     });
 
-    // TODO: Notify assigned driver if there is one
-    // if (booking.assignedDriverId) {
-    //   await sendDriverNotification(booking.assignedDriverId, "Booking cancelled");
-    // }
+    
 
     return NextResponse.json({
       success: true,

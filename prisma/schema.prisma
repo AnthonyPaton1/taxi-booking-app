@@ -144,6 +144,8 @@ model User {
   radius       Int?
   capabilities String[]
 
+savedLocations SavedLocation[]
+
   Account Account[]
   Session Session[]
 
@@ -261,9 +263,7 @@ wavOnly            Boolean @default(false)
 gender             String?
 completedRides     Int     @default(0)
 rating             Float   @default(0.0)
-serviceAreaLat     Float?
-serviceAreaLng     Float?
-serviceAreaRadius  Float?  @default(25.0)
+
 
  suspended Boolean @default(false)
   suspendedReason String?
@@ -285,7 +285,6 @@ serviceAreaRadius  Float?  @default(25.0)
 
 @@index([approved, suspended, deletedAt, hasWAV]) // ← Extended! Most important query
 @@index([baseLat, baseLng]) // Geospatial searches
-@@index([serviceAreaLat, serviceAreaLng]) // Alternative location search
 @@index([userId]) // User->driver lookup
 @@index([accessibilityProfileId]) // Join optimization
 }
@@ -458,6 +457,23 @@ model Resident {
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model SavedLocation {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  address   String
+  postcode  String
+  notes     String?
+  useCount  Int      @default(0)
+  lastUsed  DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([userId, useCount])
 }
 
 /**

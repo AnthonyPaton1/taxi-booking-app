@@ -4,11 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { validatePhoneUK } from "@/lib/phoneValidation";
 
-const CoordinatorOnboardingForm = ({companyId}) => {
+export default function CoordinatorOnboardingForm({ companyId, coordinatorArea }) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [managers, setManagers] = useState([
@@ -16,7 +14,7 @@ const CoordinatorOnboardingForm = ({companyId}) => {
       name: "",
       email: "",
       phone: "",
-      area: "",
+      area: coordinatorArea || "", // Pre-filled from coordinator's area
     },
   ]);
 
@@ -29,7 +27,12 @@ const CoordinatorOnboardingForm = ({companyId}) => {
   const addManager = () => {
     setManagers([
       ...managers,
-      { name: "", email: "", phone: "", area: "" },
+      { 
+        name: "", 
+        email: "", 
+        phone: "", 
+        area: coordinatorArea || "" // Pre-fill for new managers too
+      },
     ]);
   };
 
@@ -39,140 +42,143 @@ const CoordinatorOnboardingForm = ({companyId}) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // ✅ Validation check
-    const isValid = managers.every(m => m.name && m.email && m.phone);
-    if (!isValid) {
-      toast.error("Please fill out all manager fields.");
-      return;
-    }
-
-    // ✅ PHONE VALIDATION - Using validatePhoneUK with correct properties
-    for (let i = 0; i < managers.length; i++) {
-      const phoneValidation = validatePhoneUK(managers[i].phone);
-      if (!phoneValidation.valid) {
-        toast.error(`Manager ${i + 1}: ${phoneValidation.message || "Invalid UK phone number"}`);
-        // Scroll to the invalid phone field
-        setTimeout(() => {
-          const phoneField = document.getElementById(`manager-phone-${i}`);
-          if (phoneField) {
-            phoneField.scrollIntoView({ behavior: "smooth", block: "center" });
-            phoneField.focus();
-          }
-        }, 100);
-        return;
-      }
-      // Update with formatted phone number
-      managers[i].phone = phoneValidation.formatted;
-    }
+    setSubmitting(true);
 
     try {
-      setSubmitting(true);
-      const payload = { companyId, managers };
-//       console.log("Submitting payload:", payload);
-      
       const res = await fetch("/api/onboarding/coordinator", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          companyId,
+          managers,
+        }),
       });
 
-      if (!res.ok) throw new Error("Failed to update");
+      const data = await res.json();
 
-      // Send invite emails
-      await fetch("/api/invite-manager", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ managers }),
-      });
-
-      toast.success("Managers onboarded successfully!");
-      
-      // Refresh the page to reload with updated coordinatorOnboarded status
-      router.refresh();
+      if (res.ok) {
+        toast.success("Managers onboarded successfully!");
+        
+        // Show email results if any failed
+        if (data.emailResults) {
+          const failed = data.emailResults.filter(r => !r.success);
+          if (failed.length > 0) {
+            toast.warning(`${failed.length} invitation email(s) failed to send`, {
+              description: "You can resend invitations from your dashboard"
+            });
+          }
+        }
+        
+        router.refresh();
+      } else {
+        toast.error(data.error || "Failed to onboard managers");
+      }
     } catch (err) {
-      console.error("Update failed", err);
-      toast.error("Something went wrong");
+      console.error("Error:", err);
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <>
-     
-      <div className="max-w-3xl mx-auto p-6 bg-white rounded-lg shadow">
-        <h2 className="text-2xl font-bold text-blue-700 mb-6">
-          Manager Onboarding
-        </h2>
-        <p>Add your managers and invite them to the App</p>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {managers.map((manager, i) => (
-            <div key={i} className="border p-4 rounded-md bg-gray-50 space-y-4">
-              <Textarea
-                placeholder="Area covered (e.g., Stockport, Wigan)"
+    <div className="max-w-3xl mx-auto p-6 bg-white rounded-lg shadow">
+      <h2 className="text-2xl font-bold text-blue-700 mb-6">
+        Manager Onboarding
+      </h2>
+      <p className="text-gray-600 mb-6">
+        Add your managers and invite them to the App
+      </p>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {managers.map((manager, i) => (
+          <div key={i} className="border p-4 rounded-md bg-gray-50 space-y-4">
+            {/* Area - Pre-filled and Read-only */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Local Office / Area
+              </label>
+              <Input
                 value={manager.area}
-                onChange={(e) =>
-                  handleManagerChange(i, "area", e.target.value)
-                }
+                readOnly
+                disabled
+                className="bg-gray-100 cursor-not-allowed"
+                placeholder="Area"
               />
-              <Input
-                placeholder="Manager Name"
-                value={manager.name}
-                onChange={(e) =>
-                  handleManagerChange(i, "name", e.target.value)
-                }
-              />
-              <Input
-                type="email"
-                placeholder="Manager Email"
-                value={manager.email}
-                onChange={(e) =>
-                  handleManagerChange(i, "email", e.target.value)
-                }
-              />
-              <div>
-                <Input
-                  id={`manager-phone-${i}`}
-                  placeholder="Manager Phone Number"
-                  value={manager.phone}
-                  onChange={(e) =>
-                    handleManagerChange(i, "phone", e.target.value)
-                  }
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  UK format: e.g. 07123456789 or +447123456789
-                </p>
-              </div>
-
-              {managers.length > 1 && (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={() => removeManager(i)}
-                >
-                  Remove
-                </Button>
-              )}
+              <p className="text-xs text-gray-500 mt-1">
+                Managers will be assigned to your area: {coordinatorArea}
+              </p>
             </div>
-          ))}
 
-          <div className="flex justify-between">
-            <Button type="button" variant="outline" onClick={addManager}>
-              + Add Another Manager
-            </Button>
-            <Button
-              type="submit"
-              disabled={submitting}
-              className="bg-blue-700 text-white hover:bg-blue-800"
-            >
-              {submitting ? "Submitting..." : "Submit"}
-            </Button>
+            {/* Manager Name */}
+            <Input
+              placeholder="Manager Name"
+              value={manager.name}
+              onChange={(e) =>
+                handleManagerChange(i, "name", e.target.value)
+              }
+              required
+            />
+
+            {/* Manager Email */}
+            <Input
+              type="email"
+              placeholder="Manager Email"
+              value={manager.email}
+              onChange={(e) =>
+                handleManagerChange(i, "email", e.target.value)
+              }
+              required
+            />
+
+            {/* Manager Phone */}
+            <div>
+              <Input
+                id={`manager-phone-${i}`}
+                placeholder="Manager Phone Number"
+                value={manager.phone}
+                onChange={(e) =>
+                  handleManagerChange(i, "phone", e.target.value)
+                }
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                UK format: e.g. 07123456789 or +447123456789
+              </p>
+            </div>
+
+            {/* Remove Button */}
+            {managers.length > 1 && (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => removeManager(i)}
+              >
+                Remove Manager
+              </Button>
+            )}
           </div>
-        </form>
-      </div>
-    </>
-  );
-};
+        ))}
 
-export default CoordinatorOnboardingForm;
+        {/* Add Another Manager */}
+        <Button
+          type="button"
+          variant="outline"
+          onClick={addManager}
+          className="w-full"
+        >
+          + Add Another Manager
+        </Button>
+
+        {/* Submit */}
+        <Button
+          type="submit"
+          disabled={submitting}
+          className="w-full"
+        >
+          {submitting ? "Onboarding Managers..." : "Complete Manager Onboarding"}
+        </Button>
+      </form>
+    </div>
+  );
+}

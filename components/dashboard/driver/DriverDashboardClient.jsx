@@ -3,9 +3,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Car } from "lucide-react";
+import { Car, FileText  } from "lucide-react";
 import IncidentFeedbackForm from "@/components/forms/incidentFeedbackForm";
-import { FileText, Building } from "lucide-react";
 import RecentBidsSection from "@/components/dashboard/driver/recentBidsSection";
 
 
@@ -25,6 +24,7 @@ export default function DriverDashboardClient({
   const todaysInstant = todaysBookings?.instant || [];
   const todaysAdvanced = todaysBookings?.advanced || [];
   const totalToday = todaysInstant.length + todaysAdvanced.length;
+  
 
   return (
     <div className="min-h-screen bg-gray-50">

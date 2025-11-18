@@ -99,8 +99,6 @@ export async function POST(request) {
       });
     });
 
-    // TODO: Send notification to accepted driver
-    // TODO: Send rejection notifications to other drivers
 
     return NextResponse.json({
       success: true,

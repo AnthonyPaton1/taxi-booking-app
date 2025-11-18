@@ -49,8 +49,7 @@ export async function getMatchedAdvancedBookingsForDriver() {
         bidDeadline: {
           gte: new Date(), // Only bookings with future bid deadlines
         },
-        // TODO: Filter by visibility if needed
-        // visibility: { in: ["PUBLIC", "PRIVATE_TO_COMPANY"] }
+        
       },
       include: {
         accessibilityProfile: true,

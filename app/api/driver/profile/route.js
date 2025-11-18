@@ -144,14 +144,17 @@ export async function PATCH(request) {
     await prisma.driver.update({
       where: { id: user.driver.id },
       data: {
-        name: name.trim(),                  // ✅ Add this!
+        name: name.trim(),                  // Add this!
         phone: phone.trim(),
         vehicleType: vehicleType.trim(),
+         hasWAV: vehicleType === "WAV",
+    hasStandard: vehicleType === "CAR",
+    wavOnly: vehicleType === "WAV",
         vehicleReg: vehicleReg.trim().toUpperCase(),
         localPostcode: localPostcode.trim().toUpperCase(),
         radiusMiles: parseInt(radiusMiles),
-        gender: gender?.toLowerCase() || null, // ✅ Handle gender
-        ...coordinates,                     // ✅ Spread geocoded coordinates
+        gender: gender?.toLowerCase() || null, // Handle gender
+        ...coordinates,                     //  Spread geocoded coordinates
       },
     });
     
@@ -160,7 +163,48 @@ export async function PATCH(request) {
     await prisma.accessibilityProfile.update({
       where: { id: user.driver.accessibilityProfileId },
       data: {
-        // ... your existing accessibility updates
+        // Mobility & Physical
+    wheelchairAccess: wheelchairAccess || false,
+    doubleWheelchairAccess: doubleWheelchairAccess || false,
+    highRoof: body.highRoof || false,
+    seatTransferHelp: body.seatTransferHelp || false,
+    mobilityAidStorage: body.mobilityAidStorage || false,
+    electricScooterStorage: body.electricScooterStorage || false,
+    
+    // Passenger details
+    passengerCount: body.passengerCount || 1,
+    wheelchairUsers: body.wheelchairUsers || 0,
+    ageOfPassenger: body.ageOfPassenger || null,
+    carerPresent: body.carerPresent || false,
+    escortRequired: body.escortRequired || false,
+    
+    // Sensory
+    quietEnvironment: body.quietEnvironment || false,
+    noConversation: body.noConversation || false,
+    noScents: body.noScents || false,
+    specificMusic: body.specificMusic || null,
+    visualSchedule: body.visualSchedule || false,
+    
+    // Communication
+    signLanguageRequired: body.signLanguageRequired || false,
+    textOnlyCommunication: body.textOnlyCommunication || false,
+    preferredLanguage: body.preferredLanguage || null,
+    translationSupport: body.translationSupport || false,
+    
+    // Special requirements
+    assistanceRequired: body.assistanceRequired || false,
+    assistanceAnimal: body.assistanceAnimal || false,
+    familiarDriverOnly: body.familiarDriverOnly || false,
+    femaleDriverOnly: body.femaleDriverOnly || false, // ← This one!
+    nonWAVvehicle: body.nonWAVvehicle || false,
+    
+    // Health & Safety
+    medicationOnBoard: body.medicationOnBoard || false,
+    medicalConditions: body.medicalConditions || null,
+    firstAidTrained: body.firstAidTrained || false,
+    conditionAwareness: body.conditionAwareness || false,
+    
+    additionalNeeds: body.additionalNeeds || null,
       },
     });
 

@@ -111,7 +111,7 @@ export default  function ManagerDashboardClient({
           />
         </div>
 
-        {/* Bookings Needing Attention */}
+        
         {stats.pendingBids > 0 && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <div className="flex items-center gap-2">
@@ -343,11 +343,11 @@ const HouseCard = ({ house }) => (
     <p className="text-sm text-gray-600 mt-1">
       {house.line1}, {house.city}
     </p>
-    <p className="text-sm text-gray-600">{house.postcode}</p>
+    <p className="text-sm text-gray-800">{house.postcode}</p>
     {house.area && (
-      <p className="text-xs text-gray-500 mt-2">Area: {house.area.name}</p>
+      <p className="text-xs text-gray-800 mt-2">Area: {house.area.name}</p>
     )}
-    <p className="text-xs text-gray-500">Residents: {house.tenants}</p>
+    <p className="text-xs text-gray-800">Residents: {house.residents?.length || 0}</p>
   </div>
 );
 

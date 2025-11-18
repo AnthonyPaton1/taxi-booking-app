@@ -35,10 +35,7 @@ export async function POST(req) {
         baseLng: validated.baseLng,
         radiusMiles: validated.radiusMiles,
 
-        // ✅ Service area coordinates (copy from base for now - can remove these fields later)
-        serviceAreaLat: validated.baseLat,
-        serviceAreaLng: validated.baseLng,
-        serviceAreaRadius: validated.radiusMiles,
+       
 
         // ✅ Vehicle type booleans (derived from vehicleType)
         hasWAV: isWAV,

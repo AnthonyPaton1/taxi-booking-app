@@ -50,6 +50,7 @@ export default async function SingleBookingPage({ params, searchParams }) {
     booking = await prisma.advancedBooking.findUnique({
       where: { id },
       include: {
+        business: true,
         accessibilityProfile: true,
         bids: {
           where: {

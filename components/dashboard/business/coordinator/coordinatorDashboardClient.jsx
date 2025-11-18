@@ -5,13 +5,11 @@ import Link from "next/link";
 import {
   Users,
   Home,
-  Calendar,
-  TrendingUp,
   AlertCircle,
-  MapPin,
   Building,
   MessageSquare,
 } from "lucide-react";
+import ResendInvitationButton from "@/components/ResendInvitationButton";
 
 export default function CoordinatorDashboardClient({
   user,
@@ -75,8 +73,16 @@ export default function CoordinatorDashboardClient({
           />
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Quick Actions - NOW WITH SAVED LOCATIONS */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <QuickAction
+            title="Saved Locations"
+            description="Manage frequently used addresses"
+            href="/dashboard/coordinator/locations"
+            color="indigo"
+            icon="📍"
+          />
+          
           <QuickAction
             title="Manage Managers"
             description="View and onboard house managers"
@@ -92,6 +98,7 @@ export default function CoordinatorDashboardClient({
             color="purple"
             icon="🏘️"
           />
+          
           <QuickAction
             title="Incidents & Feedback"
             description="Review reports and feedback"
@@ -197,6 +204,7 @@ const QuickAction = ({ title, description, href, color, icon }) => {
     green: "border-green-200 hover:bg-green-50",
     purple: "border-purple-200 hover:bg-purple-50",
     orange: "border-orange-200 hover:bg-orange-50",
+    indigo: "border-indigo-200 hover:bg-indigo-50",
   };
 
   return (
@@ -211,18 +219,34 @@ const QuickAction = ({ title, description, href, color, icon }) => {
   );
 };
 
-// Manager Card
 const ManagerCard = ({ manager }) => (
   <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-    <div className="flex items-center gap-3 mb-3">
-      <div className="bg-blue-100 rounded-full p-2">
-        <Users className="w-5 h-5 text-blue-600" />
+    <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center gap-3">
+        <div className="bg-blue-100 rounded-full p-2">
+          <Users className="w-5 h-5 text-blue-600" />
+        </div>
+        <div>
+          <h3 className="font-semibold text-gray-900">{manager.name}</h3>
+          <p className="text-sm text-gray-600">{manager.email}</p>
+          {!manager.managerOnboarded && (
+            <span className="text-xs text-yellow-600">⏳ Pending Setup</span>
+          )}
+        </div>
       </div>
-      <div>
-        <h3 className="font-semibold text-gray-900">{manager.name}</h3>
-        <p className="text-sm text-gray-600">{manager.email}</p>
-      </div>
+      
+      {/* Resend Button - only show if not onboarded */}
+      {!manager.managerOnboarded && (
+        <ResendInvitationButton
+          userId={manager.id}
+          userEmail={manager.email}
+          userName={manager.name}
+          size="sm"
+          variant="outline"
+        />
+      )}
     </div>
+    
     <div className="space-y-2 text-sm text-gray-600">
       <div className="flex items-center gap-2">
         <Home className="w-4 h-4" />

@@ -86,10 +86,10 @@ export default async function AvailableAdvancedBookingsPage() {
     orderBy: {
       bidDeadline: "asc", // Show urgent ones first
     },
+   
   });
 
-  // Add coordinates to bookings (using business location)
-  // TODO: In future, geocode actual pickup addresses for more accuracy
+ 
  const bookingsWithCoords = availableBookings
   .filter(booking => 
     booking.pickupLatitude && 
@@ -102,28 +102,32 @@ export default async function AvailableAdvancedBookingsPage() {
   }));
 
   // Match driver to bookings using the algorithm
-  const matches = await matchDriverToBookingsCached(driver, bookingsWithCoords);
-/*
-console.log('=== DRIVER AVAILABLE ADVANCED DEBUG ===');
-console.log('Total available bookings:', availableBookings.length);
-console.log('Bookings with coords:', bookingsWithCoords.length);
-console.log('Matched bookings:', matches.length);
-console.log('Matches:', matches.map(m => ({
-  id: m.booking.id.substring(0, 8),
-  pickup: m.booking.pickupLocation,
-  score: m.score,
-  distance: m.distance
-})));
-*/
+  const driverForMatching = {
+  id: driver.id,
+  approved: driver.approved,
+  suspended: driver.suspended || false,
+  hasWAV: driver.hasWAV,
+  wavOnly: driver.wavOnly || false,
+  femaleDriverOnly: driver.femaleDriverOnly || false,
+  baseLat: driver.baseLat,
+  baseLng: driver.baseLng,
+  radiusMiles: driver.radiusMiles || 25,
+  rating: driver.rating || 0,
+  completedRides: driver.completedRides || 0,
+};
 
-  // Format matches for the client component
-  const matchedBookings = matches.map(match => ({
-    ...match.booking,
-    matchScore: match.score,
-    distance: match.distance,
-    scoreBreakdown: match.scoreBreakdown
-   
-  }));
+const matches = await  matchDriverToBookingsCached(driverForMatching, bookingsWithCoords, { skipCache: true } );
+
+
+const safeMatches = Array.isArray(matches) ? matches : [];
+const matchedBookings = safeMatches.map(match => ({
+  ...match.booking,
+  matchScore: match.score,
+  distance: match.distance,
+}));
+
+  
+  console.log("🔍 Matches type:", typeof matches, "Is array?", Array.isArray(matches));
 
   return (
       <AvailableAdvancedBookingsClient

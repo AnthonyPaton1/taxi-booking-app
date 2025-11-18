@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import StatusMessage from "@/components/shared/statusMessage";
 import { toast } from "sonner";
 
 export default function AddCoordinatorForm({ businessId, existingAreas }) {
@@ -59,7 +58,7 @@ export default function AddCoordinatorForm({ businessId, existingAreas }) {
   if (data.success) {
     toast.success("Coordinator added!");
     setTimeout(() => {
-      router.push("/dashboard/admin/coordinators");
+      router.push("/dashboard/admin/coordinator");
     }, 1500);
   } else {
     toast.error(data.error || "Failed to add a coordinator");
@@ -92,10 +91,10 @@ export default function AddCoordinatorForm({ businessId, existingAreas }) {
           Coordinators manage managers and houses within their assigned area
         </p>
 
-        <StatusMessage
+        {/* <StatusMessage
           message={status}
           type={status?.startsWith("❌") ? "error" : "info"}
-        />
+        /> */}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Name */}
@@ -211,7 +210,7 @@ export default function AddCoordinatorForm({ businessId, existingAreas }) {
           <div className="flex gap-3 pt-4 border-t">
             <Button
               type="button"
-              onClick={() => router.push("/dashboard/admin/coordinators")}
+              onClick={() => router.push("/dashboard/admin/coordinator")}
               variant="outline"
               disabled={submitting}
               className="flex-1"

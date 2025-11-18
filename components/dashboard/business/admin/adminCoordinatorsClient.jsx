@@ -17,7 +17,6 @@ import {
   XCircle,
   Home,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import StatusMessage from "@/components/shared/statusMessage";
 
 export default function AdminCoordinatorsClient({ coordinators, areas }) {
@@ -109,7 +108,7 @@ export default function AdminCoordinatorsClient({ coordinators, areas }) {
               Add your first area coordinator to get started
             </p>
             <Link
-              href="/dashboard/admin/coordinators/add"
+              href="/dashboard/admin/coordinator/add"
               className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium"
             >
               Add First Coordinator

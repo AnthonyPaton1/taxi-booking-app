@@ -149,7 +149,7 @@ export default function EditDriverProfileClient({ user, driver }) {
         return;
       }
 
-      // ✅ Update payload with new coordinates
+      //  Update payload with new coordinates
       payload = {
         ...payload,
         localPostcode: postcodeData.coordinates.postcode,
@@ -159,7 +159,7 @@ export default function EditDriverProfileClient({ user, driver }) {
       
       toast.dismiss();
     } else {
-      // ✅ If postcode didn't change, keep existing coordinates
+      //  If postcode didn't change, keep existing coordinates
       payload = {
         ...payload,
         baseLat: driver.baseLat,
@@ -172,7 +172,7 @@ export default function EditDriverProfileClient({ user, driver }) {
     const response = await fetch(`/api/driver/profile`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload), // ✅ Use payload instead of formData
+      body: JSON.stringify(payload), //  Use payload instead of formData
     });
 
     const data = await response.json();
@@ -357,8 +357,7 @@ export default function EditDriverProfileClient({ user, driver }) {
                 <option value="Car">Standard Car</option>
                 <option value="WAV">Wheelchair Accessible Vehicle (WAV)</option>
                 <option value="Minibus">Minibus</option>
-                <option value="MPV">MPV / Large Car</option>
-                <option value="Executive">Executive / Luxury</option>
+                
               </select>
             </div>
 
@@ -603,54 +602,11 @@ export default function EditDriverProfileClient({ user, driver }) {
         {/* Accessibility Tab */}
         {activeTab === "accessibility" && (
           <div className="space-y-6">
-            {/* Vehicle Capacity */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Vehicle Capacity
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label
-                    htmlFor="passengerCount"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Total Passengers (1-15)
-                  </label>
-                  <input
-                    type="number"
-                    id="passengerCount"
-                    name="passengerCount"
-                    value={formData.passengerCount}
-                    onChange={handleChange}
-                    min="1"
-                    max="15"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="wheelchairUsers"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Wheelchair Capacity (0-6)
-                  </label>
-                  <input
-                    type="number"
-                    id="wheelchairUsers"
-                    name="wheelchairUsers"
-                    value={formData.wheelchairUsers}
-                    onChange={handleChange}
-                    min="0"
-                    max="6"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-            </div>
+           
 
             {/* Mobility & Physical */}
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 mt-8">
                 Mobility & Physical Access
               </h3>
               <div className="space-y-3">

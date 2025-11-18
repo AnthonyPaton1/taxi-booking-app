@@ -26,6 +26,8 @@ export default async function CoordinatorDashboardPage() {
     },
   });
 
+
+
   if (!user) {
     redirect("/login");
   }
@@ -43,7 +45,8 @@ export default async function CoordinatorDashboardPage() {
               You're managing {user.area?.name}. Let's onboard your managers.
             </p>
           </div>
-          <CoordinatorOnboardingForm companyId={user.businessId} />
+          <CoordinatorOnboardingForm companyId={user.businessId} coordinatorArea={user.area?.name}  />
+          
         </div>
       </div>
     );
@@ -99,6 +102,7 @@ export default async function CoordinatorDashboardPage() {
     incidentCount,
     feedbackCount,
   };
+
 
   return (
     <CoordinatorDashboardClient

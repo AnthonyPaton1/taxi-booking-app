@@ -66,8 +66,7 @@ export async function POST(request, { params }) {
     });
     await invalidateDriverCache(updatedDriver.id);
 
-    // TODO: Send rejection email to driver
-    // await sendDriverRejectionEmail(updatedDriver.user.email, updatedDriver.user.name, reason);
+   
 
     return NextResponse.json({ 
       message: 'Driver rejected',

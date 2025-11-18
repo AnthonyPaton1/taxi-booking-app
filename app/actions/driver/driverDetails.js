@@ -92,9 +92,7 @@ export async function completeDriverOnboarding(data) {
           
           baseLat: validated.baseLat,
           baseLng: validated.baseLng,
-          serviceAreaLat: validated.baseLat,
-          serviceAreaLng: validated.baseLng,
-          serviceAreaRadius: validated.radiusMiles,
+         
           
           // Vehicle type booleans
           hasWAV: validated.vehicleType === "WAV",
@@ -236,9 +234,7 @@ export async function updateDriverDetails(data, driverId) {
           
           baseLat: validated.baseLat,
           baseLng: validated.baseLng,
-          serviceAreaLat: validated.baseLat,
-          serviceAreaLng: validated.baseLng,
-          serviceAreaRadius: validated.radiusMiles,
+          
           
           hasWAV: validated.vehicleType === "WAV",
           hasStandard: validated.vehicleType === "CAR",

@@ -1,17 +1,14 @@
 // components/dashboard/driver/MyBidsClient.jsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Clock,
   CheckCircle,
   XCircle,
-  AlertCircle,
   MapPin,
   Calendar,
-  PoundSterling,
-  TrendingUp,
   ArrowLeft,
   Eye,
 } from "lucide-react";
@@ -24,8 +21,13 @@ export default function MyBidsClient({
   driverName,
 }) {
   const [activeTab, setActiveTab] = useState("pending");
+   const [mounted, setMounted] = useState(false);
 
-  const formatCurrency = (amountCents) => {
+     useEffect(() => {
+    setMounted(true);
+  }, []);
+
+   const formatCurrency = (amountCents) => {
     return new Intl.NumberFormat("en-GB", {
       style: "currency",
       currency: "GBP",
@@ -33,6 +35,7 @@ export default function MyBidsClient({
   };
 
   const formatDateTime = (date) => {
+    if (!mounted) return ""; // ← Add this check
     return new Date(date).toLocaleString("en-GB", {
       weekday: "short",
       day: "numeric",
@@ -43,6 +46,7 @@ export default function MyBidsClient({
   };
 
   const formatDate = (date) => {
+    if (!mounted) return ""; // ← Add this check
     return new Date(date).toLocaleDateString("en-GB", {
       weekday: "short",
       day: "numeric",

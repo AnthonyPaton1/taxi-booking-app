@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import LocationAutocomplete from "@/components/shared/LocationAutocomplete";
+import SaveLocationButton from "@/components/SaveLocationsButton";
 import { PostcodeInput } from "@/components/shared/PostcodeInput";
 import RideAccessibilityOptions from "../RideAccessibilityOptions";
 import { ArrowLeft, Zap, Clock } from "lucide-react";
@@ -14,6 +16,7 @@ import { toast } from "sonner";
 const defaultFormData = {
   houseId: "",
   residentIds: [],
+  pickupFromHouse: false,
   pickupLocation: "",
   dropoffLocation: "",
   pickupPostcode: "",
@@ -373,12 +376,7 @@ export default function InstantBookingForm({ houses, userName }) {
           </div>
         </div>
 
-        {/* Status Message */}
-        {status && (
-          <div ref={errorRef} tabIndex={-1}>
-            <StatusMessage message={status} />
-          </div>
-        )}
+      
 
         {isRepeating && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
@@ -484,133 +482,210 @@ export default function InstantBookingForm({ houses, userName }) {
 </div>
 
 
-          {/* Journey Details */}
-          <div className="space-y-4">
-            <h2 className="text-xl font-bold text-gray-900 pb-2 border-b">
-              2. Journey Details
-            </h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="pickupLocation" className="block font-medium text-gray-700 mb-1">
-                  Pickup Address *
-                </label>
-                <input
-                  type="text"
-                  id="pickupLocation"
-                  name="pickupLocation"
-                  required
-                  value={formData.pickupLocation}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  placeholder="Full pickup address"
-                />
-              </div>
-
-              {/* Pickup Postcode - UPDATED */}
-              <PostcodeInput
-                id="instant-pickup-postcode"
-                value={formData.pickupPostcode}
-                onChange={(value) => setFormData(prev => ({ ...prev, pickupPostcode: value }))}
-                label="Pickup Postcode"
-                placeholder="e.g., SK3 0AA"
-                required
-                className="w-full"
-              />
-
-              <div>
-                <label htmlFor="dropoffLocation" className="block font-medium text-gray-700 mb-1">
-                  Destination Address *
-                </label>
-                <input
-                  type="text"
-                  id="dropoffLocation"
-                  name="dropoffLocation"
-                  required
-                  value={formData.dropoffLocation}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  placeholder="Full destination address"
-                />
-              </div>
-
-              {/* Dropoff Postcode - UPDATED */}
-              <PostcodeInput
-                id="instant-dropoff-postcode"
-                value={formData.dropoffPostcode}
-                onChange={(value) => setFormData(prev => ({ ...prev, dropoffPostcode: value }))}
-                label="Destination Postcode"
-                placeholder="e.g., M1 1AA"
-                required
-                className="w-full"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="pickupDate" className="block font-medium text-gray-700 mb-1">
-                  Journey Date *
-                </label>
-                <input
-                  type="date"
-                  id="pickupDate"
-                  name="pickupDate"
-                  required
-                  value={formData.pickupDate}
-                  onChange={handleChange}
-                  min={minDate}
-                  max={maxDate}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-                <p className="text-sm text-gray-500 mt-1">Today to 2 days ahead</p>
-              </div>
-
-              <div>
-                <label htmlFor="pickupTime" className="block font-medium text-gray-700 mb-1">
-                  Pickup Time *
-                </label>
-                <input
-                  type="time"
-                  id="pickupTime"
-                  name="pickupTime"
-                  required
-                  value={formData.pickupTime}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 p-3 bg-gray-50 rounded">
-              <input
-                type="checkbox"
-                id="roundTrip"
-                name="roundTrip"
-                checked={formData.roundTrip}
-                onChange={handleChange}
-                className="w-4 h-4 text-purple-600"
-              />
-              <label htmlFor="roundTrip" className="text-gray-700 font-medium">
-                Return Journey?
-              </label>
-            </div>
-
-            {formData.roundTrip && (
-              <div>
-                <label htmlFor="returnTime" className="block font-medium text-gray-700 mb-1">
-                  Return Time
-                </label>
-                <input
-                  type="time"
-                  id="returnTime"
-                  name="returnTime"
-                  value={formData.returnTime}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-              </div>
-            )}
-          </div>
+         <div className="flex items-center gap-2 p-3 bg-blue-50 rounded border border-blue-200">
+           <input
+             type="checkbox"
+             id="pickupFromHouse"
+             checked={formData.pickupFromHouse}
+             onChange={(e) => {
+               if (e.target.checked && selectedHouse) {
+                 setFormData(prev => ({
+                   ...prev,
+                   pickupFromHouse: true,
+                   pickupLocation: `${selectedHouse.label}, ${selectedHouse.line1}`,
+                   pickupPostcode: selectedHouse.postcode,
+                   pickupLat: selectedHouse.lat,
+                   pickupLng: selectedHouse.lng,
+                 }));
+               } else {
+                 setFormData(prev => ({ ...prev, pickupFromHouse: false }));
+               }
+             }}
+           />
+           <label htmlFor="pickupFromHouse" className="text-sm font-medium cursor-pointer">
+             Pick up from {selectedHouse?.label || 'selected house'}
+           </label>
+         </div>
+         
+                   {/* PICKUP LOCATION - WITH SAVED LOCATIONS */}
+                   <div className="space-y-4 border-t pt-6">
+                     <h3 className="text-lg font-semibold text-gray-900">Pickup Location</h3>
+                     
+                     {/* Saved Locations Search - FIRST for better UX */}
+                     <div>
+                       <label className="block text-sm font-medium text-gray-700 mb-1">
+                         Search Saved Locations
+                       </label>
+                       <LocationAutocomplete
+                         value={formData.pickupLocation}
+                         onChange={(value) => setFormData(prev => ({ ...prev, pickupLocation: value }))}
+                         onLocationSelect={(location) => {
+                           setFormData(prev => ({
+                             ...prev,
+                             pickupLocation: location.address,
+                             pickupPostcode: location.postcode,
+                           }));
+                           toast.success(`Selected: ${location.name}`);
+                         }}
+                         placeholder="Start typing to search saved locations..."
+                         required={false}
+                       />
+                       <p className="text-xs text-gray-500 mt-1">
+                         Or enter details manually below
+                       </p>
+                     </div>
+         
+                     {/* Manual Address Input */}
+                     <div>
+                       <label htmlFor="pickupLocation" className="block text-sm font-medium text-gray-700 mb-1">
+                         Pickup Address *
+                       </label>
+                       <input
+                         id="pickupLocation"
+                         name="pickupLocation"
+                         type="text"
+                         required
+                         value={formData.pickupLocation}
+                         onChange={handleChange}
+                         placeholder="123 Main Street, City"
+                         className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                       />
+                     </div>
+         
+                     <PostcodeInput
+                       id="manager-pickup-postcode"
+                       label="Pickup Postcode *"
+                       value={formData.pickupPostcode}
+                       onChange={(value) => setFormData(prev => ({ ...prev, pickupPostcode: value }))}
+                       required
+                     />
+         
+                    
+                   </div>
+         
+                   {/* DROPOFF LOCATION - WITH SAVED LOCATIONS */}
+                   <div className="space-y-4 border-t pt-6">
+                     <h3 className="text-lg font-semibold text-gray-900">Dropoff Location</h3>
+                     
+                     {/* Saved Locations Search - FIRST for better UX */}
+                     <div>
+                       <label className="block text-sm font-medium text-gray-700 mb-1">
+                         Search Saved Locations
+                       </label>
+                       <LocationAutocomplete
+                         value={formData.dropoffLocation}
+                         onChange={(value) => setFormData(prev => ({ ...prev, dropoffLocation: value }))}
+                         onLocationSelect={(location) => {
+                           setFormData(prev => ({
+                             ...prev,
+                             dropoffLocation: location.address,
+                             dropoffPostcode: location.postcode,
+                           }));
+                           toast.success(`Selected: ${location.name}`);
+                         }}
+                         placeholder="Start typing to search saved locations..."
+                         required={false}
+                       />
+                       <p className="text-xs text-gray-500 mt-1">
+                         Or enter details manually below
+                       </p>
+                     </div>
+         
+                     {/* Manual Address Input */}
+                     <div>
+                       <label htmlFor="dropoffLocation" className="block text-sm font-medium text-gray-700 mb-1">
+                         Dropoff Address *
+                       </label>
+                       <input
+                         id="dropoffLocation"
+                         name="dropoffLocation"
+                         type="text"
+                         required
+                         value={formData.dropoffLocation}
+                         onChange={handleChange}
+                         placeholder="456 High Street, Town"
+                         className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                       />
+                     </div>
+         
+                     <PostcodeInput
+                       id="manager-dropoff-postcode"
+                       label="Dropoff Postcode *"
+                       value={formData.dropoffPostcode}
+                       onChange={(value) => setFormData(prev => ({ ...prev, dropoffPostcode: value }))}
+                       required
+                     />
+         
+                   </div>
+                   
+         
+                   {/* Date & Time */}
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div>
+  <label htmlFor="pickupDate" className="block font-medium text-gray-700 mb-1">
+    Pickup Date *
+  </label>
+  <input
+    type="date"
+    id="pickupDate"
+    name="pickupDate"
+    required
+    value={formData.pickupDate}
+    onChange={handleChange}
+    min={minDate}  // ← Today
+    max={maxDate}  // ← 2 days from now
+    className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+  />
+  <p className="text-sm text-gray-500 mt-1">Today to 2 days ahead</p>
+</div>
+         
+                     <div>
+                       <label htmlFor="pickupTime" className="block font-medium text-gray-700 mb-1">
+                         Pickup Time *
+                       </label>
+                       <input
+                         type="time"
+                         id="pickupTime"
+                         name="pickupTime"
+                         required
+                         value={formData.pickupTime}
+                         onChange={handleChange}
+                         className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                       />
+                     </div>
+                   </div>
+         
+                   {/* Round Trip */}
+                   <div className="flex items-center space-x-2">
+                     <input
+                       type="checkbox"
+                       id="roundTrip"
+                       name="roundTrip"
+                       checked={formData.roundTrip}
+                       onChange={handleChange}
+                       className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                     />
+                     <label htmlFor="roundTrip" className="font-medium text-gray-700">
+                       Round Trip (Return Journey)
+                     </label>
+                   </div>
+         
+                   {/* Return Time (if round trip) */}
+                   {formData.roundTrip && (
+                     <div>
+                       <label htmlFor="returnTime" className="block font-medium text-gray-700 mb-1">
+                         Return Time
+                       </label>
+                       <input
+                         type="time"
+                         id="returnTime"
+                         name="returnTime"
+                         value={formData.returnTime}
+                         onChange={handleChange}
+                         className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                       />
+                     </div>
+                   )}
 
           {/* Passengers */}
           <div className="space-y-4">

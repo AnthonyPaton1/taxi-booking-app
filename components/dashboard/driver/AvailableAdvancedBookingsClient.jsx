@@ -257,7 +257,7 @@ export default function AvailableAdvancedBookingsClient({ bookings, driverId }) 
                       )}
 
                       <Link
-                        href={`/dashboard/driver/advanced/${booking.id}`}
+                        href={`/dashboard/driver/bookings/${booking.id}`}
                         className="block text-sm text-blue-600 hover:underline"
                       >
                         View Full Details →

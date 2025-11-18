@@ -67,8 +67,7 @@ export async function POST(request) {
       },
     });
 
-    // TODO: Send notification to manager about driver acceptance
-    // TODO: Send confirmation to driver
+    
 
     return NextResponse.json({
       success: true,

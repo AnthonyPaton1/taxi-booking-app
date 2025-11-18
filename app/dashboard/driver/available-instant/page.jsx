@@ -80,17 +80,34 @@ const bookingsWithCoords = availableBookings
     pickupLng: booking.pickupLongitude,
   }));
 
-  // Match driver to bookings using the algorithm
-  const matches = await matchDriverToBookingsCached(driver, bookingsWithCoords);
+  const driverForMatching = {
+  id: driver.id,
+  approved: driver.approved,
+  suspended: driver.suspended || false,
+  hasWAV: driver.hasWAV,
+  wavOnly: driver.wavOnly || false,
+  femaleDriverOnly: driver.femaleDriverOnly || false,
+  baseLat: driver.baseLat,
+  baseLng: driver.baseLng,
+  radiusMiles: driver.radiusMiles || 25,
+  rating: driver.rating || 0,
+  completedRides: driver.completedRides || 0,
+};
 
-  // Format matches for the client component
-  const matchedBookings = matches.map(match => ({
-    ...match.booking,
-    matchScore: match.overallScore,
-    distance: match.distance,
-    scoreBreakdown: match.scoreBreakdown,
-  
-  }));
+  // Match driver to bookings using the algorithm
+  const matches = await matchDriverToBookingsCached(driverForMatching, bookingsWithCoords, {skipCache: true});
+
+ const safeMatches = Array.isArray(matches) ? matches : [];
+ console.log('🔍 Safe matches:', safeMatches.length, safeMatches[0]);
+const matchedBookings = safeMatches.map(match => ({
+  ...match.booking,
+  matchScore: match.score,  
+  distance: match.distance,
+}));
+  console.log('📦 Passing to client:', {
+    bookingCount: matchedBookings.length,
+    firstBooking: matchedBookings[0]
+  });
 
   return (
     <AvailableInstantBookingsClient

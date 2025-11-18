@@ -181,7 +181,7 @@ export async function getAvailableInstantBookings() {
 
 
     // Run matching algorithm
-    const matches = await matchDriverToBookingsCached(driver, bookingsWithCoords);
+    const matches = await matchDriverToBookingsCached(driver, bookingsWithCoords, { skipCache: true });
 
     // Return only matched bookings
     if (!matches || !Array.isArray(matches)) {
@@ -303,7 +303,7 @@ export async function getAvailableAdvancedBookings() {
     pickupLng: booking.pickupLongitude,
   }));
 
-const matches = await matchDriverToBookingsCached(driver, bookingsWithCoords);
+const matches = await matchDriverToBookingsCached(driver, bookingsWithCoords, { skipCache: true });
 
 
 if (!matches || !Array.isArray(matches)) {

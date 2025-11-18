@@ -30,7 +30,7 @@ export default function CoordinatorManagersClient({ managers, coordinatorArea })
           <div className="flex items-center gap-4">
             <Link
               href="/dashboard/coordinator"
-              className="flex items-center text-gray-600 hover:text-gray-900"
+              className="flex items-center text-gray-700 hover:text-gray-900"
             >
               <ArrowLeft className="w-5 h-5 mr-2" />
               Dashboard
@@ -153,7 +153,7 @@ export default function CoordinatorManagersClient({ managers, coordinatorArea })
                       <p className="text-2xl font-bold text-gray-900">
                         {manager.houses.length}
                       </p>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-gray-700">
                         House{manager.houses.length !== 1 ? "s" : ""}
                       </p>
                     </div>
@@ -165,7 +165,7 @@ export default function CoordinatorManagersClient({ managers, coordinatorArea })
                       <p className="text-2xl font-bold text-gray-900">
                         {totalResidents}
                       </p>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-gray-700">
                         Resident{totalResidents !== 1 ? "s" : ""}
                       </p>
                     </div>
@@ -181,10 +181,10 @@ export default function CoordinatorManagersClient({ managers, coordinatorArea })
                         {manager.houses.map((house) => (
                           <div
                             key={house.id}
-                            className="text-sm text-gray-600 flex justify-between items-center"
+                            className="text-sm text-gray-700 flex justify-between items-center"
                           >
                             <span>{house.label}</span>
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-gray-700">
                               {house.residents.length} resident
                               {house.residents.length !== 1 ? "s" : ""}
                             </span>

@@ -4,7 +4,8 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
-import { findMatchingDrivers } from "@/lib/matching/bookingMatcher";
+import { matchDriverToBookingsCached } from '@/lib/matching/cached-matching-algorithm';
+
 import { sanitizeBookingData, validateResidentIds } from "@/lib/validation";
 
 export async function createManagerBooking(data) {
@@ -25,7 +26,7 @@ export async function createManagerBooking(data) {
 
     // Validate required fields
     if (!sanitizedData.houseId || !sanitizedData.residentIds || sanitizedData.residentIds.length === 0) {
-      return { success: false, error: "House and at least one resident are required" };
+      return { success: false, error: "A House and at least one resident are required" };
     }
 
     // Validate resident IDs
@@ -180,7 +181,7 @@ export async function createManagerBooking(data) {
     });
 
     try {
-      const matchedDrivers = await findMatchingDrivers(booking.id);
+      const matchedDrivers =  matchDriverToBookingsCached(booking.id);
       
       if (matchedDrivers.length > 0) {
         console.log('Top 3 matches:', matchedDrivers.slice(0, 3).map(d => ({

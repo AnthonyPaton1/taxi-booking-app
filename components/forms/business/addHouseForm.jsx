@@ -83,6 +83,8 @@ export default function AddHouseForm({
         areaId,
       };
 
+    
+
       const response = await fetch("/api/manager/houses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

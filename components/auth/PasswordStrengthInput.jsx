@@ -2,221 +2,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Check, X, EyeClosed, Eye } from "lucide-react";
-
 
 /**
- * Password Strength Indicator Component
- * Enforces strong password requirements with visual feedback
- */
-export default function PasswordStrengthInput({
-  password,
-  onPasswordChange,
-  confirmPassword,
-  onConfirmPasswordChange,
-  disabled = false,
-  showConfirm = true,
-}) {
-  const [strength, setStrength] = useState({
-    score: 0,
-    label: "Too weak",
-    color: "text-red-600",
-    barColor: "bg-red-500",
-  });
-  const [showPassword, setShowPassword] = useState(false);
-const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  const requirements = [
-    {
-      label: "At least 8 characters",
-      test: (pwd) => pwd.length >= 8,
-      met: password.length >= 8,
-    },
-    {
-      label: "One uppercase letter (A-Z)",
-      test: (pwd) => /[A-Z]/.test(pwd),
-      met: /[A-Z]/.test(password),
-    },
-    {
-      label: "One lowercase letter (a-z)",
-      test: (pwd) => /[a-z]/.test(pwd),
-      met: /[a-z]/.test(password),
-    },
-    {
-      label: "One number (0-9)",
-      test: (pwd) => /[0-9]/.test(pwd),
-      met: /[0-9]/.test(password),
-    },
-    {
-      label: "One special character (!@#$%^&*)",
-      test: (pwd) => /[!@#$%^&*(),.?":{}|<>]/.test(pwd),
-      met: /[!@#$%^&*(),.?":{}|<>]/.test(password),
-    },
-  ];
-
-  useEffect(() => {
-    if (!password) {
-      setStrength({
-        score: 0,
-        label: "Too weak",
-        color: "text-red-600",
-        barColor: "bg-red-500",
-      });
-      return;
-    }
-
-    const metCount = requirements.filter((req) => req.test(password)).length;
-    const scorePercent = (metCount / requirements.length) * 100;
-
-    if (metCount === requirements.length) {
-      setStrength({
-        score: scorePercent,
-        label: "Strong",
-        color: "text-green-600",
-        barColor: "bg-green-500",
-      });
-    } else if (metCount >= 3) {
-      setStrength({
-        score: scorePercent,
-        label: "Medium",
-        color: "text-yellow-600",
-        barColor: "bg-yellow-500",
-      });
-    } else {
-      setStrength({
-        score: scorePercent,
-        label: "Weak",
-        color: "text-red-600",
-        barColor: "bg-red-500",
-      });
-    }
-  }, [password]);
-
-  const allRequirementsMet = requirements.every((req) => req.met);
-  const passwordsMatch = confirmPassword === password && confirmPassword !== "";
-
-  return (
-    <div className="space-y-4">
-      {/* Password Input */}
-      <div>
-  <label
-    htmlFor="password"
-    className="block text-sm font-medium text-gray-700 mb-2"
-  >
-    Password
-  </label>
-  <div className="relative">
-    <input
-      id="password"
-      type={showPassword ? "text" : "password"}  // 👈 Changed this
-      placeholder="Enter a strong password"
-      value={password}
-      onChange={(e) => onPasswordChange(e.target.value)}
-      className={`appearance-none rounded border w-full py-2 px-3 pr-10 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:border-transparent ${
-        password && !allRequirementsMet
-          ? "border-red-300 focus:ring-red-500"
-          : password && allRequirementsMet
-          ? "border-green-300 focus:ring-green-500"
-          : "border-gray-300 focus:ring-blue-500"
-      }`}
-      required
-      disabled={disabled}
-    />
-    <button
-      type="button"
-      onClick={() => setShowPassword(!showPassword)}
-      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-    >
-      {showPassword ? <Eye className="w-5 h-5" /> : <EyeClosed className="w-5 h-5" />}
-    </button>
-  </div>
-</div>
-
-{/* Same for Confirm Password */}
-{showConfirm && (
-  <div>
-    <label
-      htmlFor="confirm-password"
-      className="block text-sm font-medium text-gray-700 mb-2"
-    >
-      Confirm Password
-    </label>
-    <div className="relative">
-      <input
-        id="confirm-password"
-        type={showConfirmPassword ? "text" : "password"}  // 👈 Changed this
-        placeholder="Re-enter your password"
-        value={confirmPassword}
-        onChange={(e) => onConfirmPasswordChange(e.target.value)}
-        className={`appearance-none rounded border w-full py-2 px-3 pr-10 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:border-transparent ${
-          confirmPassword && !passwordsMatch
-            ? "border-red-300 focus:ring-red-500"
-            : confirmPassword && passwordsMatch
-            ? "border-green-300 focus:ring-green-500"
-            : "border-gray-300 focus:ring-blue-500"
-        }`}
-        required
-        disabled={disabled}
-      />
-      <button
-        type="button"
-        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-      >
-        {showConfirmPassword ? <Eye className="w-5 h-5" /> : <EyeClosed className="w-5 h-5" />}
-      </button>
-    </div>
-    {/* Match validation messages stay the same */}
-  </div>
-      )}
-
-      {/* Confirm Password */}
-      {showConfirm && (
-        <div>
-          <label
-            htmlFor="confirm-password"
-            className="block text-sm font-medium text-gray-700 mb-2"
-          >
-            Confirm Password
-          </label>
-          <input
-            id="confirm-password"
-            type="password"
-            placeholder="Re-enter your password"
-            value={confirmPassword}
-            onChange={(e) => onConfirmPasswordChange(e.target.value)}
-            className={`appearance-none rounded border w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:border-transparent ${
-              confirmPassword && !passwordsMatch
-                ? "border-red-300 focus:ring-red-500"
-                : confirmPassword && passwordsMatch
-                ? "border-green-300 focus:ring-green-500"
-                : "border-gray-300 focus:ring-blue-500"
-            }`}
-            required
-            disabled={disabled}
-          />
-          {confirmPassword && !passwordsMatch && (
-            <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-              <X className="w-4 h-4" />
-              Passwords do not match
-            </p>
-          )}
-          {confirmPassword && passwordsMatch && (
-            <p className="mt-1 text-sm text-green-600 flex items-center gap-1">
-              <Check className="w-4 h-4" />
-              Passwords match
-            </p>
-          )}
-        </div>
-      )}
-     
-    </div>
-  );
-}
-
-/**
- * Validation helper function for form submission
- * Use this in your form's onSubmit handler
+ * Password validation function
  */
 export function validateStrongPassword(password) {
   const errors = [];
@@ -224,21 +12,225 @@ export function validateStrongPassword(password) {
   if (password.length < 8) {
     errors.push("Password must be at least 8 characters");
   }
+  
   if (!/[A-Z]/.test(password)) {
-    errors.push("Password must contain at least one uppercase letter");
+    errors.push("Must include an uppercase letter");
   }
+  
   if (!/[a-z]/.test(password)) {
-    errors.push("Password must contain at least one lowercase letter");
+    errors.push("Must include a lowercase letter");
   }
+  
   if (!/[0-9]/.test(password)) {
-    errors.push("Password must contain at least one number");
+    errors.push("Must include a number");
   }
+  
   if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-    errors.push("Password must contain at least one special character");
+    errors.push("Must include a special character");
   }
-
+  
   return {
     isValid: errors.length === 0,
     errors,
   };
+}
+
+/**
+ * Password Strength Indicator Component
+ * 
+ * Props:
+ * - password: Current password value
+ * - onPasswordChange: Callback when password changes
+ * - confirmPassword: Confirm password value (optional)
+ * - onConfirmPasswordChange: Callback when confirm password changes (optional)
+ * - disabled: Whether inputs are disabled
+ * - showConfirm: Whether to show confirm password field
+ * - idPrefix: Prefix for input IDs (default: "password")
+ */
+export default function PasswordStrengthInput({
+  password,
+  onPasswordChange,
+  confirmPassword = "",
+  onConfirmPasswordChange = () => {},
+  disabled = false,
+  showConfirm = false,
+  idPrefix = "password",
+}) {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [strength, setStrength] = useState(0);
+
+  // Calculate password strength
+  useEffect(() => {
+    if (!password) {
+      setStrength(0);
+      return;
+    }
+
+    let score = 0;
+    if (password.length >= 8) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[a-z]/.test(password)) score++;
+    if (/[0-9]/.test(password)) score++;
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) score++;
+
+    setStrength(score);
+  }, [password]);
+
+  const validation = validateStrongPassword(password);
+
+  const getStrengthColor = () => {
+    if (strength === 0) return "bg-gray-200";
+    if (strength <= 2) return "bg-red-500";
+    if (strength <= 3) return "bg-yellow-500";
+    if (strength <= 4) return "bg-blue-500";
+    return "bg-green-500";
+  };
+
+  const getStrengthText = () => {
+    if (strength === 0) return "";
+    if (strength <= 2) return "Weak";
+    if (strength <= 3) return "Fair";
+    if (strength <= 4) return "Good";
+    return "Strong";
+  };
+
+  const getStrengthTextColor = () => {
+    if (strength === 0) return "text-gray-500";
+    if (strength <= 2) return "text-red-600";
+    if (strength <= 3) return "text-yellow-600";
+    if (strength <= 4) return "text-blue-600";
+    return "text-green-600";
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Password Field */}
+      <div>
+        <label
+          htmlFor={`${idPrefix}-input`}
+          className="block text-sm font-medium text-gray-700 mb-2"
+        >
+          Password
+        </label>
+        <div className="relative">
+          <input
+            id={`${idPrefix}-input`}
+            type={showPassword ? "text" : "password"}
+            placeholder="Enter your password"
+            value={password}
+            onChange={(e) => onPasswordChange(e.target.value)}
+            className="appearance-none rounded border border-gray-300 w-full py-2 px-3 pr-10 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            required
+            disabled={disabled}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-600 hover:text-gray-900"
+            tabIndex={-1}
+          >
+            {showPassword ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+            )}
+          </button>
+        </div>
+
+        {/* Strength Indicator */}
+        {password && (
+          <div className="mt-2">
+            <div className="flex gap-1 mb-1">
+              {[1, 2, 3, 4, 5].map((level) => (
+                <div
+                  key={level}
+                  className={`h-1 flex-1 rounded ${
+                    level <= strength ? getStrengthColor() : "bg-gray-200"
+                  }`}
+                />
+              ))}
+            </div>
+            <p className={`text-xs font-medium ${getStrengthTextColor()}`}>
+              {getStrengthText()}
+            </p>
+          </div>
+        )}
+
+        {/* Validation Messages */}
+        {password && !validation.isValid && (
+          <div className="mt-2 space-y-1">
+            {validation.errors.map((error, idx) => (
+              <p key={idx} className="text-xs text-red-600">
+                • {error}
+              </p>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Confirm Password Field */}
+      {showConfirm && (
+        <div>
+          <label
+            htmlFor={`${idPrefix}-confirm`}
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
+            Confirm Password
+          </label>
+          <div className="relative">
+            <input
+              id={`${idPrefix}-confirm`}
+              type={showConfirmPassword ? "text" : "password"}
+              placeholder="Re-enter your password"
+              value={confirmPassword}
+              onChange={(e) => onConfirmPasswordChange(e.target.value)}
+              className={`appearance-none rounded border w-full py-2 px-3 pr-10 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:border-transparent ${
+                confirmPassword && password === confirmPassword
+                  ? "border-green-300 focus:ring-green-500"
+                  : "border-gray-300 focus:ring-blue-500"
+              }`}
+              required
+              disabled={disabled}
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-600 hover:text-gray-900"
+              tabIndex={-1}
+            >
+              {showConfirmPassword ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              )}
+            </button>
+          </div>
+          
+          {/* Match Indicator */}
+          {confirmPassword && (
+            <p
+              className={`text-xs mt-1 ${
+                password === confirmPassword
+                  ? "text-green-600"
+                  : "text-red-600"
+              }`}
+            >
+              {password === confirmPassword ? "✓ Passwords match" : "✗ Passwords do not match"}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }

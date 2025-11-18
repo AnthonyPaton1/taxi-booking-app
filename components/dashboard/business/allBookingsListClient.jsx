@@ -503,7 +503,7 @@ export default function AllBookingsListClient({
         </div>
       )}
     </div>
-  );
+
 
       </div>
     

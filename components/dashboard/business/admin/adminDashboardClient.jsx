@@ -12,6 +12,7 @@ import {
   MessageSquare,
   Database
 } from "lucide-react";
+import ResendInvitationButton from "@/components/ResendInvitationButton";
 
 export default function AdminDashboardClient({
   user,
@@ -182,59 +183,72 @@ export default function AdminDashboardClient({
           )}
         </div>
 
-        {/* Coordinators Overview */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Your Coordinators
-            </h2>
-            <Link
-              href="/dashboard/admin/coordinator"
-              className="text-sm text-blue-600 hover:underline"
-            >
-              View all
-            </Link>
-          </div>
+  {/* Coordinators Overview */}
+<div className="bg-white rounded-lg shadow-sm p-6">
+  <div className="flex justify-between items-center mb-4">
+    <h2 className="text-lg font-semibold text-gray-900">
+      Your Coordinators
+    </h2>
+    <Link
+      href="/dashboard/admin/coordinator"
+      className="text-sm text-blue-600 hover:underline"
+    >
+      View all
+    </Link>
+  </div>
 
-          {coordinators.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Users className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-              <p>No coordinators added yet</p>
+  {coordinators.length === 0 ? (
+    <div className="text-center py-8 text-gray-500">
+      <Users className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+      <p>No coordinators added yet</p>
+    </div>
+  ) : (
+    <div className="space-y-2">
+      {coordinators.slice(0, 5).map((coordinator) => (
+        <div
+          key={coordinator.id}
+          className="flex items-center justify-between p-3 bg-gray-50 rounded border border-gray-200"
+        >
+          <div>
+            <p className="font-medium text-gray-900">
+              {coordinator.name}
+            </p>
+            <p className="text-sm text-gray-600">
+              {coordinator.area?.name}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="text-right text-sm">
+              <p className="text-gray-600">{coordinator.email}</p>
+              <span
+                className={`text-xs ${
+                  coordinator.coordinatorOnboarded
+                    ? "text-green-600"
+                    : "text-yellow-600"
+                }`}
+              >
+                {coordinator.coordinatorOnboarded
+                  ? "✓ Onboarded"
+                  : "⏳ Pending"}
+              </span>
             </div>
-          ) : (
-            <div className="space-y-2">
-              {coordinators.slice(0, 5).map((coordinator) => (
-                <div
-                  key={coordinator.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded border border-gray-200"
-                >
-                  <div>
-                    <p className="font-medium text-gray-900">
-                      {coordinator.name}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      {coordinator.area?.name}
-                    </p>
-                  </div>
-                  <div className="text-right text-sm">
-                    <p className="text-gray-600">{coordinator.email}</p>
-                    <span
-                      className={`text-xs ${
-                        coordinator.coordinatorOnboarded
-                          ? "text-green-600"
-                          : "text-yellow-600"
-                      }`}
-                    >
-                      {coordinator.coordinatorOnboarded
-                        ? "✓ Onboarded"
-                        : "⏳ Pending"}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+            
+            {/* Resend Button - only show if not onboarded */}
+            {!coordinator.coordinatorOnboarded && (
+              <ResendInvitationButton
+                userId={coordinator.id}
+                userEmail={coordinator.email}
+                userName={coordinator.name}
+                size="sm"
+                variant="outline"
+              />
+            )}
+          </div>
         </div>
+      ))}
+    </div>
+  )}
+</div>
 
         {/* Add Manager CTA - Only shows when no coordinators */}
         {coordinators.length === 0 && (

@@ -75,8 +75,7 @@ export async function POST(request) {
       },
     });
 
-    // TODO: Send notification to manager
-    // TODO: Update driver earnings
+   
 
     return NextResponse.json({
       success: true,

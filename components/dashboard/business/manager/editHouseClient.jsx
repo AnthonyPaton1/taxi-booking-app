@@ -28,7 +28,6 @@ export default function EditHouseClient({ house }) {
     setSubmitting(true);
 
     try {
-      // Step 1: Validate postcode and get coordinates
       toast.loading("Verifying postcode...");
       
       const postcodeValidation = await fetch("/api/validate-postcode", {

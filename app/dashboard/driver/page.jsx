@@ -79,6 +79,8 @@ export default async function DriverDashboardPage() {
     getAvailableAdvancedBookings(),
   ]);
 
+
+
   return (
     <DriverDashboardClient
       user={user}

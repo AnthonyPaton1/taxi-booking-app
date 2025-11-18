@@ -36,54 +36,39 @@ export async function POST(req) {
       return NextResponse.json({ error: "Area name must be at least 2 characters" }, { status: 400 });
     }
 
-    // Get or create manager with sanitized data
-    const managerUser = await prisma.user.upsert({
-      where: { email: sanitizedEmail },
-      update: { name: sanitizedName, role: "MANAGER" },
-      create: {
-        email: sanitizedEmail,
-        name: sanitizedName,
-        role: "MANAGER",
-      },
-    });
+   const session = await getServerSession(authOptions);
+const coordinator = await prisma.user.findUnique({
+  where: { email: session.user.email },
+  include: { business: true },
+});
 
-    // CREATE OR GET AREA (with sanitized name)
-    const areaRecord = await prisma.area.upsert({
-      where: { name: sanitizedArea },
-      update: {},
-      create: { name: sanitizedArea },
-    });
+if (!coordinator?.business) {
+  return NextResponse.json({ error: "Business not found" }, { status: 400 });
+}
 
-    // Get coordinator from session
-    const session = await getServerSession(authOptions);
-    const coordinator = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      include: { business: true },
-    });
+const businessId = coordinator.business.id;
 
-    if (!coordinator?.business) {
-      return NextResponse.json({ error: "Business not found" }, { status: 400 });
-    }
+const areaRecord = await prisma.area.upsert({
+  where: { name: sanitizedArea },
+  update: {},
+  create: { name: sanitizedArea },
+});
 
-    const businessId = coordinator.business.id;
-
-    // Create BusinessMembership for the manager
-    await prisma.businessMembership.upsert({
-      where: {
-        userId_businessId: {
-          userId: managerUser.id,
-          businessId: businessId,
-        },
-      },
-      update: {
-        role: "MANAGER",
-      },
-      create: {
-        userId: managerUser.id,
-        businessId: businessId,
-        role: "MANAGER",
-      },
-    });
+// NOW create manager with businessId
+const managerUser = await prisma.user.upsert({
+  where: { email: sanitizedEmail },
+  update: { 
+    name: sanitizedName, 
+    role: "MANAGER",
+    businessId: businessId,  // ✅ Add this
+  },
+  create: {
+    email: sanitizedEmail,
+    name: sanitizedName,
+    role: "MANAGER",
+    businessId: businessId,  // ✅ Add this
+  },
+});
 
     // Create or reclaim houses (with sanitized data)
     for (const house of houses) {
@@ -150,7 +135,7 @@ export async function POST(req) {
           },
         });
       } else {
-        // CREATE NEW house with sanitized data
+        
         await prisma.house.create({
           data: {
             label: sanitizedLabel,

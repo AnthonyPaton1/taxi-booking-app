@@ -23,7 +23,7 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: 'Super admin access required' }, { status: 403 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Find the driver
     const driver = await prisma.driver.findUnique({
@@ -69,8 +69,7 @@ export async function POST(request, { params }) {
     });
     await invalidateDriverCache(updatedDriver.id);
 
-    // TODO: Send approval email to driver
-    // await sendDriverApprovalEmail(updatedDriver.user.email, updatedDriver.user.name);
+    
 
     return NextResponse.json({ 
       message: 'Driver approved successfully',

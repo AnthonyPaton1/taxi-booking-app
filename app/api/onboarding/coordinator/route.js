@@ -95,7 +95,7 @@ export async function POST(req) {
           update: {},
           create: { name: sanitizedArea },
         });
-        console.log(`  ✅ Area created/found: ${sanitizedArea}`);
+        
       }
 
       // Create/update user with sanitized data
@@ -117,10 +117,10 @@ export async function POST(req) {
           areaId: areaRecord?.id,
         },
       });
-      console.log(`  ✅ User created/updated: ${user.id}`);
+      
 
       // Send invitation email (using sanitized data)
-      console.log(`  📧 Sending email to: ${sanitizedEmail}`);
+     
       const emailResult = await inviteUserToLogin({
         email: sanitizedEmail,
         name: sanitizedName,

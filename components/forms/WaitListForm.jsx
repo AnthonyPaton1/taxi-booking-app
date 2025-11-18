@@ -5,7 +5,7 @@ import React, { useState } from "react";
 import formFields from "./formFields";
 import { Button } from "@/components/ui/button";
 import { registerAndInviteUser } from "@/app/actions/auth/registerAndInviteUser";
-import { validatePhoneInput } from "@/lib/phoneValidation";
+import { validatePhoneUK } from "@/lib/phoneValidation";
 import { toast } from "sonner";
 import Script from "next/script";
 
@@ -37,14 +37,7 @@ const WaitlistForm = () => {
       return;
     }
 
-    
-    // const phoneValidation = validateUKPhone(formData.contactNumber);
-    // if (!phoneValidation.isValid) {
-    //   toast.error(phoneValidation.error || "Invalid UK phone number");
-    //   setLoading(false);
-    //   return;
-    // }
-    const phoneValidation = validatePhoneInput(formData.contactNumber);
+    const phoneValidation = validatePhoneUK(formData.contactNumber);
 if (!phoneValidation.valid) {
   toast.error(phoneValidation.message || "Invalid UK phone number");
   setLoading(false);

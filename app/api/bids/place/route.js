@@ -91,7 +91,6 @@ export async function POST(request) {
       },
     });
 
-    // TODO: Notify the manager about new bid
 
     return NextResponse.json({
       success: true,

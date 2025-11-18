@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PostcodeInput } from "@/components/shared/PostcodeInput";
 import { toast } from "sonner";
-import { validatePhoneUK } from "@/lib/phoneValidation"; // ✅ Already correct
+import { validatePhoneUK } from "@/lib/phoneValidation"; 
 
 export default function BusinessOnboardingForm({ prefillData = {} }) {
   const {
@@ -62,8 +62,9 @@ export default function BusinessOnboardingForm({ prefillData = {} }) {
   };
 
   const handleChange = (e) => {
-    const { id, value } = e.target;
-    setFormData((prev) => ({ ...prev, [id]: value }));
+    const { id, name, value } = e.target;
+     const field = name || id;
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   // Centralized submission logic
@@ -260,6 +261,8 @@ export default function BusinessOnboardingForm({ prefillData = {} }) {
                 name="type"
                 value="CARE"
                 required
+                 checked={formData.type === "CARE"}  
+                  onChange={handleChange}   
                 className="peer hidden"
               />
               <div className="border-2 border-gray-200 rounded-lg p-6 peer-checked:border-blue-600 peer-checked:bg-blue-50 peer-checked:shadow-lg hover:border-blue-300 hover:shadow-md transition-all">
@@ -280,6 +283,8 @@ export default function BusinessOnboardingForm({ prefillData = {} }) {
                 name="type"
                 value="TAXI"
                 required
+                 checked={formData.type === "TAXI"}
+                  onChange={handleChange}   
                 className="peer hidden"
               />
               <div className="border-2 border-gray-200 rounded-lg p-6 peer-checked:border-blue-600 peer-checked:bg-blue-50 peer-checked:shadow-lg hover:border-blue-300 hover:shadow-md transition-all">

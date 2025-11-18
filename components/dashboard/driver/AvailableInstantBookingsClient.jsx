@@ -76,6 +76,7 @@ export default function AvailableInstantBookingsClient({ bookings, driverId }) {
     } finally {
       setAccepting(null);
     }
+  
   };
 
   return (
@@ -266,11 +267,12 @@ export default function AvailableInstantBookingsClient({ bookings, driverId }) {
                         </Button>
 
                         <Link
-                          href={`/dashboard/driver/instant/${booking.id}`}
+                          href={`/dashboard/driver/bookings/${booking.id}`}
                           className="block text-sm text-blue-600 hover:underline"
                         >
                           View Full Details →
                         </Link>
+                       
                       </div>
                     </div>
                   </div>
