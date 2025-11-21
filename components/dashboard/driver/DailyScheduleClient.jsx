@@ -335,12 +335,9 @@ export default function DailyScheduleClient({
                         </Button>
                       )}
 
-                      <Link
-                        href={`/dashboard/driver/${booking.type}/${booking.id}`}
-                        className="block text-sm text-blue-600 hover:underline"
-                      >
-                        View Details →
-                      </Link>
+                    <Link href={`/dashboard/driver/${booking.type}/${booking.id}`}>
+  View Details →
+</Link>
                     </div>
                   </div>
                 </div>

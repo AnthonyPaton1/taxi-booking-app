@@ -10,7 +10,6 @@ import {
   MapPin,
   Users,
   Clock,
-  DollarSign,
   TrendingUp,
   Accessibility,
   AlertCircle,

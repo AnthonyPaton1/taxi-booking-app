@@ -27,7 +27,7 @@ export default async function DriverDashboardPage() {
   const session = await getServerSession(authOptions);
 
   if (!session) {
-    redirect("/auth/login");
+    redirect("/login");
   }
 
   // Fetch user with driver profile

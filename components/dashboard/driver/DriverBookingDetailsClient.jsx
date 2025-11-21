@@ -384,7 +384,7 @@ export default function DriverBookingDetailsClient({
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Total Bids:</span>
-                  <span className="font-medium text-gray-900">{booking._count.bids}</span>
+                  <span className="font-medium text-gray-900">{booking._count?.bids}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Bid Deadline:</span>

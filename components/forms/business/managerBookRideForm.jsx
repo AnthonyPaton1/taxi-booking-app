@@ -9,8 +9,7 @@ import { useSearchParams } from "next/navigation";
 import { createManagerBooking } from "@/app/actions/bookings/createManagerBooking";
 import RideAccessibilityOptions from "../RideAccessibilityOptions";
 import LocationAutocomplete from "@/components/shared/LocationAutocomplete";
-import SaveLocationButton from "@/components/SaveLocationsButton";
-import { ArrowLeft, Timer } from "lucide-react";
+import { ArrowLeft, Timer, Wheelchair } from "lucide-react";
 import { toast } from "sonner";
 import BlockBookingSection from "@/components/dashboard/business/manager/blockBookingsSection";
 
@@ -28,7 +27,17 @@ const defaultFormData = {
   roundTrip: false,
   passengerCount: "1",
   wheelchairUsers: "0",
-  vehicleType: "either",
+  
+  // UPDATED: More detailed wheelchair configuration
+  wheelchairConfig: {
+    count: 0,
+    powerchairs: 0,
+    manualChairs: 0,
+    requiresDoubleWAV: false,
+    mobilityScooters: 0,
+    requiresRearLoading: false,
+    requiresSideLoading: false,
+  },
   
   // Accessibility
   wheelchairAccess: false,
@@ -104,6 +113,7 @@ export default function ManagerBookRideForm({ houses }) {
             dropoffPostcode: data.dropoffPostcode || "",
             passengerCount: data.passengerCount?.toString() || "1",
             wheelchairUsers: data.wheelchairUsers?.toString() || "0",
+            wheelchairConfig: data.wheelchairConfig || defaultFormData.wheelchairConfig,
             wheelchairAccess: data.wheelchairAccess || false,
             carerPresent: data.carerPresent || false,
             femaleDriverOnly: data.femaleDriverOnly || false,
@@ -139,6 +149,39 @@ export default function ManagerBookRideForm({ houses }) {
       [name]: type === "checkbox" ? checked : value,
     }));
   };
+
+  // UPDATED: Handler for wheelchair config changes
+  const handleWheelchairConfigChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      wheelchairConfig: {
+        ...prev.wheelchairConfig,
+        [field]: value
+      }
+    }));
+  };
+
+  // UPDATED: Auto-calculate total wheelchair users
+  useEffect(() => {
+    const total = 
+      parseInt(formData.wheelchairConfig.powerchairs) + 
+      parseInt(formData.wheelchairConfig.manualChairs) + 
+      parseInt(formData.wheelchairConfig.mobilityScooters);
+    
+    setFormData(prev => ({
+      ...prev,
+      wheelchairUsers: total.toString(),
+      wheelchairConfig: {
+        ...prev.wheelchairConfig,
+        count: total
+      },
+      wheelchairAccess: total > 0
+    }));
+  }, [
+    formData.wheelchairConfig.powerchairs, 
+    formData.wheelchairConfig.manualChairs,
+    formData.wheelchairConfig.mobilityScooters
+  ]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -261,7 +304,6 @@ export default function ManagerBookRideForm({ houses }) {
       toast.dismiss();
       toast.loading("Creating booking...");
       
-
       const bookingPayload = {
         ...formData,
         pickupPostcode: pickupData.coordinates.postcode,
@@ -433,30 +475,31 @@ export default function ManagerBookRideForm({ houses }) {
               </p>
             )}
           </div>
+
           <div className="flex items-center gap-2 p-3 bg-blue-50 rounded border border-blue-200">
-  <input
-    type="checkbox"
-    id="pickupFromHouse"
-    checked={formData.pickupFromHouse}
-    onChange={(e) => {
-      if (e.target.checked && selectedHouse) {
-        setFormData(prev => ({
-          ...prev,
-          pickupFromHouse: true,
-          pickupLocation: `${selectedHouse.label}, ${selectedHouse.line1}`,
-          pickupPostcode: selectedHouse.postcode,
-          pickupLat: selectedHouse.lat,
-          pickupLng: selectedHouse.lng,
-        }));
-      } else {
-        setFormData(prev => ({ ...prev, pickupFromHouse: false }));
-      }
-    }}
-  />
-  <label htmlFor="pickupFromHouse" className="text-sm font-medium cursor-pointer">
-    Pick up from {selectedHouse?.label || 'selected house'}
-  </label>
-</div>
+            <input
+              type="checkbox"
+              id="pickupFromHouse"
+              checked={formData.pickupFromHouse}
+              onChange={(e) => {
+                if (e.target.checked && selectedHouse) {
+                  setFormData(prev => ({
+                    ...prev,
+                    pickupFromHouse: true,
+                    pickupLocation: `${selectedHouse.label}, ${selectedHouse.line1}`,
+                    pickupPostcode: selectedHouse.postcode,
+                    pickupLat: selectedHouse.lat,
+                    pickupLng: selectedHouse.lng,
+                  }));
+                } else {
+                  setFormData(prev => ({ ...prev, pickupFromHouse: false }));
+                }
+              }}
+            />
+            <label htmlFor="pickupFromHouse" className="text-sm font-medium cursor-pointer">
+              Pick up from {selectedHouse?.label || 'selected house'}
+            </label>
+          </div>
 
           {/* PICKUP LOCATION - WITH SAVED LOCATIONS */}
           <div className="space-y-4 border-t pt-6">
@@ -510,8 +553,6 @@ export default function ManagerBookRideForm({ houses }) {
               onChange={(value) => setFormData(prev => ({ ...prev, pickupPostcode: value }))}
               required
             />
-
-           
           </div>
 
           {/* DROPOFF LOCATION - WITH SAVED LOCATIONS */}
@@ -567,7 +608,6 @@ export default function ManagerBookRideForm({ houses }) {
               required
             />
           </div>
-          
 
           {/* Date & Time */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -636,10 +676,10 @@ export default function ManagerBookRideForm({ houses }) {
           )}
 
           {/* Passenger Details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-4">
             <div>
               <label htmlFor="passengerCount" className="block font-medium text-gray-700 mb-1">
-                Number of Passengers *
+                Total Number of Passengers *
               </label>
               <input
                 type="number"
@@ -654,20 +694,120 @@ export default function ManagerBookRideForm({ houses }) {
               />
             </div>
 
-            <div>
-              <label htmlFor="wheelchairUsers" className="block font-medium text-gray-700 mb-1">
-                Number of Wheelchair Users
-              </label>
-              <input
-                type="number"
-                id="wheelchairUsers"
-                name="wheelchairUsers"
-                min="0"
-                max="8"
-                value={formData.wheelchairUsers}
-                onChange={handleChange}
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+            {/* UPDATED: Detailed Wheelchair Configuration */}
+            <div className="border border-blue-200 rounded-lg p-4 bg-blue-50 space-y-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Wheelchair className="w-5 h-5 text-blue-600" />
+                <h3 className="font-semibold text-gray-900">Wheelchair & Mobility Aid Requirements</h3>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label htmlFor="powerchairs" className="block text-sm font-medium text-gray-700 mb-1">
+                    Powerchairs
+                  </label>
+                  <input
+                    type="number"
+                    id="powerchairs"
+                    min="0"
+                    max="4"
+                    value={formData.wheelchairConfig.powerchairs}
+                    onChange={(e) => handleWheelchairConfigChange('powerchairs', parseInt(e.target.value) || 0)}
+                    className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Electric wheelchairs</p>
+                </div>
+
+                <div>
+                  <label htmlFor="manualChairs" className="block text-sm font-medium text-gray-700 mb-1">
+                    Manual Wheelchairs
+                  </label>
+                  <input
+                    type="number"
+                    id="manualChairs"
+                    min="0"
+                    max="4"
+                    value={formData.wheelchairConfig.manualChairs}
+                    onChange={(e) => handleWheelchairConfigChange('manualChairs', parseInt(e.target.value) || 0)}
+                    className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Non-powered chairs</p>
+                </div>
+
+                <div>
+                  <label htmlFor="mobilityScooters" className="block text-sm font-medium text-gray-700 mb-1">
+                    Mobility Scooters
+                  </label>
+                  <input
+                    type="number"
+                    id="mobilityScooters"
+                    min="0"
+                    max="2"
+                    value={formData.wheelchairConfig.mobilityScooters}
+                    onChange={(e) => handleWheelchairConfigChange('mobilityScooters', parseInt(e.target.value) || 0)}
+                    className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Electric scooters</p>
+                </div>
+              </div>
+
+              {/* Total Display */}
+              {formData.wheelchairConfig.count > 0 && (
+                <div className="bg-white rounded p-3 border border-blue-300">
+                  <p className="text-sm font-medium text-gray-700">
+                    Total mobility aids: <span className="text-blue-600 font-bold">{formData.wheelchairConfig.count}</span>
+                  </p>
+                </div>
+              )}
+
+              {/* Vehicle Preferences - Only show if wheelchairs selected */}
+              {formData.wheelchairConfig.count > 0 && (
+                <div className="space-y-3 pt-3 border-t border-blue-200">
+                  <p className="text-sm font-medium text-gray-700">Vehicle Preferences:</p>
+                  
+                  {formData.wheelchairConfig.count >= 2 && (
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.wheelchairConfig.requiresDoubleWAV}
+                        onChange={(e) => handleWheelchairConfigChange('requiresDoubleWAV', e.target.checked)}
+                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">Requires Double WAV (2 wheelchairs simultaneously)</span>
+                    </label>
+                  )}
+                  
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.wheelchairConfig.requiresRearLoading}
+                      onChange={(e) => {
+                        handleWheelchairConfigChange('requiresRearLoading', e.target.checked);
+                        if (e.target.checked) {
+                          handleWheelchairConfigChange('requiresSideLoading', false);
+                        }
+                      }}
+                      className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">Prefer Rear-Loading WAV</span>
+                  </label>
+                  
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.wheelchairConfig.requiresSideLoading}
+                      onChange={(e) => {
+                        handleWheelchairConfigChange('requiresSideLoading', e.target.checked);
+                        if (e.target.checked) {
+                          handleWheelchairConfigChange('requiresRearLoading', false);
+                        }
+                      }}
+                      className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">Prefer Side-Loading WAV</span>
+                  </label>
+                </div>
+              )}
             </div>
           </div>
 
@@ -677,8 +817,6 @@ export default function ManagerBookRideForm({ houses }) {
             setFormData={setFormData} 
             handleChange={handleChange}
           />
-
-          
 
           {/* Additional Needs */}
           <div>
@@ -711,32 +849,27 @@ export default function ManagerBookRideForm({ houses }) {
               placeholder="Internal notes for your reference..."
             />
           </div>
-          
-    
-  
-                
-                    <BlockBookingSection
-                        isBlockBooking={isBlockBooking}
-                        setIsBlockBooking={setIsBlockBooking}
-                        blockRides={blockRides}
-                        setBlockRides={setBlockRides}
-                        blockNotes={blockNotes}
-                        setBlockNotes={setBlockNotes}
-                        roundTrip={formData.roundTrip}
-                      />
-                  
-                  <button
-                        type="submit"
-                        className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700"
-                      >
-                        {isBlockBooking 
-                          ? `Create Block Booking (${blockRides.length} rides)`
-                          : "Create Advanced Booking"
-                        }
-                      </button>
 
-
+          <BlockBookingSection
+            isBlockBooking={isBlockBooking}
+            setIsBlockBooking={setIsBlockBooking}
+            blockRides={blockRides}
+            setBlockRides={setBlockRides}
+            blockNotes={blockNotes}
+            setBlockNotes={setBlockNotes}
+            roundTrip={formData.roundTrip}
+          />
           
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            {submitting ? "Creating..." : isBlockBooking 
+              ? `Create Block Booking (${blockRides.length} rides)`
+              : "Create Advanced Booking"
+            }
+          </button>
         </form>
       </div>
     </div>

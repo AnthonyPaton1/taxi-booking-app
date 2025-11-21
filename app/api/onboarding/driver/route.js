@@ -1,4 +1,4 @@
-// app/api/onboarding/driver/route.js - COMPLETE FIX
+// app/api/onboarding/driver/route.js - UPDATED for vehicleClass
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
@@ -15,74 +15,89 @@ export async function POST(req) {
   try {
     const validated = DriverOnboardingSchema.parse(body);
 
-    // ✅ Derive boolean flags from vehicleType
-    const isWAV = validated.vehicleType === "WAV";
-    const isStandard = validated.vehicleType === "CAR";
-    const isMinibus = validated.vehicleType === "MINIBUS";
+    // ✅ Derive vehicle capabilities from vehicleClass
+    const vehicleClass = validated.vehicleClass;
+    
+    // Determine if vehicle has WAV capabilities
+    const wavClasses = ['SIDE_LOADING_WAV', 'REAR_LOADING_WAV', 'DOUBLE_WAV', 'MINIBUS_ACCESSIBLE'];
+    const hasWAV = wavClasses.includes(vehicleClass);
+    
+    // Determine if it's standard (no wheelchair access)
+    const standardClasses = ['STANDARD_CAR', 'LARGE_CAR', 'MINIBUS_STANDARD'];
+    const hasStandard = standardClasses.includes(vehicleClass);
 
     // Create the driver
     const driver = await prisma.driver.create({
       data: {
         userId: session.user.id,
         name: validated.name,
-        vehicleType: validated.vehicleType,
+        vehicleClass: validated.vehicleClass, // ✅ UPDATED: Use vehicleClass
         vehicleReg: validated.vehicleReg,
         phone: validated.phone,
 
-        // ✅ Base location coordinates (primary)
+        // ✅ Base location coordinates
         localPostcode: validated.localPostcode,
         baseLat: validated.baseLat,
         baseLng: validated.baseLng,
         radiusMiles: validated.radiusMiles,
 
-       
-
-        // ✅ Vehicle type booleans (derived from vehicleType)
-        hasWAV: isWAV,
-        hasStandard: isStandard,
-        wavOnly: isWAV, // If they selected WAV, assume WAV only
+        // ✅ Vehicle capability booleans (derived from vehicleClass)
+        hasWAV: hasWAV,
+        hasStandard: hasStandard,
+        wavOnly: hasWAV && !hasStandard, // WAV-only if it's a WAV and not a standard vehicle
 
         // Vehicle amenities
         amenities: validated.amenities,
 
-        approved: false, // default
+        approved: false, // Admin must approve
 
         // Create AccessibilityProfile
         accessibilityProfile: {
           create: {
-            // Accessibility & passenger-specific options
-            wheelchairAccess: validated.wheelchairAccess,
-            doubleWheelchairAccess: validated.doubleWheelchairAccess ?? false,
+            // Mobility & Physical (matching schema)
             highRoof: validated.highRoof ?? false,
-            carerPresent: validated.carerPresent,
-            passengerCount: validated.passengerCount,
-            wheelchairUsers: validated.wheelchairUsers,
-            nonWAVvehicle: validated.nonWAVvehicle,
-            femaleDriverOnly: validated.femaleDriverOnly,
-            quietEnvironment: validated.quietEnvironment,
-            assistanceRequired: validated.assistanceRequired,
-            noConversation: validated.noConversation,
-            specificMusic: validated.specificMusic,
-            electricScooterStorage: validated.electricScooterStorage,
-            visualSchedule: validated.visualSchedule,
-            assistanceAnimal: validated.assistanceAnimal,
-            familiarDriverOnly: validated.familiarDriverOnly,
-            ageOfPassenger: validated.ageOfPassenger ?? null,
-            escortRequired: validated.escortRequired,
-            preferredLanguage: validated.preferredLanguage ?? null,
-            signLanguageRequired: validated.signLanguageRequired,
-            textOnlyCommunication: validated.textOnlyCommunication,
-            medicalConditions: validated.medicalConditions ?? null,
-            medicationOnBoard: validated.medicationOnBoard,
-            additionalNeeds: validated.additionalNeeds ?? null,
+            seatTransferHelp: validated.seatTransferHelp ?? false,
+            mobilityAidStorage: validated.mobilityAidStorage ?? false,
+            electricScooterStorage: validated.electricScooterStorage ?? false,
 
-            // Safety & awareness
-            seatTransferHelp: validated.seatTransferHelp,
-            mobilityAidStorage: validated.mobilityAidStorage,
-            noScents: validated.noScents,
-            translationSupport: validated.translationSupport,
-            firstAidTrained: validated.firstAidTrained,
-            conditionAwareness: validated.conditionAwareness,
+            // Passenger counts (using schema's field names)
+            wheelchairUsersStaySeated: 0, // Default, can be set later
+            wheelchairUsersCanTransfer: 0, // Default, can be set later
+            ambulatoryPassengers: validated.passengerCount ?? 0,
+
+            // Passenger details
+            ageOfPassenger: validated.ageOfPassenger ?? null,
+            carerPresent: validated.carerPresent ?? false,
+            escortRequired: validated.escortRequired ?? false,
+
+            // Sensory preferences
+            quietEnvironment: validated.quietEnvironment ?? false,
+            noConversation: validated.noConversation ?? false,
+            noScents: validated.noScents ?? false,
+            specificMusic: validated.specificMusic ?? null,
+            visualSchedule: validated.visualSchedule ?? false,
+
+            // Communication
+            signLanguageRequired: validated.signLanguageRequired ?? false,
+            textOnlyCommunication: validated.textOnlyCommunication ?? false,
+            preferredLanguage: validated.preferredLanguage ?? null,
+            translationSupport: validated.translationSupport ?? false,
+
+            // Special requirements
+            assistanceRequired: validated.assistanceRequired ?? false,
+            assistanceAnimal: validated.assistanceAnimal ?? false,
+            familiarDriverOnly: validated.familiarDriverOnly ?? false,
+            femaleDriverOnly: validated.femaleDriverOnly ?? false,
+            nonWAVvehicle: validated.nonWAVvehicle ?? false,
+
+            // Health & safety
+            medicationOnBoard: validated.medicationOnBoard ?? false,
+            medicalConditions: validated.medicalConditions ?? null,
+            firstAidTrained: validated.firstAidTrained ?? false,
+            conditionAwareness: validated.conditionAwareness ?? false,
+
+            // Additional
+            additionalNeeds: validated.additionalNeeds ?? null,
           },
         },
 
@@ -96,14 +111,37 @@ export async function POST(req) {
             fullyCompInsurance: validated.fullyCompInsurance,
             healthCheckPassed: validated.healthCheckPassed,
             englishProficiency: validated.englishProficiency,
+            licenceNumber: validated.licenceNumber,
+            
+            // ✅ NEW: DBS Update Service fields
+            dbsIssueDate: validated.dbsIssueDate,
+            dbsUpdateServiceNumber: validated.dbsUpdateServiceNumber,
+            dbsUpdateServiceConsent: validated.dbsUpdateServiceConsent,
           },
         },
       },
     });
 
+    // ✅ CRITICAL: Update User.onboarded to TRUE
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: { onboarded: true }
+    });
+
     return Response.json({ success: true, driver });
   } catch (err) {
     console.error("❌ Onboarding error:", err);
-    return Response.json({ error: "Invalid input or server error." }, { status: 400 });
+    
+    // Better error messaging
+    if (err.name === 'ZodError') {
+      return Response.json({ 
+        error: "Validation failed", 
+        details: err.errors 
+      }, { status: 400 });
+    }
+    
+    return Response.json({ 
+      error: err.message || "Invalid input or server error." 
+    }, { status: 400 });
   }
 }

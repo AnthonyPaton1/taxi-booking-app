@@ -94,7 +94,7 @@ export async function getAdvancedBookings() {
 
     return { success: true, bookings };
   } catch (error) {
-    console.error("❌ Error fetching advanced bookings:", error);
+    console.error(" Error fetching advanced bookings:", error);
     return { success: false, error: error.message };
   }
 }
@@ -167,7 +167,7 @@ export async function getAvailableInstantBookings() {
       orderBy: { pickupTime: "asc" },
     });
 
-    console.log('Query returned:', allBookings.length, 'bookings');
+    
 
     // Add coordinates to bookings
   const bookingsWithCoords = allBookings
@@ -181,11 +181,11 @@ export async function getAvailableInstantBookings() {
 
 
     // Run matching algorithm
-    const matches = await matchDriverToBookingsCached(driver, bookingsWithCoords, { skipCache: true });
+    const matches = await matchDriverToBookingsCached(driver, bookingsWithCoords);
 
     // Return only matched bookings
     if (!matches || !Array.isArray(matches)) {
-  console.log('⚠️ No matches returned from cache');
+  
   return { success: true, bookings: [] };
 }
     const matchedBookings = matches.map(match => match.booking);
@@ -240,6 +240,12 @@ export async function getAvailableAdvancedBookings() {
         error: "Driver location not set" 
       };
     }
+    console.log('🔍 Query conditions:', {
+  status: "OPEN",
+  visibility: ["PUBLIC", "PRIVATE_TO_COMPANY"],
+  bidDeadline: { gte: new Date() },
+  now: new Date(),
+});
 
     // Get open advanced bookings
     const allBookings = await prisma.advancedBooking.findMany({
@@ -257,6 +263,7 @@ export async function getAvailableAdvancedBookings() {
           { bidDeadline: null },
         ],
       },
+      { deletedAt: null },
     ],
   },
       include: {
@@ -303,7 +310,12 @@ export async function getAvailableAdvancedBookings() {
     pickupLng: booking.pickupLongitude,
   }));
 
-const matches = await matchDriverToBookingsCached(driver, bookingsWithCoords, { skipCache: true });
+
+
+
+const matches = await matchDriverToBookingsCached(driver, bookingsWithCoords);
+
+
 
 
 if (!matches || !Array.isArray(matches)) {

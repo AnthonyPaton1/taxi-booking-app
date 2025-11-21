@@ -17,7 +17,7 @@ export default function BlockBookingSection({
   const getNext14Days = () => {
     const days = [];
     const today = new Date();
-    for (let i = 1; i <= 14; i++) {
+    for (let i = 1; i <= 18; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
       days.push(date);
@@ -103,7 +103,7 @@ export default function BlockBookingSection({
           {/* Calendar Grid */}
           <div>
             <h4 className="font-semibold text-gray-900 mb-3">
-              Select Dates (Next 14 Days)
+              Select Dates (Next 18 Days)
             </h4>
             <div className="grid grid-cols-7 gap-2">
               {getNext14Days().map((date) => {

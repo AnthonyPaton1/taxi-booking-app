@@ -19,8 +19,8 @@ export default function EditDriverProfileClient({ user, driver }) {
     email: user.email || "",
     phone: user.phone || driver.phone || "",
 
-    // Vehicle Info
-    vehicleType: driver.vehicleType || "",
+    // Vehicle Info - UPDATED
+    vehicleClass: driver.vehicleClass || "", // CHANGED: vehicleType -> vehicleClass
     vehicleReg: driver.vehicleReg || "",
     
     // Location
@@ -87,117 +87,114 @@ export default function EditDriverProfileClient({ user, driver }) {
     });
   };
 
- const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setError("");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
 
-  try {
-    // Create payload starting with current form data
-    let payload = { ...formData };
+    try {
+      // Create payload starting with current form data
+      let payload = { ...formData };
 
-    if (formData.phone) {
-  const phoneValidation = validatePhoneUK(formData.phone);
-  if (!phoneValidation.valid) {
-    toast.error(phoneValidation.message || "Invalid UK phone number");
-    setActiveTab("personal");
-    setTimeout(() => {
-      const phoneField = document.getElementById("phone");
-      if (phoneField) {
-        phoneField.scrollIntoView({ behavior: "smooth", block: "center" });
-        phoneField.focus();
+      if (formData.phone) {
+        const phoneValidation = validatePhoneUK(formData.phone);
+        if (!phoneValidation.valid) {
+          toast.error(phoneValidation.message || "Invalid UK phone number");
+          setActiveTab("personal");
+          setTimeout(() => {
+            const phoneField = document.getElementById("phone");
+            if (phoneField) {
+              phoneField.scrollIntoView({ behavior: "smooth", block: "center" });
+              phoneField.focus();
+            }
+          }, 100);
+          setLoading(false);
+          return;
+        }
+        // Update with formatted phone
+        formData.phone = phoneValidation.formatted;
       }
-    }, 100);
-    setLoading(false);
-    return;
-  }
-  // Update with formatted phone
-  formData.phone = phoneValidation.formatted;
-}
 
-    // Only validate postcode via API if it changed
-    if (formData.localPostcode !== driver.localPostcode) {
-      toast.loading("Verifying postcode...");
+      // Only validate postcode via API if it changed
+      if (formData.localPostcode !== driver.localPostcode) {
+        toast.loading("Verifying postcode...");
 
+        const postcodeValidation = await fetch("/api/validate-postcode", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ postcode: formData.localPostcode }),
+        });
 
-      
-      const postcodeValidation = await fetch("/api/validate-postcode", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postcode: formData.localPostcode }),
-      });
+        const postcodeData = await postcodeValidation.json();
 
-      const postcodeData = await postcodeValidation.json();
+        // Check if validation failed
+        if (!postcodeValidation.ok || !postcodeData.valid) {
+          const errorMessage = postcodeData.error || "Postcode not found";
+          
+          toast.dismiss();
+          toast.error(errorMessage, { duration: 5000 });
+          
+          setActiveTab("location");
+          setTimeout(() => {
+            const postcodeField = document.getElementById("driver-postcode");
+            if (postcodeField) {
+              postcodeField.scrollIntoView({ behavior: "smooth", block: "center" });
+              postcodeField.focus();
+            }
+          }, 100);
+          
+          setLoading(false);
+          return;
+        }
 
-      // Check if validation failed
-      if (!postcodeValidation.ok || !postcodeData.valid) {
-        const errorMessage = postcodeData.error || "Postcode not found";
+        // Update payload with new coordinates
+        payload = {
+          ...payload,
+          localPostcode: postcodeData.coordinates.postcode,
+          baseLat: postcodeData.coordinates.lat,
+          baseLng: postcodeData.coordinates.lng,
+        };
         
         toast.dismiss();
-        toast.error(errorMessage, { duration: 5000 });
-        
-        setActiveTab("location");
-        setTimeout(() => {
-          const postcodeField = document.getElementById("driver-postcode");
-          if (postcodeField) {
-            postcodeField.scrollIntoView({ behavior: "smooth", block: "center" });
-            postcodeField.focus();
-          }
-        }, 100);
-        
-        setLoading(false);
-        return;
+      } else {
+        // If postcode didn't change, keep existing coordinates
+        payload = {
+          ...payload,
+          baseLat: driver.baseLat,
+          baseLng: driver.baseLng,
+        };
       }
 
-      //  Update payload with new coordinates
-      payload = {
-        ...payload,
-        localPostcode: postcodeData.coordinates.postcode,
-        baseLat: postcodeData.coordinates.lat,
-        baseLng: postcodeData.coordinates.lng,
-      };
-      
+      toast.loading("Updating profile...");
+
+      const response = await fetch(`/api/driver/profile`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to update profile");
+      }
+
       toast.dismiss();
-    } else {
-      //  If postcode didn't change, keep existing coordinates
-      payload = {
-        ...payload,
-        baseLat: driver.baseLat,
-        baseLng: driver.baseLng,
-      };
+      toast.success("Profile updated successfully!");
+      
+      setTimeout(() => {
+        router.push("/dashboard/driver");
+        router.refresh();
+      }, 1000);
+      
+    } catch (err) {
+      toast.dismiss();
+      setError(err.message);
+      toast.error(err.message || "Failed to update profile");
+    } finally {
+      setLoading(false);
     }
-
-    toast.loading("Updating profile...");
-
-    const response = await fetch(`/api/driver/profile`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload), //  Use payload instead of formData
-    });
-
-    const data = await response.json();
-
-    if (!response.ok || !data.success) {
-      throw new Error(data.error || "Failed to update profile");
-    }
-
-    toast.dismiss();
-    toast.success("Profile updated successfully!");
-    
-    setTimeout(() => {
-      router.push("/dashboard/driver");
-      router.refresh();
-    }, 1000);
-    
-  } catch (err) {
-    toast.dismiss();
-    setError(err.message);
-    toast.error(err.message || "Failed to update profile");
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   return (
     <div className="space-y-6">
@@ -335,30 +332,36 @@ export default function EditDriverProfileClient({ user, driver }) {
           </div>
         )}
 
-        {/* Vehicle Tab */}
+        {/* Vehicle Tab - UPDATED */}
         {activeTab === "vehicle" && (
           <div className="space-y-4">
             <div>
               <label
-                htmlFor="vehicleType"
+                htmlFor="vehicleClass"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                Vehicle Type <span className="text-red-500">*</span>
+                Vehicle Class <span className="text-red-500">*</span>
               </label>
               <select
-                id="vehicleType"
-                name="vehicleType"
-                value={formData.vehicleType}
+                id="vehicleClass"
+                name="vehicleClass"
+                value={formData.vehicleClass}
                 onChange={handleChange}
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="">Select vehicle type</option>
-                <option value="Car">Standard Car</option>
-                <option value="WAV">Wheelchair Accessible Vehicle (WAV)</option>
-                <option value="Minibus">Minibus</option>
-                
+                <option value="">Select vehicle class</option>
+                <option value="STANDARD_CAR">Standard Car (4-5 seats, no wheelchair access)</option>
+                <option value="LARGE_CAR">Large Car/Estate (5-7 seats, extra boot space)</option>
+                <option value="SIDE_LOADING_WAV">Side-Loading WAV (1 wheelchair + passengers)</option>
+                <option value="REAR_LOADING_WAV">Rear-Loading WAV (1 wheelchair + passengers)</option>
+                <option value="DOUBLE_WAV">Double WAV (2 wheelchairs simultaneously)</option>
+                <option value="MINIBUS_ACCESSIBLE">Accessible Minibus (8+ seats, wheelchair lift)</option>
+                <option value="MINIBUS_STANDARD">Standard Minibus (8+ seats, steps only)</option>
               </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Select the class that best describes your vehicle's capabilities
+              </p>
             </div>
 
             <div>
@@ -383,45 +386,45 @@ export default function EditDriverProfileClient({ user, driver }) {
         )}
 
         {/* Location Tab */}
-           {activeTab === "location" && (
-            <div className="space-y-4">
-              <PostcodeInput
-                id="driver-postcode"
-                value={formData.localPostcode}
-                onChange={(value) => setFormData(prev => ({ ...prev, localPostcode: value }))}
-                label="Base Postcode"
-                placeholder="e.g., SK3 0AA"
-                required
-                className="w-full"
-              />
-              <p className="text-xs text-gray-500 -mt-2">
-                Your home or primary operating location
-              </p>
+        {activeTab === "location" && (
+          <div className="space-y-4">
+            <PostcodeInput
+              id="driver-postcode"
+              value={formData.localPostcode}
+              onChange={(value) => setFormData(prev => ({ ...prev, localPostcode: value }))}
+              label="Base Postcode"
+              placeholder="e.g., SK3 0AA"
+              required
+              className="w-full"
+            />
+            <p className="text-xs text-gray-500 -mt-2">
+              Your home or primary operating location
+            </p>
 
-              <div>
-                <label
-                  htmlFor="radiusMiles"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Service Radius (miles) <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  id="radiusMiles"
-                  name="radiusMiles"
-                  value={formData.radiusMiles}
-                  onChange={handleChange}
-                  required
-                  min="1"
-                  max="50"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  How far you're willing to travel for jobs (1-50 miles)
-                </p>
-              </div>
+            <div>
+              <label
+                htmlFor="radiusMiles"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Service Radius (miles) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                id="radiusMiles"
+                name="radiusMiles"
+                value={formData.radiusMiles}
+                onChange={handleChange}
+                required
+                min="1"
+                max="50"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                How far you're willing to travel for jobs (1-50 miles)
+              </p>
             </div>
-          )}
+          </div>
+        )}
 
         {/* Compliance Tab */}
         {activeTab === "compliance" && (
@@ -599,11 +602,9 @@ export default function EditDriverProfileClient({ user, driver }) {
           </div>
         )}
 
-        {/* Accessibility Tab */}
+        {/* Accessibility Tab - No changes needed, this is driver capabilities */}
         {activeTab === "accessibility" && (
           <div className="space-y-6">
-           
-
             {/* Mobility & Physical */}
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-4 mt-8">

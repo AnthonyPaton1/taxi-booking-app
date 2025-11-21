@@ -10,7 +10,7 @@ import LocationAutocomplete from "@/components/shared/LocationAutocomplete";
 import SaveLocationButton from "@/components/SaveLocationsButton";
 import { PostcodeInput } from "@/components/shared/PostcodeInput";
 import RideAccessibilityOptions from "../RideAccessibilityOptions";
-import { ArrowLeft, Zap, Clock } from "lucide-react";
+import { ArrowLeft, Zap, Clock, Wheelchair } from "lucide-react";
 import { toast } from "sonner";
 
 const defaultFormData = {
@@ -28,7 +28,16 @@ const defaultFormData = {
   passengerCount: "1",
   wheelchairUsers: "0",
 
-  vehicleType: "either",
+  // UPDATED: More detailed wheelchair configuration
+  wheelchairConfig: {
+    count: 0,
+    powerchairs: 0,
+    manualChairs: 0,
+    requiresDoubleWAV: false,
+    mobilityScooters: 0,
+    requiresRearLoading: false,
+    requiresSideLoading: false,
+  },
   
   // Accessibility
   wheelchairAccess: false,
@@ -47,7 +56,6 @@ const defaultFormData = {
   
   additionalNeeds: "",
   managerNotes: "",
-  
 };
 
 export default function InstantBookingForm({ houses, userName }) {
@@ -80,30 +88,28 @@ export default function InstantBookingForm({ houses, userName }) {
     }));
   }, []);
 
- // Filter residents based on selected house
- useEffect(() => {
-  if (formData.houseId) {
-    const house = houses.find((h) => h.id === formData.houseId);
-    setSelectedHouse(house);
-    setFormData((prev) => ({ ...prev, residentIds: [] })); 
-  } else {
-    setSelectedHouse(null);
-  }
-}, [formData.houseId, houses]);
-
-
+  // Filter residents based on selected house
+  useEffect(() => {
+    if (formData.houseId) {
+      const house = houses.find((h) => h.id === formData.houseId);
+      setSelectedHouse(house);
+      setFormData((prev) => ({ ...prev, residentIds: [] })); 
+    } else {
+      setSelectedHouse(null);
+    }
+  }, [formData.houseId, houses]);
 
   useEffect(() => {
-  if (formData.residentIds.length > 0) {
-    setFormData(prev => ({
-      ...prev,
-      passengerCount: Math.max(
-        parseInt(prev.passengerCount) || 1,
-        formData.residentIds.length
-      ).toString()
-    }));
-  }
-}, [formData.residentIds]);
+    if (formData.residentIds.length > 0) {
+      setFormData(prev => ({
+        ...prev,
+        passengerCount: Math.max(
+          parseInt(prev.passengerCount) || 1,
+          formData.residentIds.length
+        ).toString()
+      }));
+    }
+  }, [formData.residentIds]);
 
   // Repeat trip functionality
   useEffect(() => {
@@ -114,7 +120,6 @@ export default function InstantBookingForm({ houses, userName }) {
         try {
           const data = JSON.parse(repeatData);
           
-          // Pre-fill everything EXCEPT date/time
           setFormData(prev => ({
             ...prev,
             houseId: data.houseId || "",
@@ -123,12 +128,9 @@ export default function InstantBookingForm({ houses, userName }) {
             dropoffLocation: data.dropoffLocation || "",
             pickupPostcode: data.pickupPostcode || "",
             dropoffPostcode: data.dropoffPostcode || "",
-            
-            // Map correctly!
             passengerCount: data.passengerCount?.toString() || "1",
             wheelchairUsers: data.wheelchairUsers?.toString() || "0",
-            
-            // Accessibility options
+            wheelchairConfig: data.wheelchairConfig || defaultFormData.wheelchairConfig,
             wheelchairAccess: data.wheelchairAccess || false,
             carerPresent: data.carerPresent || false,
             femaleDriverOnly: data.femaleDriverOnly || false,
@@ -143,16 +145,12 @@ export default function InstantBookingForm({ houses, userName }) {
             medicationOnBoard: data.medicationOnBoard || false,
             assistanceRequired: data.assistanceRequired || false,
             nonWAVvehicle: data.nonWAVvehicle || false,
-            
             additionalNeeds: data.additionalNeeds || "",
             managerNotes: data.managerNotes || "",
             physicalRequirements: data.physicalRequirements || [],
-            // Date and time intentionally left blank - will be set by default time logic!
           }));
 
           setIsRepeating(true);
-          
-          // Clear from session storage
           sessionStorage.removeItem("repeatBookingData");
         } catch (error) {
           console.error("Failed to parse repeat booking data:", error);
@@ -169,6 +167,39 @@ export default function InstantBookingForm({ houses, userName }) {
     }));
   };
 
+  // UPDATED: Handler for wheelchair config changes
+  const handleWheelchairConfigChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      wheelchairConfig: {
+        ...prev.wheelchairConfig,
+        [field]: value
+      }
+    }));
+  };
+
+  // UPDATED: Auto-calculate total wheelchair users
+  useEffect(() => {
+    const total = 
+      parseInt(formData.wheelchairConfig.powerchairs) + 
+      parseInt(formData.wheelchairConfig.manualChairs) + 
+      parseInt(formData.wheelchairConfig.mobilityScooters);
+    
+    setFormData(prev => ({
+      ...prev,
+      wheelchairUsers: total.toString(),
+      wheelchairConfig: {
+        ...prev.wheelchairConfig,
+        count: total
+      },
+      wheelchairAccess: total > 0
+    }));
+  }, [
+    formData.wheelchairConfig.powerchairs, 
+    formData.wheelchairConfig.manualChairs,
+    formData.wheelchairConfig.mobilityScooters
+  ]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -183,14 +214,13 @@ export default function InstantBookingForm({ houses, userName }) {
       setSubmitting(false);
       return;
     }
+
     if (!formData.houseId || formData.residentIds.length === 0) {
-  toast.error("Please select a house and at least one resident");
-  errorRef.current?.focus();
-  setSubmitting(false);
-  return;
-}
-
-
+      toast.error("Please select a house and at least one resident");
+      errorRef.current?.focus();
+      setSubmitting(false);
+      return;
+    }
 
     if (!formData.pickupDate || !formData.pickupTime) {
       toast.error("Pickup date and time are required");
@@ -242,7 +272,6 @@ export default function InstantBookingForm({ houses, userName }) {
           duration: 5000,
         });
         
-        // Scroll to pickup postcode field
         setTimeout(() => {
           const pickupField = document.getElementById("instant-pickup-postcode");
           if (pickupField) {
@@ -276,7 +305,6 @@ export default function InstantBookingForm({ houses, userName }) {
           duration: 5000,
         });
         
-        // Scroll to dropoff postcode field
         setTimeout(() => {
           const dropoffField = document.getElementById("instant-dropoff-postcode");
           if (dropoffField) {
@@ -301,15 +329,12 @@ export default function InstantBookingForm({ houses, userName }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
-          // Normalized postcodes
           pickupPostcode: pickupData.coordinates.postcode,
           dropoffPostcode: dropoffData.coordinates.postcode,
-          // Cached coordinates
           pickupLat: pickupData.coordinates.lat,
           pickupLng: pickupData.coordinates.lng,
           dropoffLat: dropoffData.coordinates.lat,
           dropoffLng: dropoffData.coordinates.lng,
-          // Parsed values
           passengerCount,
           wheelchairUsers,
           pickupTime: pickupDateTime.toISOString(),
@@ -376,8 +401,6 @@ export default function InstantBookingForm({ houses, userName }) {
           </div>
         </div>
 
-      
-
         {isRepeating && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
             <p className="text-sm text-green-800">
@@ -389,357 +412,443 @@ export default function InstantBookingForm({ houses, userName }) {
         {/* Form */}
         <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-sm space-y-8">
           {/* House & Resident Selection */}
-          
-<div>
-  <label htmlFor="houseId" className="block font-medium text-gray-700 mb-2">
-    Select House *
-  </label>
-  <select
-    id="houseId"
-    name="houseId"
-    required
-    value={formData.houseId}
-    onChange={handleChange}
-    className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-  >
-    <option value="">-- Select a House --</option>
-    {houses.map((house) => (
-      <option key={house.id} value={house.id}>
-        {house.label}
-      </option>
-    ))}
-  </select>
-</div>
-         <div>
-  <label className="block font-medium text-gray-700 mb-2">
-    Residents Traveling * (Select all that apply)
-  </label>
-  
-  {!selectedHouse ? (
-    <p className="text-sm text-gray-500 p-3 bg-gray-50 rounded border border-gray-200">
-      Please select a house first to see available residents
-    </p>
-  ) : selectedHouse.residents && selectedHouse.residents.length > 0 ? (
-    <div className="space-y-2 max-h-60 overflow-y-auto border border-gray-300 rounded-lg p-3">
-      {selectedHouse.residents.map((resident) => (
-        <label
-          key={resident.id}
-          className={`flex items-center p-3 rounded cursor-pointer transition-colors ${
-            formData.residentIds.includes(resident.id)
-              ? 'bg-blue-50 border-2 border-blue-500'
-              : 'bg-white border border-gray-200 hover:bg-gray-50'
-          }`}
-        >
-          <input
-            type="checkbox"
-            checked={formData.residentIds.includes(resident.id)}
-            onChange={(e) => {
-              if (e.target.checked) {
-                // Add resident
-                setFormData(prev => ({
-                  ...prev,
-                  residentIds: [...prev.residentIds, resident.id]
-                }));
-              } else {
-                // Remove resident
-                setFormData(prev => ({
-                  ...prev,
-                  residentIds: prev.residentIds.filter(id => id !== resident.id)
-                }));
-              }
-            }}
-            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-          />
-          <div className="ml-3 flex-1">
-            <span className="font-medium text-gray-900">
-              {resident.name}
-            </span>
-            {resident.initials && (
-              <span className="ml-2 text-xs text-gray-500">
-                ({resident.initials})
-              </span>
+          <div>
+            <label htmlFor="houseId" className="block font-medium text-gray-700 mb-2">
+              Select House *
+            </label>
+            <select
+              id="houseId"
+              name="houseId"
+              required
+              value={formData.houseId}
+              onChange={handleChange}
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">-- Select a House --</option>
+              {houses.map((house) => (
+                <option key={house.id} value={house.id}>
+                  {house.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block font-medium text-gray-700 mb-2">
+              Residents Traveling * (Select all that apply)
+            </label>
+            
+            {!selectedHouse ? (
+              <p className="text-sm text-gray-500 p-3 bg-gray-50 rounded border border-gray-200">
+                Please select a house first to see available residents
+              </p>
+            ) : selectedHouse.residents && selectedHouse.residents.length > 0 ? (
+              <div className="space-y-2 max-h-60 overflow-y-auto border border-gray-300 rounded-lg p-3">
+                {selectedHouse.residents.map((resident) => (
+                  <label
+                    key={resident.id}
+                    className={`flex items-center p-3 rounded cursor-pointer transition-colors ${
+                      formData.residentIds.includes(resident.id)
+                        ? 'bg-blue-50 border-2 border-blue-500'
+                        : 'bg-white border border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.residentIds.includes(resident.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setFormData(prev => ({
+                            ...prev,
+                            residentIds: [...prev.residentIds, resident.id]
+                          }));
+                        } else {
+                          setFormData(prev => ({
+                            ...prev,
+                            residentIds: prev.residentIds.filter(id => id !== resident.id)
+                          }));
+                        }
+                      }}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <div className="ml-3 flex-1">
+                      <span className="font-medium text-gray-900">
+                        {resident.name}
+                      </span>
+                      {resident.initials && (
+                        <span className="ml-2 text-xs text-gray-500">
+                          ({resident.initials})
+                        </span>
+                      )}
+                    </div>
+                    {formData.residentIds.includes(resident.id) && (
+                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                        Selected
+                      </span>
+                    )}
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500 p-3 bg-gray-50 rounded border border-gray-200">
+                No residents found for this house
+              </p>
+            )}
+            
+            {formData.residentIds.length > 0 && (
+              <p className="text-sm text-gray-600 mt-2">
+                {formData.residentIds.length} resident{formData.residentIds.length !== 1 ? 's' : ''} selected
+              </p>
             )}
           </div>
-          {formData.residentIds.includes(resident.id) && (
-            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-              Selected
-            </span>
+
+          <div className="flex items-center gap-2 p-3 bg-blue-50 rounded border border-blue-200">
+            <input
+              type="checkbox"
+              id="pickupFromHouse"
+              checked={formData.pickupFromHouse}
+              onChange={(e) => {
+                if (e.target.checked && selectedHouse) {
+                  setFormData(prev => ({
+                    ...prev,
+                    pickupFromHouse: true,
+                    pickupLocation: `${selectedHouse.label}, ${selectedHouse.line1}`,
+                    pickupPostcode: selectedHouse.postcode,
+                    pickupLat: selectedHouse.lat,
+                    pickupLng: selectedHouse.lng,
+                  }));
+                } else {
+                  setFormData(prev => ({ ...prev, pickupFromHouse: false }));
+                }
+              }}
+            />
+            <label htmlFor="pickupFromHouse" className="text-sm font-medium cursor-pointer">
+              Pick up from {selectedHouse?.label || 'selected house'}
+            </label>
+          </div>
+         
+          {/* PICKUP LOCATION */}
+          <div className="space-y-4 border-t pt-6">
+            <h3 className="text-lg font-semibold text-gray-900">Pickup Location</h3>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Search Saved Locations
+              </label>
+              <LocationAutocomplete
+                value={formData.pickupLocation}
+                onChange={(value) => setFormData(prev => ({ ...prev, pickupLocation: value }))}
+                onLocationSelect={(location) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    pickupLocation: location.address,
+                    pickupPostcode: location.postcode,
+                  }));
+                  toast.success(`Selected: ${location.name}`);
+                }}
+                placeholder="Start typing to search saved locations..."
+                required={false}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Or enter details manually below
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="pickupLocation" className="block text-sm font-medium text-gray-700 mb-1">
+                Pickup Address *
+              </label>
+              <input
+                id="pickupLocation"
+                name="pickupLocation"
+                type="text"
+                required
+                value={formData.pickupLocation}
+                onChange={handleChange}
+                placeholder="123 Main Street, City"
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <PostcodeInput
+              id="instant-pickup-postcode"
+              label="Pickup Postcode *"
+              value={formData.pickupPostcode}
+              onChange={(value) => setFormData(prev => ({ ...prev, pickupPostcode: value }))}
+              required
+            />
+          </div>
+
+          {/* DROPOFF LOCATION */}
+          <div className="space-y-4 border-t pt-6">
+            <h3 className="text-lg font-semibold text-gray-900">Dropoff Location</h3>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Search Saved Locations
+              </label>
+              <LocationAutocomplete
+                value={formData.dropoffLocation}
+                onChange={(value) => setFormData(prev => ({ ...prev, dropoffLocation: value }))}
+                onLocationSelect={(location) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    dropoffLocation: location.address,
+                    dropoffPostcode: location.postcode,
+                  }));
+                  toast.success(`Selected: ${location.name}`);
+                }}
+                placeholder="Start typing to search saved locations..."
+                required={false}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Or enter details manually below
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="dropoffLocation" className="block text-sm font-medium text-gray-700 mb-1">
+                Dropoff Address *
+              </label>
+              <input
+                id="dropoffLocation"
+                name="dropoffLocation"
+                type="text"
+                required
+                value={formData.dropoffLocation}
+                onChange={handleChange}
+                placeholder="456 High Street, Town"
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <PostcodeInput
+              id="instant-dropoff-postcode"
+              label="Dropoff Postcode *"
+              value={formData.dropoffPostcode}
+              onChange={(value) => setFormData(prev => ({ ...prev, dropoffPostcode: value }))}
+              required
+            />
+          </div>
+
+          {/* Date & Time */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="pickupDate" className="block font-medium text-gray-700 mb-1">
+                Pickup Date *
+              </label>
+              <input
+                type="date"
+                id="pickupDate"
+                name="pickupDate"
+                required
+                value={formData.pickupDate}
+                onChange={handleChange}
+                min={minDate}
+                max={maxDate}
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+              <p className="text-sm text-gray-500 mt-1">Today to 2 days ahead</p>
+            </div>
+
+            <div>
+              <label htmlFor="pickupTime" className="block font-medium text-gray-700 mb-1">
+                Pickup Time *
+              </label>
+              <input
+                type="time"
+                id="pickupTime"
+                name="pickupTime"
+                required
+                value={formData.pickupTime}
+                onChange={handleChange}
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          {/* Round Trip */}
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="roundTrip"
+              name="roundTrip"
+              checked={formData.roundTrip}
+              onChange={handleChange}
+              className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+            />
+            <label htmlFor="roundTrip" className="font-medium text-gray-700">
+              Round Trip (Return Journey)
+            </label>
+          </div>
+
+          {formData.roundTrip && (
+            <div>
+              <label htmlFor="returnTime" className="block font-medium text-gray-700 mb-1">
+                Return Time
+              </label>
+              <input
+                type="time"
+                id="returnTime"
+                name="returnTime"
+                value={formData.returnTime}
+                onChange={handleChange}
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
           )}
-        </label>
-      ))}
-    </div>
-  ) : (
-    <p className="text-sm text-gray-500 p-3 bg-gray-50 rounded border border-gray-200">
-      No residents found for this house
-    </p>
-  )}
-  
-  {formData.residentIds.length > 0 && (
-    <p className="text-sm text-gray-600 mt-2">
-      {formData.residentIds.length} resident{formData.residentIds.length !== 1 ? 's' : ''} selected
-    </p>
-  )}
-</div>
-
-
-         <div className="flex items-center gap-2 p-3 bg-blue-50 rounded border border-blue-200">
-           <input
-             type="checkbox"
-             id="pickupFromHouse"
-             checked={formData.pickupFromHouse}
-             onChange={(e) => {
-               if (e.target.checked && selectedHouse) {
-                 setFormData(prev => ({
-                   ...prev,
-                   pickupFromHouse: true,
-                   pickupLocation: `${selectedHouse.label}, ${selectedHouse.line1}`,
-                   pickupPostcode: selectedHouse.postcode,
-                   pickupLat: selectedHouse.lat,
-                   pickupLng: selectedHouse.lng,
-                 }));
-               } else {
-                 setFormData(prev => ({ ...prev, pickupFromHouse: false }));
-               }
-             }}
-           />
-           <label htmlFor="pickupFromHouse" className="text-sm font-medium cursor-pointer">
-             Pick up from {selectedHouse?.label || 'selected house'}
-           </label>
-         </div>
-         
-                   {/* PICKUP LOCATION - WITH SAVED LOCATIONS */}
-                   <div className="space-y-4 border-t pt-6">
-                     <h3 className="text-lg font-semibold text-gray-900">Pickup Location</h3>
-                     
-                     {/* Saved Locations Search - FIRST for better UX */}
-                     <div>
-                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                         Search Saved Locations
-                       </label>
-                       <LocationAutocomplete
-                         value={formData.pickupLocation}
-                         onChange={(value) => setFormData(prev => ({ ...prev, pickupLocation: value }))}
-                         onLocationSelect={(location) => {
-                           setFormData(prev => ({
-                             ...prev,
-                             pickupLocation: location.address,
-                             pickupPostcode: location.postcode,
-                           }));
-                           toast.success(`Selected: ${location.name}`);
-                         }}
-                         placeholder="Start typing to search saved locations..."
-                         required={false}
-                       />
-                       <p className="text-xs text-gray-500 mt-1">
-                         Or enter details manually below
-                       </p>
-                     </div>
-         
-                     {/* Manual Address Input */}
-                     <div>
-                       <label htmlFor="pickupLocation" className="block text-sm font-medium text-gray-700 mb-1">
-                         Pickup Address *
-                       </label>
-                       <input
-                         id="pickupLocation"
-                         name="pickupLocation"
-                         type="text"
-                         required
-                         value={formData.pickupLocation}
-                         onChange={handleChange}
-                         placeholder="123 Main Street, City"
-                         className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                       />
-                     </div>
-         
-                     <PostcodeInput
-                       id="manager-pickup-postcode"
-                       label="Pickup Postcode *"
-                       value={formData.pickupPostcode}
-                       onChange={(value) => setFormData(prev => ({ ...prev, pickupPostcode: value }))}
-                       required
-                     />
-         
-                    
-                   </div>
-         
-                   {/* DROPOFF LOCATION - WITH SAVED LOCATIONS */}
-                   <div className="space-y-4 border-t pt-6">
-                     <h3 className="text-lg font-semibold text-gray-900">Dropoff Location</h3>
-                     
-                     {/* Saved Locations Search - FIRST for better UX */}
-                     <div>
-                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                         Search Saved Locations
-                       </label>
-                       <LocationAutocomplete
-                         value={formData.dropoffLocation}
-                         onChange={(value) => setFormData(prev => ({ ...prev, dropoffLocation: value }))}
-                         onLocationSelect={(location) => {
-                           setFormData(prev => ({
-                             ...prev,
-                             dropoffLocation: location.address,
-                             dropoffPostcode: location.postcode,
-                           }));
-                           toast.success(`Selected: ${location.name}`);
-                         }}
-                         placeholder="Start typing to search saved locations..."
-                         required={false}
-                       />
-                       <p className="text-xs text-gray-500 mt-1">
-                         Or enter details manually below
-                       </p>
-                     </div>
-         
-                     {/* Manual Address Input */}
-                     <div>
-                       <label htmlFor="dropoffLocation" className="block text-sm font-medium text-gray-700 mb-1">
-                         Dropoff Address *
-                       </label>
-                       <input
-                         id="dropoffLocation"
-                         name="dropoffLocation"
-                         type="text"
-                         required
-                         value={formData.dropoffLocation}
-                         onChange={handleChange}
-                         placeholder="456 High Street, Town"
-                         className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                       />
-                     </div>
-         
-                     <PostcodeInput
-                       id="manager-dropoff-postcode"
-                       label="Dropoff Postcode *"
-                       value={formData.dropoffPostcode}
-                       onChange={(value) => setFormData(prev => ({ ...prev, dropoffPostcode: value }))}
-                       required
-                     />
-         
-                   </div>
-                   
-         
-                   {/* Date & Time */}
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                     <div>
-  <label htmlFor="pickupDate" className="block font-medium text-gray-700 mb-1">
-    Pickup Date *
-  </label>
-  <input
-    type="date"
-    id="pickupDate"
-    name="pickupDate"
-    required
-    value={formData.pickupDate}
-    onChange={handleChange}
-    min={minDate}  // ← Today
-    max={maxDate}  // ← 2 days from now
-    className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-  />
-  <p className="text-sm text-gray-500 mt-1">Today to 2 days ahead</p>
-</div>
-         
-                     <div>
-                       <label htmlFor="pickupTime" className="block font-medium text-gray-700 mb-1">
-                         Pickup Time *
-                       </label>
-                       <input
-                         type="time"
-                         id="pickupTime"
-                         name="pickupTime"
-                         required
-                         value={formData.pickupTime}
-                         onChange={handleChange}
-                         className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                       />
-                     </div>
-                   </div>
-         
-                   {/* Round Trip */}
-                   <div className="flex items-center space-x-2">
-                     <input
-                       type="checkbox"
-                       id="roundTrip"
-                       name="roundTrip"
-                       checked={formData.roundTrip}
-                       onChange={handleChange}
-                       className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                     />
-                     <label htmlFor="roundTrip" className="font-medium text-gray-700">
-                       Round Trip (Return Journey)
-                     </label>
-                   </div>
-         
-                   {/* Return Time (if round trip) */}
-                   {formData.roundTrip && (
-                     <div>
-                       <label htmlFor="returnTime" className="block font-medium text-gray-700 mb-1">
-                         Return Time
-                       </label>
-                       <input
-                         type="time"
-                         id="returnTime"
-                         name="returnTime"
-                         value={formData.returnTime}
-                         onChange={handleChange}
-                         className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                       />
-                     </div>
-                   )}
 
           {/* Passengers */}
           <div className="space-y-4">
             <h2 className="text-xl font-bold text-gray-900 pb-2 border-b">
-              3. Passenger Information
+              Passenger Information
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="passengerCount" className="block font-medium text-gray-700 mb-1">
-                  Number of Passengers *
-                </label>
-                <input
-                  type="number"
-                  id="passengerCount"
-                  name="passengerCount"
-                  min={1}
-                  max={15}
-                  value={formData.passengerCount}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
+            
+            <div>
+              <label htmlFor="passengerCount" className="block font-medium text-gray-700 mb-1">
+                Total Number of Passengers *
+              </label>
+              <input
+                type="number"
+                id="passengerCount"
+                name="passengerCount"
+                min={1}
+                max={15}
+                value={formData.passengerCount}
+                onChange={handleChange}
+                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* UPDATED: Detailed Wheelchair Configuration */}
+            <div className="border border-purple-200 rounded-lg p-4 bg-purple-50 space-y-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Wheelchair className="w-5 h-5 text-purple-600" />
+                <h3 className="font-semibold text-gray-900">Wheelchair & Mobility Aid Requirements</h3>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label htmlFor="powerchairs" className="block text-sm font-medium text-gray-700 mb-1">
+                    Powerchairs
+                  </label>
+                  <input
+                    type="number"
+                    id="powerchairs"
+                    min="0"
+                    max="4"
+                    value={formData.wheelchairConfig.powerchairs}
+                    onChange={(e) => handleWheelchairConfigChange('powerchairs', parseInt(e.target.value) || 0)}
+                    className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Electric wheelchairs</p>
+                </div>
+
+                <div>
+                  <label htmlFor="manualChairs" className="block text-sm font-medium text-gray-700 mb-1">
+                    Manual Wheelchairs
+                  </label>
+                  <input
+                    type="number"
+                    id="manualChairs"
+                    min="0"
+                    max="4"
+                    value={formData.wheelchairConfig.manualChairs}
+                    onChange={(e) => handleWheelchairConfigChange('manualChairs', parseInt(e.target.value) || 0)}
+                    className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Non-powered chairs</p>
+                </div>
+
+                <div>
+                  <label htmlFor="mobilityScooters" className="block text-sm font-medium text-gray-700 mb-1">
+                    Mobility Scooters
+                  </label>
+                  <input
+                    type="number"
+                    id="mobilityScooters"
+                    min="0"
+                    max="2"
+                    value={formData.wheelchairConfig.mobilityScooters}
+                    onChange={(e) => handleWheelchairConfigChange('mobilityScooters', parseInt(e.target.value) || 0)}
+                    className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Electric scooters</p>
+                </div>
               </div>
 
-              <div>
-                <label htmlFor="wheelchairUsers" className="block font-medium text-gray-700 mb-1">
-                  Wheelchair Users
-                </label>
-                <input
-                  type="number"
-                  id="wheelchairUsers"
-                  name="wheelchairUsers"
-                  min={0}
-                  max={6}
-                  value={formData.wheelchairUsers}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-              </div>
+              {/* Total Display */}
+              {formData.wheelchairConfig.count > 0 && (
+                <div className="bg-white rounded p-3 border border-purple-300">
+                  <p className="text-sm font-medium text-gray-700">
+                    Total mobility aids: <span className="text-purple-600 font-bold">{formData.wheelchairConfig.count}</span>
+                  </p>
+                </div>
+              )}
+
+              {/* Vehicle Preferences */}
+              {formData.wheelchairConfig.count > 0 && (
+                <div className="space-y-3 pt-3 border-t border-purple-200">
+                  <p className="text-sm font-medium text-gray-700">Vehicle Preferences:</p>
+                  
+                  {formData.wheelchairConfig.count >= 2 && (
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.wheelchairConfig.requiresDoubleWAV}
+                        onChange={(e) => handleWheelchairConfigChange('requiresDoubleWAV', e.target.checked)}
+                        className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                      />
+                      <span className="text-sm text-gray-700">Requires Double WAV (2 wheelchairs simultaneously)</span>
+                    </label>
+                  )}
+                  
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.wheelchairConfig.requiresRearLoading}
+                      onChange={(e) => {
+                        handleWheelchairConfigChange('requiresRearLoading', e.target.checked);
+                        if (e.target.checked) {
+                          handleWheelchairConfigChange('requiresSideLoading', false);
+                        }
+                      }}
+                      className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                    />
+                    <span className="text-sm text-gray-700">Prefer Rear-Loading WAV</span>
+                  </label>
+                  
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.wheelchairConfig.requiresSideLoading}
+                      onChange={(e) => {
+                        handleWheelchairConfigChange('requiresSideLoading', e.target.checked);
+                        if (e.target.checked) {
+                          handleWheelchairConfigChange('requiresRearLoading', false);
+                        }
+                      }}
+                      className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                    />
+                    <span className="text-sm text-gray-700">Prefer Side-Loading WAV</span>
+                  </label>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Accessibility Options */}
           <div className="space-y-4">
             <h2 className="text-xl font-bold text-gray-900 pb-2 border-b">
-              4. Accessibility & Requirements
+              Accessibility & Requirements
             </h2>
             <RideAccessibilityOptions formData={formData} handleChange={handleChange} />
-            {/* <PhysicalRequirementsCheckboxes formData={formData} setFormData={setFormData} /> */}
           </div>
 
           {/* Additional Notes */}
           <div className="space-y-4">
             <h2 className="text-xl font-bold text-gray-900 pb-2 border-b">
-              5. Additional Information
+              Additional Information
             </h2>
 
             <div>

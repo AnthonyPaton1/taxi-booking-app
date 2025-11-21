@@ -7,11 +7,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/**
- * ======================
- * Enums
- * ======================
- */
+// enums 
+
 enum Role {
   SUPER_ADMIN
   MANAGER
@@ -75,326 +72,240 @@ enum InstantBookingStatus {
   CANCELED
 }
 
-/**
- * ======================
- * Core Models
- * ======================
- */
+enum VehicleClass {
+  STANDARD_CAR
+  LARGE_CAR
+  SIDE_LOADING_WAV
+  REAR_LOADING_WAV
+  DOUBLE_WAV
+  MINIBUS_ACCESSIBLE
+  MINIBUS_STANDARD
+}
 
 model PasswordResetToken {
   id        String   @id @default(cuid())
   token     String   @unique
   userId    String
-  user      User     @relation("UserPasswordResetTokens", fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   expiresAt DateTime
+  user      User     @relation("UserPasswordResetTokens", fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  name          String?
-  phone         String?
-  password      String?
-  role          Role      @default(PUBLIC)
-  image         String?
-  emailVerified DateTime?
-  isApproved    Boolean   @default(false)
-
-  driverOnboarded      Boolean @default(false)
-  managerOnboarded     Boolean @default(false)
-  coordinatorOnboarded Boolean @default(false)
-  adminOnboarded       Boolean @default(false)
-
-  // Self relation: manager ↔ drivers
-  managerId String?
-  manager   User?   @relation("ManagerDrivers", fields: [managerId], references: [id])
-  drivers   User[]  @relation("ManagerDrivers")
-
-  driver Driver? @relation("UserDriver")
-
-  // Business link
-  businessId String?
-  business   Business? @relation("UserBusiness", fields: [businessId], references: [id])
-
-  // Area link
-  areaId String?
-  area   Area?   @relation("UserArea", fields: [areaId], references: [id])
-
-  // Relations
-  bids                Bid[]                @relation("UserBids")
-  feedback            TripFeedback[]
-  invoices            Invoice[]
-  memberships         BusinessMembership[] @relation("MembershipUser")
-  verifiedMemberships BusinessMembership[] @relation("MembershipVerifier")
-  schedules           RideSchedule[]       @relation("DriverSchedules")
-  notifications       Notification[]
-  incidents           Incident[]
-  instantBookings     InstantBooking[]     @relation("CreatorInstantBookings")
-  advancedBookings    AdvancedBooking[]    @relation("CreatorAdvancedBookings")
-  houses              House[]
-
-
-  adminOfBusiness         Business?        @relation("BusinessAdminUser")
-  acceptedInstantBookings InstantBooking[] @relation("UserAcceptedInstant")
+  id                      String               @id @default(cuid())
+  email                   String               @unique
+  name                    String?
+  phone                   String?
+  password                String?
+  role                    Role                 @default(PUBLIC)
+  image                   String?
+  emailVerified           DateTime?
+  isApproved              Boolean              @default(false)
+  driverOnboarded         Boolean              @default(false)
+  managerOnboarded        Boolean              @default(false)
+  coordinatorOnboarded    Boolean              @default(false)
+  adminOnboarded          Boolean              @default(false)
+  managerId               String?
+  businessId              String?
+  areaId                  String?
+  postcode                String?
+  radius                  Int?
+  capabilities            String[]
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+  deletedAt               DateTime?
+  Account                 Account[]
+  advancedBookings        AdvancedBooking[]    @relation("CreatorAdvancedBookings")
+  bids                    Bid[]                @relation("UserBids")
+  adminOfBusiness         Business?            @relation("BusinessAdminUser")
+  memberships             BusinessMembership[] @relation("MembershipUser")
+  verifiedMemberships     BusinessMembership[] @relation("MembershipVerifier")
+  driver                  Driver?              @relation("UserDriver")
+  houses                  House[]
+  incidents               Incident[]
+  acceptedInstantBookings InstantBooking[]     @relation("UserAcceptedInstant")
+  instantBookings         InstantBooking[]     @relation("CreatorInstantBookings")
+  invoices                Invoice[]
+  notifications           Notification[]
   passwordResetTokens     PasswordResetToken[] @relation("UserPasswordResetTokens")
+  schedules               RideSchedule[]       @relation("DriverSchedules")
+  savedLocations          SavedLocation[]
+  Session                 Session[]
+  feedback                TripFeedback[]
+  area                    Area?                @relation("UserArea", fields: [areaId], references: [id])
+  business                Business?            @relation("UserBusiness", fields: [businessId], references: [id])
+  manager                 User?                @relation("ManagerDrivers", fields: [managerId], references: [id])
+  drivers                 User[]               @relation("ManagerDrivers")
 
-  // Preferences
-  postcode     String?
-  radius       Int?
-  capabilities String[]
-
-savedLocations SavedLocation[]
-
-  Account Account[]
-  Session Session[]
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
-  
-  @@index([email]) // Already unique, but helps with lookups
-  @@index([role, deletedAt]) // Fast role-based queries (get all drivers, etc.)
-  @@index([deletedAt]) // Soft delete filtering
-  
+  @@index([email])
+  @@index([role, deletedAt])
+  @@index([deletedAt])
 }
 
-
-/**
- * ======================
- *  Accessibility Profile (Shared)
- * ======================
- */
 model AccessibilityProfile {
-  id String @id @default(cuid())
+  id                         String           @id @default(cuid())
+  highRoof                   Boolean          @default(false)
+  seatTransferHelp           Boolean          @default(false)
+  mobilityAidStorage         Boolean          @default(false)
+  electricScooterStorage     Boolean          @default(false)
+  ageOfPassenger             Int?
+  carerPresent               Boolean          @default(false)
+  escortRequired             Boolean          @default(false)
+  quietEnvironment           Boolean          @default(false)
+  noConversation             Boolean          @default(false)
+  noScents                   Boolean          @default(false)
+  specificMusic              String?
+  visualSchedule             Boolean          @default(false)
+  signLanguageRequired       Boolean          @default(false)
+  textOnlyCommunication      Boolean          @default(false)
+  preferredLanguage          String?
+  translationSupport         Boolean          @default(false)
+  assistanceRequired         Boolean          @default(false)
+  assistanceAnimal           Boolean          @default(false)
+  familiarDriverOnly         Boolean          @default(false)
+  femaleDriverOnly           Boolean          @default(false)
+  nonWAVvehicle              Boolean          @default(false)
+  medicationOnBoard          Boolean          @default(false)
+  medicalConditions          String?
+  firstAidTrained            Boolean          @default(false)
+  conditionAwareness         Boolean          @default(false)
+  additionalNeeds            String?
+  createdAt                  DateTime         @default(now())
+  updatedAt                  DateTime         @updatedAt
+  deletedAt                  DateTime?
+  vehicleClassRequired       VehicleClass?
+  wheelchairUsersStaySeated  Int              @default(0)
+  wheelchairUsersCanTransfer Int              @default(0)
+  ambulatoryPassengers       Int              @default(0)
+  advancedBooking            AdvancedBooking? @relation("AdvancedBookingAccessibility")
+  driver                     Driver?          @relation("DriverAccessibility")
+  instantBooking             InstantBooking?  @relation("InstantBookingAccessibility")
 
-  vehicleType String @default("either")
-
-  // Mobility & Physical
-  wheelchairAccess       Boolean @default(false)
-  doubleWheelchairAccess Boolean @default(false)
-  highRoof               Boolean @default(false)
-  seatTransferHelp       Boolean @default(false)
-  mobilityAidStorage     Boolean @default(false)
-  electricScooterStorage Boolean @default(false)
-
-  // Passenger details
-  passengerCount  Int     @default(0)
-  wheelchairUsers Int     @default(0)
-  ageOfPassenger  Int?
-  carerPresent    Boolean @default(false)
-  escortRequired  Boolean @default(false)
-
-  // Sensory preferences
-  quietEnvironment Boolean @default(false)
-  noConversation   Boolean @default(false)
-  noScents         Boolean @default(false)
-  specificMusic    String? // e.g., "Classical", "No music", "Passenger choice"
-  visualSchedule   Boolean @default(false)
-
-  // Communication
-  signLanguageRequired  Boolean @default(false)
-  textOnlyCommunication Boolean @default(false)
-  preferredLanguage     String?
-  translationSupport    Boolean @default(false)
-
-  // Special requirements
-  assistanceRequired Boolean @default(false)
-  assistanceAnimal   Boolean @default(false)
-  familiarDriverOnly Boolean @default(false)
-  femaleDriverOnly   Boolean @default(false)
-  nonWAVvehicle      Boolean @default(false)
-
-  // Health & safety
-  medicationOnBoard  Boolean @default(false)
-  medicalConditions  String?
-  firstAidTrained    Boolean @default(false)
-  conditionAwareness Boolean @default(false) // e.g., autism, dementia
-
-  // Additional
-  additionalNeeds String?
-
-  // Relations (one-to-one)
-  driver           Driver?          @relation("DriverAccessibility")
-  advancedBooking  AdvancedBooking? @relation("AdvancedBookingAccessibility")
-  instantBooking   InstantBooking?  @relation("InstantBookingAccessibility")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-
-    deletedAt             DateTime?
-  
-  @@index([wheelchairAccess, femaleDriverOnly]) // Most common matching filters
-  @@index([assistanceAnimal]) // Another common filter
-  @@index([deletedAt]) // Soft delete filtering
-  @@index([vehicleType])
-
+  @@index([femaleDriverOnly])
+  @@index([assistanceAnimal])
+  @@index([deletedAt])
+  @@index([vehicleClassRequired])
 }
 
-/**
- * ======================
- * Driver Models (Split)
- * ======================
- */
 model Driver {
-  id     String @id @default(cuid())
-  userId String @unique
-  name   String
-  user   User   @relation("UserDriver", fields: [userId], references: [id], onDelete: Cascade)
+  id                        String               @id @default(cuid())
+  userId                    String               @unique
+  name                      String
+  vehicleReg                String
+  amenities                 String[]
+  localPostcode             String
+  radiusMiles               Int
+  baseLat                   Float?
+  baseLng                   Float?
+  phone                     String
+  approved                  Boolean              @default(false)
+  gender                    String?
+  completedRides            Int                  @default(0)
+  rating                    Float                @default(0.0)
+  accessibilityProfileId    String               @unique
+  createdAt                 DateTime             @default(now())
+  updatedAt                 DateTime             @updatedAt
+  suspended                 Boolean              @default(false)
+  suspendedBy               String?
+  suspendedDate             DateTime?
+  suspendedReason           String?
+  deletedAt                 DateTime?
+  vehicleClass              VehicleClass
+  wheelchairSpacesInstalled Int                  @default(0)
+  seatedCapacityRemaining   Int                  @default(4)
+  canAccommodateTransfers   Boolean              @default(true)
+  advancedBids              Bid[]                @relation("DriverBids")
+  accessibilityProfile      AccessibilityProfile @relation("DriverAccessibility", fields: [accessibilityProfileId], references: [id], onDelete: Cascade)
+  user                      User                 @relation("UserDriver", fields: [userId], references: [id], onDelete: Cascade)
+  compliance                DriverCompliance?    @relation("DriverComplianceRelation")
+  instantBookings           InstantBooking[]     @relation("DriverInstantBookings")
 
-  // Vehicle info
-  vehicleType String // e.g., Car, WAV, Minibus
-  vehicleReg  String
-  amenities   String[] // High roof, side step, etc.
-
-  // Location & availability
-  localPostcode String
-  radiusMiles   Int
-  baseLat Float?
-  baseLng Float?
-  phone         String
-
-  // Approval status
-  approved Boolean @default(false)
-  hasWAV             Boolean @default(false)
-hasStandard        Boolean @default(true)
-wavOnly            Boolean @default(false)
-gender             String?
-completedRides     Int     @default(0)
-rating             Float   @default(0.0)
-
-
- suspended Boolean @default(false)
-  suspendedReason String?
-  suspendedDate   DateTime?
-  suspendedBy     String?  // Admin who suspended
-
-  // Relations
-  accessibilityProfileId String              @unique
-  accessibilityProfile   AccessibilityProfile @relation("DriverAccessibility", fields: [accessibilityProfileId], references: [id], onDelete: Cascade)
-
-  compliance DriverCompliance? @relation("DriverComplianceRelation")
-
-  instantBookings InstantBooking[] @relation("DriverInstantBookings")
-  advancedBids    Bid[]            @relation("DriverBids")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
-
-@@index([approved, suspended, deletedAt, hasWAV]) // ← Extended! Most important query
-@@index([baseLat, baseLng]) // Geospatial searches
-@@index([userId]) // User->driver lookup
-@@index([accessibilityProfileId]) // Join optimization
+  @@index([approved, suspended, deletedAt, vehicleClass])
+  @@index([baseLat, baseLng])
+  @@index([userId])
+  @@index([accessibilityProfileId])
 }
 
 model DriverCompliance {
-  id       String @id @default(cuid())
-  driverId String @unique
-  driver   Driver @relation("DriverComplianceRelation", fields: [driverId], references: [id], onDelete: Cascade)
-
-  // License & registration (ALL REQUIRED - no optionals)
-  ukDrivingLicence         Boolean
-  licenceNumber            String  // ✅ Required for compliance
-  localAuthorityRegistered Boolean
-
-  // Checks & insurance (ALL REQUIRED)
-  dbsChecked               Boolean
-  publicLiabilityInsurance Boolean
-  fullyCompInsurance       Boolean
-
-  // Health & language (ALL REQUIRED)
-  healthCheckPassed  Boolean
-  englishProficiency Boolean
-
-    // NEW: DBS Update Service fields
-  dbsIssueDate               DateTime?
-  dbsUpdateServiceNumber     String?   // Encrypted 12-digit number
-  dbsUpdateServiceConsent    Boolean   @default(false)
+  id                          String    @id @default(cuid())
+  driverId                    String    @unique
+  ukDrivingLicence            Boolean
+  licenceNumber               String
+  localAuthorityRegistered    Boolean
+  dbsChecked                  Boolean
+  publicLiabilityInsurance    Boolean
+  fullyCompInsurance          Boolean
+  healthCheckPassed           Boolean
+  englishProficiency          Boolean
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
+  dbsCheckedBy                String?
+  dbsIssueDate                DateTime?
+  dbsStatus                   String?
+  dbsUpdateServiceConsent     Boolean   @default(false)
   dbsUpdateServiceConsentDate DateTime?
-  lastDbsCheck               DateTime?
-  nextDbsCheckDue            DateTime?
-  dbsStatus                  String?   // CLEAR, ISSUE, PENDING
-  dbsCheckedBy               String?
+  dbsUpdateServiceNumber      String?
+  lastDbsCheck                DateTime?
+  nextDbsCheckDue             DateTime?
+  deletedAt                   DateTime?
+  driver                      Driver    @relation("DriverComplianceRelation", fields: [driverId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  deletedAt               DateTime?
-
-   @@index([driverId]) // Already unique, helps with joins
-  @@index([nextDbsCheckDue, deletedAt]) // Find drivers needing DBS checks
-  @@index([dbsStatus]) // Filter by compliance status
+  @@index([driverId])
+  @@index([nextDbsCheckDue, deletedAt])
+  @@index([dbsStatus])
 }
 
 model Business {
-  id       String  @id @default(cuid())
-  type     String
-  name     String
-  phone    String?
-  email    String?
-  website  String?
-  address1 String?
-  city     String?
-  postcode String?
-  approved Boolean @default(false)
-
-  // Admin account
-  adminUserId String @unique
-  adminUser   User   @relation("BusinessAdminUser", fields: [adminUserId], references: [id])
-
-  // Staff & members
-  memberships BusinessMembership[] @relation("MembershipBusiness")
-  employees   User[]               @relation("UserBusiness")
-
-  // Domain data
-  housesAsBusiness        House[]           @relation(name: "HouseBusiness")
-  housesAsCompany         House[]           @relation(name: "HouseCompany")
-  driverInvites           DriverInvite[]
+  id                      String               @id @default(cuid())
+  type                    String
+  name                    String
+  phone                   String?
+  email                   String?
+  website                 String?
+  address1                String?
+  city                    String?
+  postcode                String?
+  approved                Boolean              @default(false)
+  adminUserId             String               @unique
+  lat                     Float?
+  lng                     Float?
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+  deletedAt               DateTime?
+  advancedBookings        AdvancedBooking[]    @relation("BusinessAdvancedBookings")
+  adminUser               User                 @relation("BusinessAdminUser", fields: [adminUserId], references: [id])
+  memberships             BusinessMembership[] @relation("MembershipBusiness")
+  housesAsBusiness        House[]              @relation("HouseBusiness")
+  housesAsCompany         House[]              @relation("HouseCompany")
   incidents               Incident[]
-  advancedBookings        AdvancedBooking[] @relation("BusinessAdvancedBookings")
-  instantBookings         InstantBooking[]  @relation("BusinessInstantBookings")
-  acceptedInstantBookings InstantBooking[]  @relation("BusinessAcceptedInstant")
-  lat Float?
-  lng Float?
-
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
+  acceptedInstantBookings InstantBooking[]     @relation("BusinessAcceptedInstant")
+  instantBookings         InstantBooking[]     @relation("BusinessInstantBookings")
+  employees               User[]               @relation("UserBusiness")
 
   @@index([adminUserId])
-@@index([lat, lng])
-@@index([postcode])
-@@index([deletedAt])
+  @@index([lat, lng])
+  @@index([postcode])
+  @@index([deletedAt])
 }
 
 model BusinessMembership {
-  id         String                 @id @default(cuid())
-  userId     String
-  businessId String
-  role       BusinessMembershipRole
-
-  user     User     @relation("MembershipUser", fields: [userId], references: [id], onDelete: Cascade)
-  business Business @relation("MembershipBusiness", fields: [businessId], references: [id], onDelete: Cascade)
-
-  // Verification
-  dbsChecked         Boolean @default(false)
-  insuranceChecked   Boolean @default(false)
-  plInsuranceChecked Boolean @default(false)
-  isVerified         Boolean @default(false)
-
-  invitedAt  DateTime?
-  verifiedAt DateTime?
-
-  verifiedById String?
-  verifiedBy   User?   @relation("MembershipVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
-
-  verifyNotes String?
-
-  createdAt DateTime  @default(now())
-  deletedAt DateTime?
+  id                 String                 @id @default(cuid())
+  userId             String
+  businessId         String
+  role               BusinessMembershipRole
+  dbsChecked         Boolean                @default(false)
+  insuranceChecked   Boolean                @default(false)
+  plInsuranceChecked Boolean                @default(false)
+  isVerified         Boolean                @default(false)
+  invitedAt          DateTime?
+  verifiedAt         DateTime?
+  verifiedById       String?
+  verifyNotes        String?
+  createdAt          DateTime               @default(now())
+  deletedAt          DateTime?
+  business           Business               @relation("MembershipBusiness", fields: [businessId], references: [id], onDelete: Cascade)
+  user               User                   @relation("MembershipUser", fields: [userId], references: [id], onDelete: Cascade)
+  verifiedBy         User?                  @relation("MembershipVerifier", fields: [verifiedById], references: [id])
 
   @@unique([userId, businessId])
   @@index([businessId, role])
@@ -403,46 +314,36 @@ model BusinessMembership {
 }
 
 model Area {
-  id   String @id @default(cuid())
-  name String @unique
-
-  users User[]  @relation("UserArea")
+  id    String  @id @default(cuid())
+  name  String  @unique
   house House[]
+  users User[]  @relation("UserArea")
 }
 
 model House {
-  id         String   @id @default(cuid())
+  id         String     @id @default(cuid())
   businessId String
-  business   Business @relation(name: "HouseBusiness", fields: [businessId], references: [id], onDelete: Cascade)
-
-  companyId String?
-  company   Business? @relation(name: "HouseCompany", fields: [companyId], references: [id])
-
-  label    String
-  line1    String
-  city     String
-  postcode String
-  notes    String?
-
-  internalId String @unique
+  companyId  String?
+  label      String
+  line1      String
+  city       String
+  postcode   String
+  notes      String?
+  internalId String     @unique
   pin        String
-  loginName  String @unique
-
-  incidents Incident[]
-  residents Resident[]
-  lat Float?
-  lng Float?
-
-  createdAt DateTime   @default(now())
-  deletedAt DateTime?
-
-  managerId String
-  manager   User   @relation(fields: [managerId], references: [id], onDelete: Cascade)
-
-  areaId String
-  area   Area   @relation(fields: [areaId], references: [id])
-
-  
+  loginName  String     @unique
+  lat        Float?
+  lng        Float?
+  createdAt  DateTime   @default(now())
+  deletedAt  DateTime?
+  managerId  String
+  areaId     String
+  area       Area       @relation(fields: [areaId], references: [id])
+  business   Business   @relation("HouseBusiness", fields: [businessId], references: [id], onDelete: Cascade)
+  company    Business?  @relation("HouseCompany", fields: [companyId], references: [id])
+  manager    User       @relation(fields: [managerId], references: [id], onDelete: Cascade)
+  incidents  Incident[]
+  residents  Resident[]
 
   @@index([businessId, label])
   @@index([deletedAt])
@@ -450,206 +351,160 @@ model House {
 
 model Resident {
   id        String   @id @default(cuid())
-  initials  String   // e.g. "JD", "MS" - for invoicing/auditing
-  name      String   // Display name only, not full legal name
+  initials  String
+  name      String
   houseId   String
-  house     House    @relation(fields: [houseId], references: [id], onDelete: Cascade)
-  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  house     House    @relation(fields: [houseId], references: [id], onDelete: Cascade)
 }
 
 model SavedLocation {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   name      String
   address   String
   postcode  String
   notes     String?
-  useCount  Int      @default(0)
+  useCount  Int       @default(0)
   lastUsed  DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
   @@index([userId, useCount])
 }
 
-/**
- * ======================
- * Bookings (Updated)
- * ======================
- */
 model AdvancedBooking {
-  id          String @id @default(cuid())
-  createdById String
-  createdBy   User   @relation("CreatorAdvancedBookings", fields: [createdById], references: [id])
+  id                     String                    @id @default(cuid())
+  createdById            String
+  businessId             String?
+  pickupTime             DateTime
+  returnTime             DateTime?
+  pickupLocation         String
+  pickupLatitude         Float?
+  pickupLongitude        Float?
+  dropoffLocation        String
+  dropoffLatitude        Float?
+  dropoffLongitude       Float?
+  initials               String[]
+  accessibilityProfileId String                    @unique
+  visibility             AdvancedBookingVisibility @default(PRIVATE_TO_COMPANY)
+  bidDeadline            DateTime?
+  status                 AdvancedBookingStatus     @default(OPEN)
+  acceptedBidId          String?                   @unique
+  createdAt              DateTime                  @default(now())
+  updatedAt              DateTime                  @updatedAt
+  deletedAt              DateTime?
+  cancelledAt            DateTime?
+  cancellationReason     String?
+  blockNotes             String?
+  blockRides             Json?
+  isBlockBooking         Boolean                   @default(false)
+  totalRidesInBlock      Int                       @default(1)
+  acceptedBid            Bid?                      @relation("AcceptedBid", fields: [acceptedBidId], references: [id])
+  accessibilityProfile   AccessibilityProfile      @relation("AdvancedBookingAccessibility", fields: [accessibilityProfileId], references: [id], onDelete: Cascade)
+  business               Business?                 @relation("BusinessAdvancedBookings", fields: [businessId], references: [id])
+  createdBy              User                      @relation("CreatorAdvancedBookings", fields: [createdById], references: [id])
+  bids                   Bid[]                     @relation("AdvancedBookingBids")
+  invoices               Invoice[]
+  notifications          Notification[]
+  schedule               RideSchedule?
+  feedback               TripFeedback[]
 
-  businessId String?
-  business   Business? @relation("BusinessAdvancedBookings", fields: [businessId], references: [id])
-
-  pickupTime      DateTime
-  returnTime      DateTime?
-  pickupLocation  String
-   pickupLatitude  Float?     
-  pickupLongitude Float?    
-  dropoffLocation String
-  dropoffLatitude  Float?  
-  dropoffLongitude Float? 
-  initials        String[]
-  passengerCount    Int
-  isBlockBooking      Boolean  @default(false)
-  blockRides          Json?
-  totalRidesInBlock   Int      @default(1)
-  blockNotes          String?
-
-  // Accessibility (now via relation)
-  accessibilityProfileId String               @unique
-  accessibilityProfile   AccessibilityProfile @relation("AdvancedBookingAccessibility", fields: [accessibilityProfileId], references: [id], onDelete: Cascade)
-
-  // Bidding
-  visibility    AdvancedBookingVisibility @default(PRIVATE_TO_COMPANY)
-  bidDeadline   DateTime?
-  status        AdvancedBookingStatus     @default(OPEN)
-  acceptedBidId String?                   @unique
-  acceptedBid   Bid?                      @relation("AcceptedBid", fields: [acceptedBidId], references: [id], onDelete: SetNull)
-
-  bids          Bid[]          @relation("AdvancedBookingBids")
-  feedback      TripFeedback[]
-  invoices      Invoice[]
-  notifications Notification[]
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
-  cancelledAt DateTime?
-cancellationReason String? 
-  schedule RideSchedule?
-
- @@index([status, pickupTime, deletedAt]) // Find open bookings
-@@index([status, bidDeadline, deletedAt]) // Bookings accepting bids
-@@index([createdById, deletedAt]) // User's booking history
-@@index([businessId, status, deletedAt]) // NEW - Business bookings
-@@index([pickupLatitude, pickupLongitude]) // Geospatial
-@@index([accessibilityProfileId]) // Join optimization
-@@index([acceptedBidId]) // Accepted bid lookup
- 
-  
- 
+  @@index([status, pickupTime, deletedAt])
+  @@index([status, bidDeadline, deletedAt])
+  @@index([createdById, deletedAt])
+  @@index([businessId, status, deletedAt])
+  @@index([pickupLatitude, pickupLongitude])
+  @@index([accessibilityProfileId])
+  @@index([acceptedBidId])
 }
 
 model InstantBooking {
-  id String @id @default(cuid())
-
-  createdById String
-  createdBy   User   @relation("CreatorInstantBookings", fields: [createdById], references: [id], onDelete: Cascade)
-
-  businessId String?
-  business   Business? @relation("BusinessInstantBookings", fields: [businessId], references: [id], onDelete: Cascade)
-
-  pickupTime      DateTime
-  returnTime      DateTime?
-  pickupLocation  String
-  dropoffLocation String
-  initials        String[]
-
-  driverId String?
-  driver   Driver? @relation("DriverInstantBookings", fields: [driverId], references: [id], onDelete: SetNull)
-
-  // Accessibility (now via relation)
+  id                     String               @id @default(cuid())
+  createdById            String
+  businessId             String?
+  pickupTime             DateTime
+  returnTime             DateTime?
+  pickupLocation         String
+  dropoffLocation        String
+  initials               String[]
+  driverId               String?
   accessibilityProfileId String               @unique
+  estimatedCostPence     Int?
+  finalCostPence         Int?
+  distanceMiles          Float?
+  durationMinutes        Int?
+  pickupLatitude         Float?
+  pickupLongitude        Float?
+  dropoffLatitude        Float?
+  dropoffLongitude       Float?
+  acceptedAt             DateTime?
+  acceptedByUserId       String?
+  acceptedByBusinessId   String?
+  status                 InstantBookingStatus @default(PENDING)
+  cancelledAt            DateTime?
+  cancellationReason     String?
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  deletedAt              DateTime?
+  acceptedByBusiness     Business?            @relation("BusinessAcceptedInstant", fields: [acceptedByBusinessId], references: [id])
+  acceptedByUser         User?                @relation("UserAcceptedInstant", fields: [acceptedByUserId], references: [id])
   accessibilityProfile   AccessibilityProfile @relation("InstantBookingAccessibility", fields: [accessibilityProfileId], references: [id], onDelete: Cascade)
+  business               Business?            @relation("BusinessInstantBookings", fields: [businessId], references: [id], onDelete: Cascade)
+  createdBy              User                 @relation("CreatorInstantBookings", fields: [createdById], references: [id], onDelete: Cascade)
+  driver                 Driver?              @relation("DriverInstantBookings", fields: [driverId], references: [id])
+  invoices               Invoice[]
+  notifications          Notification[]
+  feedback               TripFeedback[]
 
-  // Pricing (NEW)
-  estimatedCostPence Int?
-  finalCostPence     Int?
-  distanceMiles      Float?
-  durationMinutes    Int?
-   pickupLatitude  Float?    
-  pickupLongitude Float?    
-  
-  dropoffLatitude  Float?   
-  dropoffLongitude Float?   
-
-  // Acceptance
-  acceptedAt           DateTime?
-  acceptedByUserId     String?
-  acceptedByUser       User?     @relation("UserAcceptedInstant", fields: [acceptedByUserId], references: [id], onDelete: SetNull)
-  acceptedByBusinessId String?
-  acceptedByBusiness   Business? @relation("BusinessAcceptedInstant", fields: [acceptedByBusinessId], references: [id], onDelete: SetNull)
-
-  status InstantBookingStatus @default(PENDING)
-
-  feedback      TripFeedback[]
-  invoices      Invoice[]
-  notifications Notification[]
-
-cancelledAt DateTime?
-cancellationReason String? 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-   deletedAt         DateTime?
-  
-@@index([status, pickupTime, deletedAt]) 
-@@index([driverId, status]) 
-@@index([createdById, deletedAt]) 
-@@index([pickupLatitude, pickupLongitude]) 
-@@index([accessibilityProfileId]) 
+  @@index([status, pickupTime, deletedAt])
+  @@index([driverId, status])
+  @@index([createdById, deletedAt])
+  @@index([pickupLatitude, pickupLongitude])
+  @@index([accessibilityProfileId])
 }
 
-/**
- * ======================
- * Bids / Schedule / Notifications
- * ======================
- */
 model Bid {
-  id                String          @id @default(cuid())
+  id                String           @id @default(cuid())
   advancedBookingId String
-  advancedBooking   AdvancedBooking @relation("AdvancedBookingBids", fields: [advancedBookingId], references: [id], onDelete: Cascade)
+  userId            String
+  amountCents       Int
+  message           String?
+  etaMinutes        Int?
+  vehicleNotes      String?
+  validUntil        DateTime?
+  status            BidStatus        @default(PENDING)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  driverId          String
+  idempotencyKey    String?          @unique
+  deletedAt         DateTime?
+  acceptedOnRide    AdvancedBooking? @relation("AcceptedBid")
+  advancedBooking   AdvancedBooking  @relation("AdvancedBookingBids", fields: [advancedBookingId], references: [id], onDelete: Cascade)
+  driver            Driver           @relation("DriverBids", fields: [driverId], references: [id])
+  user              User             @relation("UserBids", fields: [userId], references: [id], onDelete: Cascade)
+  notifications     Notification[]
 
-  userId String
-  user   User   @relation("UserBids", fields: [userId], references: [id], onDelete: Cascade)
-
-  amountCents  Int
-  message      String?
-  etaMinutes   Int?
-  vehicleNotes String?
-  validUntil   DateTime?
-  status       BidStatus @default(PENDING)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  driverId String
-  driver   Driver @relation("DriverBids", fields: [driverId], references: [id])
-
-  acceptedOnRide AdvancedBooking? @relation("AcceptedBid")
-  notifications  Notification[]
-  idempotencyKey String?          @unique
-  deletedAt      DateTime?
-
- @@index([advancedBookingId, status, amountCents]) // Best for: Get all bids for booking, sorted by price
-  @@index([userId, createdAt]) // Best for: User's bid history
-  @@index([deletedAt]) // Soft delete filtering
-  @@index([status, createdAt]) // Recent pending bids across all bookings
+  @@index([advancedBookingId, status, amountCents])
+  @@index([userId, createdAt])
+  @@index([deletedAt])
+  @@index([status, createdAt])
 }
 
 model RideSchedule {
   id                String          @id @default(cuid())
   advancedBookingId String          @unique
+  driverId          String
+  startAt           DateTime
+  endAt             DateTime?
+  notes             String?
+  createdAt         DateTime        @default(now())
+  deletedAt         DateTime?
   advancedBooking   AdvancedBooking @relation(fields: [advancedBookingId], references: [id], onDelete: Cascade)
-
-  driverId String
-  driver   User   @relation("DriverSchedules", fields: [driverId], references: [id], onDelete: Cascade)
-
-  startAt DateTime
-  endAt   DateTime?
-  notes   String?
-
-  createdAt DateTime  @default(now())
-  deletedAt DateTime?
+  driver            User            @relation("DriverSchedules", fields: [driverId], references: [id], onDelete: Cascade)
 
   @@index([driverId, startAt])
   @@index([deletedAt])
@@ -657,52 +512,38 @@ model RideSchedule {
 }
 
 model Notification {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  type String
-
+  id                String           @id @default(cuid())
+  userId            String
+  type              String
   advancedBookingId String?
-  advancedBooking   AdvancedBooking? @relation(fields: [advancedBookingId], references: [id], onDelete: SetNull)
-
-  instantBookingId String?
-  instantBooking   InstantBooking? @relation(fields: [instantBookingId], references: [id], onDelete: SetNull)
-
-  bidId String?
-  bid   Bid?    @relation(fields: [bidId], references: [id], onDelete: SetNull)
-
-  payload Json?
-  readAt  DateTime?
-
-  createdAt DateTime  @default(now())
-  deletedAt DateTime?
+  instantBookingId  String?
+  bidId             String?
+  payload           Json?
+  readAt            DateTime?
+  createdAt         DateTime         @default(now())
+  deletedAt         DateTime?
+  advancedBooking   AdvancedBooking? @relation(fields: [advancedBookingId], references: [id])
+  bid               Bid?             @relation(fields: [bidId], references: [id])
+  instantBooking    InstantBooking?  @relation(fields: [instantBookingId], references: [id])
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
   @@index([deletedAt])
 }
 
-/**
- * ======================
- * Feedback / Invoices / Invites / Incidents
- * ======================
- */
 model TripFeedback {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  id                String           @id @default(cuid())
+  userId            String
   advancedBookingId String?
-  advancedBooking   AdvancedBooking? @relation(fields: [advancedBookingId], references: [id])
   instantBookingId  String?
+  type              FeedbackType     @default(NOTE)
+  message           String
+  resolved          Boolean          @default(false)
+  createdAt         DateTime         @default(now())
+  deletedAt         DateTime?
+  advancedBooking   AdvancedBooking? @relation(fields: [advancedBookingId], references: [id])
   instantBooking    InstantBooking?  @relation(fields: [instantBookingId], references: [id])
-
-  type     FeedbackType @default(NOTE)
-  message  String
-  resolved Boolean      @default(false)
-
-  createdAt DateTime  @default(now())
-  deletedAt DateTime?
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([deletedAt])
   @@index([userId, createdAt])
@@ -711,22 +552,20 @@ model TripFeedback {
 }
 
 model Invoice {
-  id       String @id @default(cuid())
-  driverId String
-  driver   User   @relation(fields: [driverId], references: [id], onDelete: Cascade)
-
+  id                String           @id @default(cuid())
+  driverId          String
   advancedBookingId String?
-  advancedBooking   AdvancedBooking? @relation(fields: [advancedBookingId], references: [id], onDelete: SetNull)
   instantBookingId  String?
-  instantBooking    InstantBooking?  @relation(fields: [instantBookingId], references: [id], onDelete: SetNull)
-
-  amountCents Int
-  currency    String    @default("GBP")
-  issuedAt    DateTime  @default(now())
-  paid        Boolean   @default(false)
-  paidAt      DateTime?
-  notes       String?
-  deletedAt   DateTime?
+  amountCents       Int
+  currency          String           @default("GBP")
+  issuedAt          DateTime         @default(now())
+  paid              Boolean          @default(false)
+  paidAt            DateTime?
+  notes             String?
+  deletedAt         DateTime?
+  advancedBooking   AdvancedBooking? @relation(fields: [advancedBookingId], references: [id])
+  driver            User             @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  instantBooking    InstantBooking?  @relation(fields: [instantBookingId], references: [id])
 
   @@index([deletedAt])
   @@index([driverId, issuedAt])
@@ -734,29 +573,11 @@ model Invoice {
   @@index([instantBookingId])
 }
 
-model DriverInvite {
-  id         String   @id @default(cuid())
-  businessId String
-  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-
-  email      String
-  token      String    @unique
-  expiresAt  DateTime
-  acceptedAt DateTime?
-  createdAt  DateTime  @default(now())
-
-  @@index([businessId, email])
-}
-
 model Incident {
-  id         String   @id @default(cuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id])
-  businessId String
-  business   Business @relation(fields: [businessId], references: [id])
-  houseId    String?
-  house      House?   @relation(fields: [houseId], references: [id])
-
+  id           String   @id @default(cuid())
+  userId       String
+  businessId   String
+  houseId      String?
   time         DateTime
   type         String
   description  String
@@ -765,16 +586,13 @@ model Incident {
   followUp     Boolean
   image        String?
   evidenceUrl  String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  business     Business @relation(fields: [businessId], references: [id])
+  house        House?   @relation(fields: [houseId], references: [id])
+  user         User     @relation(fields: [userId], references: [id])
 }
 
-/**
- * ======================
- * NextAuth
- * ======================
- */
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -808,3 +626,5 @@ model VerificationToken {
 
   @@unique([identifier, token])
 }
+
+

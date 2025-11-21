@@ -1,3 +1,4 @@
+// app/dashboard/driver/bookings/[id]/page.jsx
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { redirect, notFound } from "next/navigation";
@@ -22,7 +23,8 @@ export default async function DriverBookingDetailsPage({ params }) {
     redirect("/dashboard/driver");
   }
 
-  const booking = await prisma.advancedBooking.findUnique({
+  // Try advanced booking first
+  let booking = await prisma.advancedBooking.findUnique({
     where: { id },
     include: {
       accessibilityProfile: true,
@@ -41,14 +43,33 @@ export default async function DriverBookingDetailsPage({ params }) {
     },
   });
 
-  if (!booking) notFound();
+  let bookingType = "advanced";
+  let myBid = null;
+  let didWinBid = false;
 
-  const myBid = booking.bids[0] || null;
-  const didWinBid = booking.acceptedBid?.driver?.id === user.driver.id;
+  // If not found, try instant booking
+  if (!booking) {
+    booking = await prisma.instantBooking.findUnique({
+      where: { id },
+      include: {
+        accessibilityProfile: true,
+        business: { select: { name: true, phone: true, email: true } },
+        createdBy: { select: { name: true, email: true, phone: true } },
+        driver: { select: { id: true, name: true, phone: true, vehicleReg: true } },
+      },
+    });
+    bookingType = "instant";
+  } else {
+    // Advanced booking - get bid info
+    myBid = booking.bids[0] || null;
+    didWinBid = booking.acceptedBid?.driver?.id === user.driver.id;
+  }
+
+  if (!booking) notFound();
 
   return (
     <DriverBookingDetailsClient
-      booking={booking}
+      booking={{ ...booking, type: bookingType }}
       myBid={myBid}
       didWinBid={didWinBid}
       driverId={user.driver.id}

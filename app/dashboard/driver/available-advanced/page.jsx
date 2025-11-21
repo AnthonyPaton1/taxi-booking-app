@@ -116,7 +116,7 @@ export default async function AvailableAdvancedBookingsPage() {
   completedRides: driver.completedRides || 0,
 };
 
-const matches = await  matchDriverToBookingsCached(driverForMatching, bookingsWithCoords, { skipCache: true } );
+const matches = await  matchDriverToBookingsCached(driverForMatching, bookingsWithCoords);
 
 
 const safeMatches = Array.isArray(matches) ? matches : [];

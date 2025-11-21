@@ -265,10 +265,11 @@ export default function AvailableInstantBookingsClient({ bookings, driverId }) {
                             </>
                           )}
                         </Button>
-
+{console.log('Link booking:', booking.id, booking)}
                         <Link
                           href={`/dashboard/driver/bookings/${booking.id}`}
                           className="block text-sm text-blue-600 hover:underline"
+ 
                         >
                           View Full Details →
                         </Link>

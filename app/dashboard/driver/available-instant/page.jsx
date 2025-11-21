@@ -95,7 +95,7 @@ const bookingsWithCoords = availableBookings
 };
 
   // Match driver to bookings using the algorithm
-  const matches = await matchDriverToBookingsCached(driverForMatching, bookingsWithCoords, {skipCache: true});
+  const matches = await matchDriverToBookingsCached(driverForMatching, bookingsWithCoords);
 
  const safeMatches = Array.isArray(matches) ? matches : [];
  console.log('🔍 Safe matches:', safeMatches.length, safeMatches[0]);

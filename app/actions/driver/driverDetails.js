@@ -35,56 +35,71 @@ export async function completeDriverOnboarding(data) {
       return { success: false, error: "Driver profile already exists" };
     }
 
+    // ✅ Derive vehicle capabilities from vehicleClass
+    const vehicleClass = validated.vehicleClass;
+    const wavClasses = ['SIDE_LOADING_WAV', 'REAR_LOADING_WAV', 'DOUBLE_WAV', 'MINIBUS_ACCESSIBLE'];
+    const hasWAV = wavClasses.includes(vehicleClass);
+    const standardClasses = ['STANDARD_CAR', 'LARGE_CAR', 'MINIBUS_STANDARD'];
+    const hasStandard = standardClasses.includes(vehicleClass);
+
     // 5. Create everything in a transaction
     const result = await prisma.$transaction(async (tx) => {
-      // Step 1: Create AccessibilityProfile
+      // Step 1: Create AccessibilityProfile (UPDATED - removed fields that don't exist)
       const accessibilityProfile = await tx.accessibilityProfile.create({
         data: {
-          wheelchairAccess: validated.wheelchairAccess,
-          doubleWheelchairAccess: validated.doubleWheelchairAccess,
-          highRoof: validated.highRoof,
-          seatTransferHelp: validated.seatTransferHelp,
-          mobilityAidStorage: validated.mobilityAidStorage,
-          electricScooterStorage: validated.electricScooterStorage,
+          // Mobility & Physical
+          highRoof: validated.highRoof ?? false,
+          seatTransferHelp: validated.seatTransferHelp ?? false,
+          mobilityAidStorage: validated.mobilityAidStorage ?? false,
+          electricScooterStorage: validated.electricScooterStorage ?? false,
           
-          passengerCount: validated.passengerCount,
-          wheelchairUsers: validated.wheelchairUsers,
-          ageOfPassenger: validated.ageOfPassenger,
-          carerPresent: validated.carerPresent,
-          escortRequired: validated.escortRequired,
+          // Passenger counts (using schema's field names)
+          wheelchairUsersStaySeated: 0, // Default
+          wheelchairUsersCanTransfer: 0, // Default
+          ambulatoryPassengers: validated.passengerCount ?? 0,
           
-          quietEnvironment: validated.quietEnvironment,
-          noConversation: validated.noConversation,
-          noScents: validated.noScents,
-          specificMusic: validated.specificMusic || null,
-          visualSchedule: validated.visualSchedule,
+          // Passenger details
+          ageOfPassenger: validated.ageOfPassenger ?? null,
+          carerPresent: validated.carerPresent ?? false,
+          escortRequired: validated.escortRequired ?? false,
           
-          signLanguageRequired: validated.signLanguageRequired,
-          textOnlyCommunication: validated.textOnlyCommunication,
-          preferredLanguage: validated.preferredLanguage || null,
-          translationSupport: validated.translationSupport,
+          // Sensory preferences
+          quietEnvironment: validated.quietEnvironment ?? false,
+          noConversation: validated.noConversation ?? false,
+          noScents: validated.noScents ?? false,
+          specificMusic: validated.specificMusic ?? null,
+          visualSchedule: validated.visualSchedule ?? false,
           
-          assistanceRequired: validated.assistanceRequired,
-          assistanceAnimal: validated.assistanceAnimal,
-          familiarDriverOnly: validated.familiarDriverOnly,
-          femaleDriverOnly: validated.femaleDriverOnly,
-          nonWAVvehicle: validated.nonWAVvehicle,
+          // Communication
+          signLanguageRequired: validated.signLanguageRequired ?? false,
+          textOnlyCommunication: validated.textOnlyCommunication ?? false,
+          preferredLanguage: validated.preferredLanguage ?? null,
+          translationSupport: validated.translationSupport ?? false,
           
-          medicationOnBoard: validated.medicationOnBoard,
-          medicalConditions: validated.medicalConditions || null,
-          firstAidTrained: validated.firstAidTrained,
-          conditionAwareness: validated.conditionAwareness,
+          // Special requirements
+          assistanceRequired: validated.assistanceRequired ?? false,
+          assistanceAnimal: validated.assistanceAnimal ?? false,
+          familiarDriverOnly: validated.familiarDriverOnly ?? false,
+          femaleDriverOnly: validated.femaleDriverOnly ?? false,
+          nonWAVvehicle: validated.nonWAVvehicle ?? false,
           
-          additionalNeeds: validated.additionalNeeds || null,
+          // Health & safety
+          medicationOnBoard: validated.medicationOnBoard ?? false,
+          medicalConditions: validated.medicalConditions ?? null,
+          firstAidTrained: validated.firstAidTrained ?? false,
+          conditionAwareness: validated.conditionAwareness ?? false,
+          
+          // Additional
+          additionalNeeds: validated.additionalNeeds ?? null,
         },
       });
 
-      // Step 2: Create Driver
+      // Step 2: Create Driver (UPDATED - use vehicleClass)
       const driver = await tx.driver.create({
         data: {
           userId: user.id,
           name: validated.name,
-          vehicleType: validated.vehicleType,
+          vehicleClass: validated.vehicleClass,
           vehicleReg: validated.vehicleReg,
           amenities: validated.amenities || [],
           localPostcode: validated.localPostcode,
@@ -92,12 +107,6 @@ export async function completeDriverOnboarding(data) {
           
           baseLat: validated.baseLat,
           baseLng: validated.baseLng,
-         
-          
-          // Vehicle type booleans
-          hasWAV: validated.vehicleType === "WAV",
-          hasStandard: validated.vehicleType === "CAR",
-          wavOnly: validated.vehicleType === "WAV",
           
           phone: validated.phone,
           approved: false,
@@ -219,13 +228,20 @@ export async function updateDriverDetails(data, driverId) {
       return { success: false, error: "Unauthorized" };
     }
 
+    // ✅ Derive vehicle capabilities from vehicleClass
+    const vehicleClass = validated.vehicleClass;
+    const wavClasses = ['SIDE_LOADING_WAV', 'REAR_LOADING_WAV', 'DOUBLE_WAV', 'MINIBUS_ACCESSIBLE'];
+    const hasWAV = wavClasses.includes(vehicleClass);
+    const standardClasses = ['STANDARD_CAR', 'LARGE_CAR', 'MINIBUS_STANDARD'];
+    const hasStandard = standardClasses.includes(vehicleClass);
+
     await prisma.$transaction(async (tx) => {
-      // Update Driver
+      // Update Driver (UPDATED - use vehicleClass)
       await tx.driver.update({
         where: { id: driverId },
         data: {
           name: validated.name,
-          vehicleType: validated.vehicleType,
+          vehicleClass: validated.vehicleClass,
           vehicleReg: validated.vehicleReg,
           amenities: validated.amenities || [],
           localPostcode: validated.localPostcode,
@@ -234,54 +250,57 @@ export async function updateDriverDetails(data, driverId) {
           
           baseLat: validated.baseLat,
           baseLng: validated.baseLng,
-          
-          
-          hasWAV: validated.vehicleType === "WAV",
-          hasStandard: validated.vehicleType === "CAR",
-          wavOnly: validated.vehicleType === "WAV",
         },
       });
 
-      // Update AccessibilityProfile
+      // Update AccessibilityProfile (UPDATED - removed fields)
       await tx.accessibilityProfile.update({
         where: { id: driver.accessibilityProfileId },
         data: {
-          wheelchairAccess: validated.wheelchairAccess,
-          doubleWheelchairAccess: validated.doubleWheelchairAccess,
-          highRoof: validated.highRoof,
-          seatTransferHelp: validated.seatTransferHelp,
-          mobilityAidStorage: validated.mobilityAidStorage,
-          electricScooterStorage: validated.electricScooterStorage,
+          // Mobility & Physical
+          highRoof: validated.highRoof ?? false,
+          seatTransferHelp: validated.seatTransferHelp ?? false,
+          mobilityAidStorage: validated.mobilityAidStorage ?? false,
+          electricScooterStorage: validated.electricScooterStorage ?? false,
           
-          passengerCount: validated.passengerCount,
-          wheelchairUsers: validated.wheelchairUsers,
-          ageOfPassenger: validated.ageOfPassenger,
-          carerPresent: validated.carerPresent,
-          escortRequired: validated.escortRequired,
+          // Passenger counts
+          wheelchairUsersStaySeated: 0,
+          wheelchairUsersCanTransfer: 0,
+          ambulatoryPassengers: validated.passengerCount ?? 0,
           
-          quietEnvironment: validated.quietEnvironment,
-          noConversation: validated.noConversation,
-          noScents: validated.noScents,
-          specificMusic: validated.specificMusic || null,
-          visualSchedule: validated.visualSchedule,
+          // Passenger details
+          ageOfPassenger: validated.ageOfPassenger ?? null,
+          carerPresent: validated.carerPresent ?? false,
+          escortRequired: validated.escortRequired ?? false,
           
-          signLanguageRequired: validated.signLanguageRequired,
-          textOnlyCommunication: validated.textOnlyCommunication,
-          preferredLanguage: validated.preferredLanguage || null,
-          translationSupport: validated.translationSupport,
+          // Sensory
+          quietEnvironment: validated.quietEnvironment ?? false,
+          noConversation: validated.noConversation ?? false,
+          noScents: validated.noScents ?? false,
+          specificMusic: validated.specificMusic ?? null,
+          visualSchedule: validated.visualSchedule ?? false,
           
-          assistanceRequired: validated.assistanceRequired,
-          assistanceAnimal: validated.assistanceAnimal,
-          familiarDriverOnly: validated.familiarDriverOnly,
-          femaleDriverOnly: validated.femaleDriverOnly,
-          nonWAVvehicle: validated.nonWAVvehicle,
+          // Communication
+          signLanguageRequired: validated.signLanguageRequired ?? false,
+          textOnlyCommunication: validated.textOnlyCommunication ?? false,
+          preferredLanguage: validated.preferredLanguage ?? null,
+          translationSupport: validated.translationSupport ?? false,
           
-          medicationOnBoard: validated.medicationOnBoard,
-          medicalConditions: validated.medicalConditions || null,
-          firstAidTrained: validated.firstAidTrained,
-          conditionAwareness: validated.conditionAwareness,
+          // Special requirements
+          assistanceRequired: validated.assistanceRequired ?? false,
+          assistanceAnimal: validated.assistanceAnimal ?? false,
+          familiarDriverOnly: validated.familiarDriverOnly ?? false,
+          femaleDriverOnly: validated.femaleDriverOnly ?? false,
+          nonWAVvehicle: validated.nonWAVvehicle ?? false,
           
-          additionalNeeds: validated.additionalNeeds || null,
+          // Health & safety
+          medicationOnBoard: validated.medicationOnBoard ?? false,
+          medicalConditions: validated.medicalConditions ?? null,
+          firstAidTrained: validated.firstAidTrained ?? false,
+          conditionAwareness: validated.conditionAwareness ?? false,
+          
+          // Additional
+          additionalNeeds: validated.additionalNeeds ?? null,
         },
       });
 
@@ -308,7 +327,7 @@ export async function updateDriverDetails(data, driverId) {
       });
     });
     
-    await invalidateDriverCache(driverId); // ✅ FIXED - use driverId, not result.id
+    await invalidateDriverCache(driverId);
 
     console.log("✅ Driver details updated:", driverId);
 
