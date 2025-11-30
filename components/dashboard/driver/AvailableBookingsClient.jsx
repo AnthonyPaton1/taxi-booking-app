@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import StatusMessage from "@/components/shared/statusMessage";
+import { formatDateTime } from "@/lib/dateUtils";
 
 export default function AvailableAdvancedBookingsClient({ bookings, driverId }) {
   const [status, setStatus] = useState("");
@@ -26,16 +27,7 @@ export default function AvailableAdvancedBookingsClient({ bookings, driverId }) 
   const [bidMessage, setBidMessage] = useState("");
   const router = useRouter();
 
-  const formatDateTime = (date) => {
-    return new Date(date).toLocaleString("en-GB", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+ 
 
   const handlePlaceBid = async (bookingId) => {
     if (!bidAmount || parseFloat(bidAmount) <= 0) {
@@ -50,7 +42,7 @@ export default function AvailableAdvancedBookingsClient({ bookings, driverId }) 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          advancedBookingId: bookingId,
+          bookingId: bookingId,
           amountCents: Math.round(parseFloat(bidAmount) * 100),
           message: bidMessage.trim() || null,
         }),

@@ -9,7 +9,7 @@ import { useSearchParams } from "next/navigation";
 import { createManagerBooking } from "@/app/actions/bookings/createManagerBooking";
 import RideAccessibilityOptions from "../RideAccessibilityOptions";
 import LocationAutocomplete from "@/components/shared/LocationAutocomplete";
-import { ArrowLeft, Timer, Wheelchair } from "lucide-react";
+import { ArrowLeft, Timer, Accessibility } from "lucide-react";
 import { toast } from "sonner";
 import BlockBookingSection from "@/components/dashboard/business/manager/blockBookingsSection";
 
@@ -223,16 +223,6 @@ export default function ManagerBookRideForm({ houses }) {
       return;
     }
 
-    const now = new Date();
-    const hoursDifference = (pickupDateTime - now) / (1000 * 60 * 60);
-
-    if (hoursDifference < 48) {
-      toast.error("Advanced bookings must be at least 48 hours in advance");
-      errorRef.current?.focus();
-      setSubmitting(false);
-      return;
-    }
-
     const returnTime = formData.returnTime
       ? new Date(`${formData.pickupDate}T${formData.returnTime}`)
       : null;
@@ -356,7 +346,7 @@ export default function ManagerBookRideForm({ houses }) {
           </Link>
           <div className="flex items-center gap-2 text-blue-600">
             <Timer className="w-5 h-5" />
-            <span className="font-medium">Advanced Booking</span>
+            <span className="font-medium">Booking</span>
           </div>
         </div>
 
@@ -364,11 +354,11 @@ export default function ManagerBookRideForm({ houses }) {
         <div className="bg-white p-6 rounded-lg shadow-sm">
           <h1 className="text-3xl font-bold text-gray-900">Book a Ride</h1>
           <p className="text-gray-600 mt-2">
-            Create an advanced booking for a resident (minimum 48 hours in advance)
+            Create an advanced booking for a resident.
           </p>
           <div className="flex items-center gap-2 mt-3 text-sm text-blue-700 bg-blue-50 p-3 rounded">
             <Timer className="w-4 h-4" />
-            <span>All bookings must be made at least 48 hours in advance to allow drivers time to bid</span>
+            <span>The further in advance you create the booking the better chance of more bids reducing travel costs</span>
           </div>
         </div>
 
@@ -622,7 +612,7 @@ export default function ManagerBookRideForm({ houses }) {
                 required
                 value={formData.pickupDate}
                 onChange={handleChange}
-                min={new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                min={new Date().toISOString().split('T')[0]}
                 className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -697,7 +687,7 @@ export default function ManagerBookRideForm({ houses }) {
             {/* UPDATED: Detailed Wheelchair Configuration */}
             <div className="border border-blue-200 rounded-lg p-4 bg-blue-50 space-y-4">
               <div className="flex items-center gap-2 mb-3">
-                <Wheelchair className="w-5 h-5 text-blue-600" />
+                <Accessibility className="w-5 h-5 text-blue-600" />
                 <h3 className="font-semibold text-gray-900">Wheelchair & Mobility Aid Requirements</h3>
               </div>
               
@@ -773,7 +763,7 @@ export default function ManagerBookRideForm({ houses }) {
                         onChange={(e) => handleWheelchairConfigChange('requiresDoubleWAV', e.target.checked)}
                         className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                       />
-                      <span className="text-sm text-gray-700">Requires Double WAV (2 wheelchairs simultaneously)</span>
+                      <span className="text-sm text-gray-700">Requires Double WAV (minimum 2 wheelchairs simultaneously)</span>
                     </label>
                   )}
                   
@@ -867,7 +857,7 @@ export default function ManagerBookRideForm({ houses }) {
           >
             {submitting ? "Creating..." : isBlockBooking 
               ? `Create Block Booking (${blockRides.length} rides)`
-              : "Create Advanced Booking"
+              : "Create  Booking"
             }
           </button>
         </form>

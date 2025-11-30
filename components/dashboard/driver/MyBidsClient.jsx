@@ -12,6 +12,7 @@ import {
   ArrowLeft,
   Eye,
 } from "lucide-react";
+import { formatDate, formatDateTime } from "@/lib/dateUtils";
 
 export default function MyBidsClient({
   pendingBids,
@@ -34,26 +35,6 @@ export default function MyBidsClient({
     }).format(amountCents / 100);
   };
 
-  const formatDateTime = (date) => {
-    if (!mounted) return ""; // ← Add this check
-    return new Date(date).toLocaleString("en-GB", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  const formatDate = (date) => {
-    if (!mounted) return ""; // ← Add this check
-    return new Date(date).toLocaleDateString("en-GB", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  };
 
   const tabs = [
     { id: "pending", label: "Pending", count: stats.pending, icon: Clock },
@@ -202,7 +183,7 @@ const StatCard = ({ title, value, icon, color, highlight }) => {
 
 // Bid Card Component
 const BidCard = ({ bid, status, formatCurrency, formatDateTime, formatDate }) => {
-  const booking = bid.advancedBooking;
+  const booking = bid.booking;
 
   const getStatusBadge = () => {
     switch (status) {
@@ -246,7 +227,7 @@ const BidCard = ({ bid, status, formatCurrency, formatDateTime, formatDate }) =>
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
             {getStatusBadge()}
-            {booking.accessibilityProfile?.requiresWheelchair && (
+            {booking?.accessibilityProfile?.wheelchairUsersStaySeated > 0 && (
               <span className="text-xs px-2 py-1 rounded bg-purple-100 text-purple-800">
                 WAV
               </span>
@@ -276,12 +257,13 @@ const BidCard = ({ bid, status, formatCurrency, formatDateTime, formatDate }) =>
               </div>
             </div>
 
-            {booking.accessibilityProfile?.initials && (
-              <p className="text-xs text-gray-500">
-                Passenger: {booking.accessibilityProfile.initials} •{" "}
-                {booking.passengerCount} {booking.passengerCount === 1 ? "person" : "people"}
-              </p>
-            )}
+          {booking.initials && booking.initials.length > 0 && (  
+  <p className="text-xs text-gray-500">
+    Passenger: {booking.initials.join(", ")} •{" "}
+    {booking.accessibilityProfile?.ambulatoryPassengers || 1} {(booking.accessibilityProfile?.ambulatoryPassengers || 1) === 1 ? "person" : "people"}
+  </p>
+)}
+
           </div>
         </div>
 

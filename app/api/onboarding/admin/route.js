@@ -257,9 +257,6 @@ export async function POST(req) {
           }
         }
 
-        // Generate temporary password
-        const tempPassword = crypto.randomBytes(16).toString("hex");
-        const hashedPassword = await bcrypt.hash(tempPassword, 12);
 
         // Create coordinator user with sanitized data
         const coordinator = await prisma.user.create({
@@ -269,7 +266,7 @@ export async function POST(req) {
             phone: sanitizedCoordPhone,
             role: "COORDINATOR",
             businessId: business.id,
-            password: hashedPassword,
+            password: null,
             emailVerified: null,
           },
         });

@@ -46,8 +46,9 @@ export default function EditDriverProfileClient({ user, driver }) {
     electricScooterStorage: driver.accessibilityProfile?.electricScooterStorage || false,
     
     // Capacity
-    passengerCount: driver.accessibilityProfile?.passengerCount || 4,
-    wheelchairUsers: driver.accessibilityProfile?.wheelchairUsers || 0,
+  ambulatoryPassengers: driver.accessibilityProfile?.ambulatoryPassengers || 4,
+wheelchairUsersStaySeated: driver.accessibilityProfile?.wheelchairUsersStaySeated || 0,
+wheelchairUsersCanTransfer: driver.accessibilityProfile?.wheelchairUsersCanTransfer || 0,
     
     // Sensory
     quietEnvironment: driver.accessibilityProfile?.quietEnvironment || false,

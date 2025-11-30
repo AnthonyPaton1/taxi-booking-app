@@ -16,9 +16,18 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { advancedBookingId, amountCents, message } = body;
+    const { bookingId, amountCents, message } = body;
 
-    if (!advancedBookingId || !amountCents || amountCents <= 0) {
+    console.log("📥 Bid request received:", {
+      bookingId,
+      amountCents,
+      amountType: typeof amountCents,
+      message,
+      fullBody: body
+    });
+
+    if (!bookingId || !amountCents || amountCents <= 0) {
+      console.log("❌ Validation failed:", { bookingId, amountCents });
       return NextResponse.json(
         { success: false, error: "Invalid bid details" },
         { status: 400 }
@@ -38,9 +47,9 @@ export async function POST(request) {
       );
     }
 
-    // Check if booking exists and is still open
-    const booking = await prisma.advancedBooking.findUnique({
-      where: { id: advancedBookingId },
+    // Check if booking exists and is still accepting bids
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
     });
 
     if (!booking) {
@@ -50,7 +59,7 @@ export async function POST(request) {
       );
     }
 
-    if (booking.status !== "OPEN") {
+    if (booking.status !== "PENDING") {
       return NextResponse.json(
         { success: false, error: "Booking is no longer accepting bids" },
         { status: 400 }
@@ -60,7 +69,7 @@ export async function POST(request) {
     // Check if driver already has a pending bid on this booking
     const existingBid = await prisma.bid.findFirst({
       where: {
-        advancedBookingId,
+        bookingId,
         driverId: user.driver.id,
         status: "PENDING",
       },
@@ -73,24 +82,19 @@ export async function POST(request) {
       );
     }
 
-    // Create the bid
+    // ✅ Create the bid with all required fields
     const bid = await prisma.bid.create({
       data: {
         amountCents,
         message: message || null,
         status: "PENDING",
-         advancedBooking: {
-      connect: { id: advancedBookingId },
-    },
-    user: {
-      connect: { id: session.user.id },  
-    },
-    driver: {
-      connect: { id: user.driver.id },   
-    },
+        userId: user.id,          
+        bookingId: bookingId,      
+        driverId: user.driver.id,  
       },
     });
 
+    console.log("✅ Bid created successfully:", bid.id);
 
     return NextResponse.json({
       success: true,
@@ -98,7 +102,7 @@ export async function POST(request) {
       message: "Bid placed successfully",
     });
   } catch (error) {
-    console.error("Error placing bid:", error);
+    console.error("💥 Error placing bid:", error);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 }

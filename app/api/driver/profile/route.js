@@ -40,7 +40,7 @@ export async function PATCH(request) {
       phone,
       gender, // ✅ Add this to destructuring
       // Vehicle
-      vehicleType,
+      vehicleClass,
       vehicleReg,
       // Location
       localPostcode,
@@ -59,7 +59,7 @@ export async function PATCH(request) {
       );
     }
 
-    if (!vehicleType || !vehicleReg) {
+    if (!vehicleClass || !vehicleReg) {
       return NextResponse.json(
         { success: false, error: "Vehicle type and registration are required" },
         { status: 400 }
@@ -131,49 +131,46 @@ export async function PATCH(request) {
     }
 
     // Update user
-    await prisma.user.update({
-      where: { id: session.user.id },
-      data: {
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        phone: phone.trim(),
-      },
-    });
+await prisma.user.update({
+  where: { id: session.user.id },
+  data: {
+    name: name.trim(),
+    email: email.trim().toLowerCase(),
+    phone: phone.trim(),
+  },
+});
 
-    // ✅ Update driver with ALL fields
-    await prisma.driver.update({
-      where: { id: user.driver.id },
-      data: {
-        name: name.trim(),                  // Add this!
-        phone: phone.trim(),
-        vehicleType: vehicleType.trim(),
-         hasWAV: vehicleType === "WAV",
-    hasStandard: vehicleType === "CAR",
-    wavOnly: vehicleType === "WAV",
-        vehicleReg: vehicleReg.trim().toUpperCase(),
-        localPostcode: localPostcode.trim().toUpperCase(),
-        radiusMiles: parseInt(radiusMiles),
-        gender: gender?.toLowerCase() || null, // Handle gender
-        ...coordinates,                     //  Spread geocoded coordinates
-      },
-    });
-    
+// ✅ Update driver with ALL fields
+await prisma.driver.update({
+  where: { id: user.driver.id },
+  data: {
+    name: name.trim(),
+    phone: phone.trim(),
+    vehicleClass: vehicleClass.trim(), // ✅ Changed from vehicleType
+    // REMOVED hasWAV, hasStandard, wavOnly - they don't exist anymore
+    vehicleReg: vehicleReg.trim().toUpperCase(),
+    localPostcode: localPostcode.trim().toUpperCase(),
+    radiusMiles: parseInt(radiusMiles),
+    gender: gender?.toLowerCase() || null,
+    ...coordinates,
+  },
+});
 
-    // Update accessibility profile
-    await prisma.accessibilityProfile.update({
-      where: { id: user.driver.accessibilityProfileId },
-      data: {
-        // Mobility & Physical
-    wheelchairAccess: wheelchairAccess || false,
-    doubleWheelchairAccess: doubleWheelchairAccess || false,
+// Update accessibility profile
+await prisma.accessibilityProfile.update({
+  where: { id: user.driver.accessibilityProfileId },
+  data: {
+    // Mobility & Physical
+    // REMOVED wheelchairAccess, doubleWheelchairAccess
     highRoof: body.highRoof || false,
     seatTransferHelp: body.seatTransferHelp || false,
     mobilityAidStorage: body.mobilityAidStorage || false,
     electricScooterStorage: body.electricScooterStorage || false,
     
-    // Passenger details
-    passengerCount: body.passengerCount || 1,
-    wheelchairUsers: body.wheelchairUsers || 0,
+    // Passenger details - NEW FIELD NAMES
+    ambulatoryPassengers: body.passengerCount || 1,
+    wheelchairUsersStaySeated: body.wheelchairUsers || 0,
+    wheelchairUsersCanTransfer: 0, // Add default
     ageOfPassenger: body.ageOfPassenger || null,
     carerPresent: body.carerPresent || false,
     escortRequired: body.escortRequired || false,
@@ -195,7 +192,7 @@ export async function PATCH(request) {
     assistanceRequired: body.assistanceRequired || false,
     assistanceAnimal: body.assistanceAnimal || false,
     familiarDriverOnly: body.familiarDriverOnly || false,
-    femaleDriverOnly: body.femaleDriverOnly || false, // ← This one!
+    femaleDriverOnly: body.femaleDriverOnly || false,
     nonWAVvehicle: body.nonWAVvehicle || false,
     
     // Health & Safety
@@ -205,8 +202,8 @@ export async function PATCH(request) {
     conditionAwareness: body.conditionAwareness || false,
     
     additionalNeeds: body.additionalNeeds || null,
-      },
-    });
+  },
+});
 
     // Update or create compliance record
     if (user.driver.compliance) {

@@ -62,28 +62,29 @@ export default async function ManagerDashboardPage() {
     );
   }
 
-  // ✅ Get recent trips for this manager (uses their user ID)
+  // Get recent trips for this manager
   const recentTripsResult = await getRecentTripsForUser(10);
   
   if (!recentTripsResult.success) {
     console.error("Failed to load recent trips:", recentTripsResult.error);
   }
 
-  // Get manager's bookings (advanced bookings they created)
+  // ✅ Get manager's bookings (unified)
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   const [upcomingBookings, pendingBids, completedCount] = await Promise.all([
-    // Upcoming bookings
-    prisma.advancedBooking.findMany({
+    // ✅ Upcoming bookings (unified)
+    prisma.booking.findMany({
       where: {
         createdById: user.id,
         pickupTime: {
           gte: today,
         },
         status: {
-          in: ["OPEN", "ACCEPTED"],
+          in: ["PENDING", "BID_ACCEPTED", "ACCEPTED"],  // ✅ Updated statuses
         },
+        deletedAt: null,
       },
       include: {
         accessibilityProfile: true,
@@ -92,7 +93,7 @@ export default async function ManagerDashboardPage() {
             driver: {
               select: {
                 id: true,
-                vehicleType: true,
+                vehicleClass: true,
                 user: {
                   select: {
                     name: true,
@@ -111,7 +112,7 @@ export default async function ManagerDashboardPage() {
             driver: {
               select: {
                 id: true,
-                vehicleType: true,
+                vehicleClass: true,
                 user: {
                   select: {
                     name: true,
@@ -129,22 +130,24 @@ export default async function ManagerDashboardPage() {
       take: 10,
     }),
 
-    // Count bookings needing attention (have bids but not accepted)
-    prisma.advancedBooking.count({
+    // ✅ Count bookings needing attention (have bids but not accepted)
+    prisma.booking.count({
       where: {
         createdById: user.id,
-        status: "OPEN",
+        status: "PENDING",  // ✅ Changed from "OPEN"
         bids: {
           some: {},
         },
+        deletedAt: null,
       },
     }),
 
-    // Count completed bookings
-    prisma.advancedBooking.count({
+    // ✅ Count completed bookings
+    prisma.booking.count({
       where: {
         createdById: user.id,
         status: "COMPLETED",
+        deletedAt: null,
       },
     }),
   ]);

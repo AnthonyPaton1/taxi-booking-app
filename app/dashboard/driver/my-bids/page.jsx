@@ -30,7 +30,7 @@ export default async function DriverMyBidsPage() {
       driverId: user.driver.id,
     },
     include: {
-      advancedBooking: {
+      booking: {
         include: {
           accessibilityProfile: true,
           createdBy: {

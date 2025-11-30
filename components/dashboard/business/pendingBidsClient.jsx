@@ -17,22 +17,14 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import StatusMessage from "@/components/shared/statusMessage";
+import { formatDateTime } from "@/lib/dateUtils";
 
 export default function PendingBidsClient({ bookings, totalBids }) {
   const [status, setStatus] = useState("");
   const [acceptingBid, setAcceptingBid] = useState(null);
   const router = useRouter();
 
-  const formatDateTime = (date) => {
-    return new Date(date).toLocaleString("en-GB", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+ 
 
   const formatCurrency = (amountCents) => {
     return new Intl.NumberFormat("en-GB", {

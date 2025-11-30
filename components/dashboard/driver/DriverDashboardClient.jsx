@@ -3,28 +3,22 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Car, FileText  } from "lucide-react";
+import { Car, FileText } from "lucide-react";
 import IncidentFeedbackForm from "@/components/forms/incidentFeedbackForm";
 import RecentBidsSection from "@/components/dashboard/driver/recentBidsSection";
-
 
 export default function DriverDashboardClient({
   user,
   driver,
   stats,
   todaysBookings,
-  availableInstant,
-  availableAdvanced,
+  availableBookings,  
   recentBids
 }) {
   const [isAvailable, setIsAvailable] = useState(true);
   const [showIncidentForm, setShowIncidentForm] = useState(false);
 
-  // Extract booking arrays
-  const todaysInstant = todaysBookings?.instant || [];
-  const todaysAdvanced = todaysBookings?.advanced || [];
-  const totalToday = todaysInstant.length + todaysAdvanced.length;
-  
+  const totalToday = todaysBookings?.length || 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -39,8 +33,6 @@ export default function DriverDashboardClient({
               <ClientDate />
             </div>
             <div className="flex items-center gap-4">
-              
-            </div>
               <button
                 onClick={() => setShowIncidentForm(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition shadow-sm"
@@ -48,7 +40,8 @@ export default function DriverDashboardClient({
                 <FileText className="w-5 h-5" />
                 <span className="hidden sm:inline">Incident & Feedback</span>
               </button>
-            <Car className="w-12 h-12 text-blue-600" />
+              <Car className="w-12 h-12 text-blue-600" />
+            </div>
           </div>
         </div>
 
@@ -76,35 +69,29 @@ export default function DriverDashboardClient({
           />
         </div>
 
-        {/* Quick Actions */}
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-  <QuickActionCard
-    title="Available Instant Bookings"
-    count={availableInstant?.length || 0}
-    href="/dashboard/driver/available-instant"
-    color="blue"
-  />
-  <QuickActionCard
-    title="Advanced Bookings (Bids)"
-    count={availableAdvanced?.length || 0}
-    href="/dashboard/driver/available-advanced"
-    color="green"
-  />
-  <QuickActionCard
-    title="Today's Schedule"
-    count={totalToday}
-    href="/dashboard/driver/schedule"
-    color="purple"
-  />
-  <QuickActionCard
-    title="Weekly Schedule"
-    count={stats?.upcomingJobs || 0}
-    href="/dashboard/driver/weekly-schedule"
-    color="orange"
-  />
-</div>
+        {/* Quick Actions - ✅ UPDATED */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <QuickActionCard
+            title="Available Bookings"
+            count={availableBookings?.length || 0}
+            href="/dashboard/driver/available"
+            color="blue"
+          />
+          <QuickActionCard
+            title="Today's Schedule"
+            count={totalToday}
+            href="/dashboard/driver/schedule"
+            color="purple"
+          />
+          <QuickActionCard
+            title="Weekly Schedule"
+            count={stats?.upcomingJobs || 0}
+            href="/dashboard/driver/weekly-schedule"
+            color="orange"
+          />
+        </div>
 
-        {/* Today's Jobs Preview */}
+        {/* Today's Jobs Preview - ✅ UPDATED */}
         {totalToday > 0 && (
           <div className="bg-white shadow rounded-lg p-6">
             <div className="flex justify-between items-center mb-4">
@@ -119,11 +106,8 @@ export default function DriverDashboardClient({
               </Link>
             </div>
             <div className="space-y-2">
-              {todaysInstant.slice(0, 3).map((booking) => (
-                <JobPreview key={booking.id} booking={booking} type="instant" />
-              ))}
-              {todaysAdvanced.slice(0, 3).map((booking) => (
-                <JobPreview key={booking.id} booking={booking} type="advanced" />
+              {todaysBookings.slice(0, 5).map((booking) => (
+                <JobPreview key={booking.id} booking={booking} />
               ))}
             </div>
           </div>
@@ -174,16 +158,18 @@ export default function DriverDashboardClient({
             </Link>
           </div>
         </div>
-        {/* Recent Bids Section (Right) */}
-          <RecentBidsSection bids={recentBids} />
+
+        {/* Recent Bids Section */}
+        <RecentBidsSection bids={recentBids} />
       </div>
+
       {/* Incident Form Modal */}
-            {showIncidentForm && (
-              <IncidentFeedbackForm
-                user={user}
-                onClose={() => setShowIncidentForm(false)}
-              />
-            )}
+      {showIncidentForm && (
+        <IncidentFeedbackForm
+          user={user}
+          onClose={() => setShowIncidentForm(false)}
+        />
+      )}
     </div>
   );
 }
@@ -211,6 +197,7 @@ const QuickActionCard = ({ title, count, href, color }) => {
     blue: "border-blue-200 hover:bg-blue-50",
     green: "border-green-200 hover:bg-green-50",
     purple: "border-purple-200 hover:bg-purple-50",
+    orange: "border-orange-200 hover:bg-orange-50",
   };
 
   return (
@@ -225,9 +212,16 @@ const QuickActionCard = ({ title, count, href, color }) => {
   );
 };
 
-// Job Preview
-const JobPreview = ({ booking, type }) => {
+// Job Preview - ✅ UPDATED (no type needed)
+const JobPreview = ({ booking }) => {
   const pickupTime = new Date(booking.pickupTime);
+  const statusColors = {
+    PENDING: "bg-yellow-100 text-yellow-700",
+    BID_ACCEPTED: "bg-blue-100 text-blue-700",
+    ACCEPTED: "bg-green-100 text-green-700",
+    IN_PROGRESS: "bg-purple-100 text-purple-700",
+  };
+
   return (
     <div className="flex items-center justify-between p-3 bg-gray-50 rounded border border-gray-200">
       <div className="flex items-center gap-3">
@@ -241,14 +235,8 @@ const JobPreview = ({ booking, type }) => {
           {booking.pickupLocation} → {booking.dropoffLocation}
         </span>
       </div>
-      <span
-        className={`text-xs px-2 py-1 rounded ${
-          type === "instant"
-            ? "bg-blue-100 text-blue-700"
-            : "bg-green-100 text-green-700"
-        }`}
-      >
-        {type === "instant" ? "Instant" : "Advanced"}
+      <span className={`text-xs px-2 py-1 rounded ${statusColors[booking.status] || "bg-gray-100 text-gray-700"}`}>
+        {booking.status}
       </span>
     </div>
   );

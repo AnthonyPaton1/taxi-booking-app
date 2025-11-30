@@ -8,8 +8,7 @@ import DriverDashboardClient from "@/components/dashboard/driver/DriverDashboard
 import dynamic from 'next/dynamic';
 import { getDriverStats } from "@/app/actions/driver/getDriverProfile";
 import { getDriverBookingsForToday } from "@/app/actions/driver/getDriverBookings";
-import { getAvailableInstantBookings, getAvailableAdvancedBookings } from "@/app/actions/bookings/getBookings";
-
+import { getAvailableBookings } from "@/app/actions/bookings/getBookings";  
 
 const DriverOnboardingForm = dynamic(
   () => import('@/components/forms/driver/DriverOnboardingForm'),
@@ -19,7 +18,6 @@ const DriverOnboardingForm = dynamic(
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     ),
-    
   }
 );
 
@@ -53,42 +51,42 @@ export default async function DriverDashboardPage() {
     return <DriverOnboardingForm />;
   }
 
-  // ✅ Only fetch bids AFTER confirming driver exists
-  const recentBids = await prisma.bid.findMany({
-    where: {
-      driverId: user.driver.id,
+// app/dashboard/driver/page.jsx
+
+const recentBids = await prisma.bid.findMany({
+  where: {
+    driverId: user.driver.id,
+    booking: {
+      deletedAt: null,  
     },
-    include: {
-      advancedBooking: {
-        include: {
-          accessibilityProfile: true,
-        },
+  },
+  include: {
+    booking: {
+      include: {
+        accessibilityProfile: true,
       },
     },
-    orderBy: {
-      createdAt: "desc",
-    },
-    take: 5, // Show last 5 bids
-  });
+  },
+  orderBy: {
+    createdAt: "desc",
+  },
+  take: 5,
+});
 
-  // Fetch dashboard data
-  const [statsResult, todaysBookings, availableInstant, availableAdvanced] = await Promise.all([
+  // ✅ Fetch dashboard data (unified)
+  const [statsResult, todaysBookings, availableBookingsResult] = await Promise.all([
     getDriverStats(),
     getDriverBookingsForToday(),
-    getAvailableInstantBookings(),
-    getAvailableAdvancedBookings(),
+    getAvailableBookings(),  
   ]);
-
-
 
   return (
     <DriverDashboardClient
       user={user}
       driver={user.driver}
       stats={statsResult.success ? statsResult.stats : null}
-      todaysBookings={todaysBookings.success ? todaysBookings : { instant: [], advanced: [] }}
-      availableInstant={availableInstant.success ? availableInstant.bookings : []}
-      availableAdvanced={availableAdvanced.success ? availableAdvanced.bookings : []}
+      todaysBookings={todaysBookings.success ? todaysBookings.bookings : []}  
+      availableBookings={availableBookingsResult.success ? availableBookingsResult.bookings : []}  
       recentBids={recentBids}
     />
   );

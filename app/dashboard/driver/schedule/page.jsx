@@ -34,86 +34,48 @@ export default async function DailySchedulePage() {
   const endOfDay = new Date();
   endOfDay.setHours(23, 59, 59, 999);
 
-  // Get all of today's jobs - both advanced and instant bookings
-  const [advancedBookings, instantBookings] = await Promise.all([
-    prisma.advancedBooking.findMany({
-      where: {
-        status: {
-          in: ["ACCEPTED", "SCHEDULED"],
-        },
-        acceptedBid: {
-          driverId: user.driver.id,
-        },
-        pickupTime: {
-          gte: startOfDay,
-          lte: endOfDay,
+  // ✅ Get all of today's bookings (unified)
+  const bookings = await prisma.booking.findMany({
+    where: {
+      driverId: user.driver.id,
+      status: {
+        in: ["ACCEPTED", "IN_PROGRESS", "COMPLETED"],
+      },
+      pickupTime: {
+        gte: startOfDay,
+        lte: endOfDay,
+      },
+      deletedAt: null,
+    },
+    include: {
+      accessibilityProfile: true,
+      acceptedBid: {
+        select: {
+          amountCents: true,
+          etaMinutes: true,
         },
       },
-      include: {
-        accessibilityProfile: true,
-        acceptedBid: {
-          select: {
-            amountCents: true,
-            etaMinutes: true,
-          },
-        },
-        createdBy: {
-          select: {
-            name: true,
-            phone: true,
-            business: {
-              select: {
-                name: true,
-              },
+      createdBy: {
+        select: {
+          name: true,
+          phone: true,
+          business: {
+            select: {
+              name: true,
             },
           },
         },
       },
-      orderBy: {
-        pickupTime: "asc",
-      },
-    }),
-    prisma.instantBooking.findMany({
-      where: {
-        driverId: user.driver.id,
-        status: {
-          in: ["ACCEPTED", "IN_PROGRESS"],
-        },
-        pickupTime: {
-          gte: startOfDay,
-          lte: endOfDay,
-        },
-      },
-      include: {
-        accessibilityProfile: true,
-        createdBy: {
-          select: {
-            name: true,
-            phone: true,
-            business: {
-              select: {
-                name: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: {
-        pickupTime: "asc",
-      },
-    }),
-  ]);
-
-  // Combine and sort by pickup time
-  const todaysJobs = [...advancedBookings, ...instantBookings].sort(
-    (a, b) => new Date(a.pickupTime) - new Date(b.pickupTime)
-  );
+    },
+    orderBy: {
+      pickupTime: "asc",
+    },
+  });
 
   return (
     <DailyScheduleClient 
-      driver={user.driver} 
-      instantBookings={instantBookings}
-      advancedBookings={advancedBookings}
+      bookings={bookings}  
+      driverName={user.driver.name}
     />
   );
 }

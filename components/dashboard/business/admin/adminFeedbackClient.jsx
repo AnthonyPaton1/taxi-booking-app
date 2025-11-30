@@ -8,17 +8,10 @@ import {
   CheckCircle,
   Star,
 } from "lucide-react";
+import { formatDate } from "@/lib/dateUtils";
 
 export default function AdminFeedbackClient({ feedback }) {
-  const formatDate = (date) => {
-    return new Date(date).toLocaleDateString("en-GB", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+
 
   return (
     <div className="min-h-screen bg-gray-50">

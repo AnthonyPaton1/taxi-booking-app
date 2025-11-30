@@ -98,13 +98,12 @@ export default function NotificationBell() {
     }
   };
 
-  // Get booking link based on which booking exists
+  // ✅ Get booking link (unified)
   const getBookingLink = (notification) => {
-    if (notification.advancedBooking) {
-      return `/dashboard/bookings/advanced/${notification.advancedBookingId}`;
-    }
-    if (notification.instantBooking) {
-      return `/dashboard/bookings/instant/${notification.instantBookingId}`;
+    if (notification.bookingId) {
+      // Determine the appropriate dashboard based on user role
+      // This will work from any dashboard context
+      return `/dashboard/bookings/${notification.bookingId}`;
     }
     return null;
   };

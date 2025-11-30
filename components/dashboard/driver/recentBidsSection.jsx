@@ -3,6 +3,7 @@
 
 import Link from "next/link";
 import { Clock, CheckCircle, XCircle, MapPin, PoundSterling } from "lucide-react";
+import { formatDate } from "@/lib/dateUtils";
 
 export default function RecentBidsSection({ bids }) {
   const previewBids = bids?.slice(0, 3) || [];
@@ -15,12 +16,7 @@ export default function RecentBidsSection({ bids }) {
     }).format(amountCents / 100);
   };
 
-  const formatDate = (date) => {
-    return new Date(date).toLocaleDateString("en-GB", {
-      day: "numeric",
-      month: "short",
-    });
-  };
+ 
 
   const formatTime = (date) => {
     return new Date(date).toLocaleTimeString("en-GB", {
@@ -165,7 +161,7 @@ export default function RecentBidsSection({ bids }) {
 
 // Bid Preview Card Component
 function BidPreview({ bid, formatCurrency, formatDate, formatTime, getStatusConfig }) {
-  const booking = bid.advancedBooking;
+  const booking = bid.booking;
   const status = getStatusConfig(bid.status);
   const StatusIcon = status.icon;
 
@@ -182,7 +178,7 @@ function BidPreview({ bid, formatCurrency, formatDate, formatTime, getStatusConf
                 <StatusIcon className="w-3 h-3 mr-1" />
                 {status.text}
               </span>
-              {booking.accessibilityProfile?.requiresWheelchair && (
+              {booking?.accessibilityProfile?.requiresWheelchair > 0 && (
                 <span className="text-xs px-2 py-1 rounded bg-purple-100 text-purple-800">
                   WAV
                 </span>

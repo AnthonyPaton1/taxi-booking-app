@@ -48,16 +48,15 @@ export async function createPublicBooking(formData) {
       const accessibilityProfile = await tx.accessibilityProfile.create({
         data: {
           // Mobility
-          wheelchairAccess: sanitizedData.wheelchairAccess || false,
-          doubleWheelchairAccess: sanitizedData.doubleWheelchairAccess || false,
+          
           highRoof: sanitizedData.highRoof || false,
           seatTransferHelp: sanitizedData.seatTransferHelp || false,
           mobilityAidStorage: sanitizedData.mobilityAidStorage || false,
           electricScooterStorage: sanitizedData.electricScooterStorage || false,
 
           // Passenger details
-          passengerCount: Number(sanitizedData.passengerCount) || 1,
-          wheelchairUsers: Number(sanitizedData.wheelchairUsers) || 0,
+ambulatoryPassengers: Number(sanitizedData.passengerCount) || 1,             wheelchairUsersStaySeated: Number(sanitizedData.wheelchairUsers) || 0,
+wheelchairUsersCanTransfer: 0,
           ageOfPassenger: sanitizedData.ageOfPassenger || null,
           carerPresent: sanitizedData.carerPresent || false,
           escortRequired: sanitizedData.escortRequired || false,

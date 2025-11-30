@@ -51,7 +51,7 @@ export default async function AdminDashboardPage() {
   }
 
   // Get all areas
-   const areas = await prisma.area.findMany({
+  const areas = await prisma.area.findMany({
     include: {
       _count: {
         select: {
@@ -75,23 +75,24 @@ export default async function AdminDashboardPage() {
       name: "asc",
     },
   });
+
   // Get all coordinators
   const coordinators = await prisma.user.findMany({
-  where: {
-    role: "COORDINATOR",
-    businessId: user.businessId,
-  },
-  include: {
-    area: {
-      select: {
-        name: true,
+    where: {
+      role: "COORDINATOR",
+      businessId: user.businessId,
+    },
+    include: {
+      area: {
+        select: {
+          name: true,
+        },
       },
     },
-  },
-  orderBy: {
-    name: "asc",
-  },
-});
+    orderBy: {
+      name: "asc",
+    },
+  });
 
   // Get all managers
   const managers = await prisma.user.findMany({
@@ -132,11 +133,12 @@ export default async function AdminDashboardPage() {
     },
   });
 
-  // Get total bookings stats
-  const [advancedBookingsCount, instantBookingsCount] = await Promise.all([
-    prisma.advancedBooking.count(),
-    prisma.instantBooking.count(),
-  ]);
+  // ✅ Get total bookings stats (unified)
+  const bookingsCount = await prisma.booking.count({
+    where: {
+      deletedAt: null,
+    },
+  });
 
   // Get feedback/complaints (if exists)
   const feedbackCount = await prisma.tripFeedback.count().catch(() => 0);
@@ -147,7 +149,7 @@ export default async function AdminDashboardPage() {
     totalManagers: managers.length,
     totalHouses: houses.length,
     totalResidents: houses.reduce((sum, h) => sum + h.residents.length, 0),
-    totalBookings: advancedBookingsCount + instantBookingsCount,
+    totalBookings: bookingsCount,  // ✅ Single count
     feedbackCount,
   };
 

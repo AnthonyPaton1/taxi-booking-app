@@ -1,10 +1,9 @@
-// app/api/bookings/instant/[id]/route.js
+// app/api/bookings/[id]/route.js
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { invalidateAllMatchingCache } from "@/lib/matching/matchingCache";
-
 
 export async function PATCH(request, { params }) {
   try {
@@ -18,7 +17,7 @@ export async function PATCH(request, { params }) {
     const body = await request.json();
 
     // Get existing booking
-    const existingBooking = await prisma.instantBooking.findUnique({
+    const existingBooking = await prisma.booking.findUnique({  
       where: { id },
       include: { 
         createdBy: true,
@@ -55,11 +54,12 @@ export async function PATCH(request, { params }) {
       dropoffLongitude,
       pickupTime,
       returnTime,
+      bidDeadline,
+      visibility,
       initials,
-      // Accessibility fields (these go to AccessibilityProfile)
-      passengerCount,
-      wheelchairUsers,
-      wheelchairAccess,
+      // Accessibility fields
+      passengerCount,        
+      wheelchairUsers, 
       femaleDriverOnly,
       carerPresent,
       additionalNeeds,
@@ -72,18 +72,17 @@ export async function PATCH(request, { params }) {
       await tx.accessibilityProfile.update({
         where: { id: existingBooking.accessibilityProfileId },
         data: {
-          passengerCount: passengerCount !== undefined ? parseInt(passengerCount) : undefined,
-          wheelchairUsers: wheelchairUsers !== undefined ? parseInt(wheelchairUsers) : undefined,
-          wheelchairAccess: wheelchairAccess !== undefined ? wheelchairAccess : undefined,
+          ambulatoryPassengers: passengerCount !== undefined ? parseInt(passengerCount) : undefined,
+          wheelchairUsersStaySeated: wheelchairUsers !== undefined ? parseInt(wheelchairUsers) : undefined,
           femaleDriverOnly: femaleDriverOnly !== undefined ? femaleDriverOnly : undefined,
           carerPresent: carerPresent !== undefined ? carerPresent : undefined,
           additionalNeeds: additionalNeeds !== undefined ? additionalNeeds : undefined,
-          vehicleType: vehicleType !== undefined ? vehicleType : undefined,
+          vehicleClassRequired: vehicleType !== undefined ? vehicleType : undefined,  // ✅ Changed field name
         },
       });
 
       // Update booking
-      return await tx.instantBooking.update({
+      return await tx.booking.update({  // ✅ Changed
         where: { id },
         data: {
           pickupLocation,
@@ -94,14 +93,21 @@ export async function PATCH(request, { params }) {
           dropoffLongitude: dropoffLongitude ? parseFloat(dropoffLongitude) : undefined,
           pickupTime: pickupTime ? new Date(pickupTime) : undefined,
           returnTime: returnTime ? new Date(returnTime) : null,
+          bidDeadline: bidDeadline ? new Date(bidDeadline) : undefined,
+          visibility: visibility || undefined,
           initials: initials !== undefined ? initials : undefined,
         },
         include: {
           accessibilityProfile: true,
-          driver: {
-            select: {
-              name: true,
-              phone: true,
+          bids: {
+            include: {
+              driver: {
+                select: {
+                  name: true,
+                  phone: true,
+                  vehicleClass: true,  // ✅ Updated field name
+                },
+              },
             },
           },
         },
@@ -117,7 +123,7 @@ export async function PATCH(request, { params }) {
     });
 
   } catch (error) {
-    console.error("❌ Error updating instant booking:", error);
+    console.error("❌ Error updating booking:", error);
     return NextResponse.json(
       { error: error.message || "Failed to update booking" },
       { status: 500 }

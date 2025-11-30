@@ -6,7 +6,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 
 /**
- * Get driver's accepted instant bookings for today
+ * Get driver's accepted bookings for today
  */
 export async function getDriverBookingsForToday() {
   try {
@@ -34,42 +34,18 @@ export async function getDriverBookingsForToday() {
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
 
-    // Get instant bookings assigned to this driver for today
-    const instantBookings = await prisma.instantBooking.findMany({
+    // ✅ Get all bookings assigned to this driver for today (unified)
+    const bookings = await prisma.booking.findMany({
       where: {
         driverId: user.driver.id,
         status: {
-          in: ["ACCEPTED", "IN_PROGRESS"], // Exclude completed/cancelled
+          in: ["ACCEPTED", "IN_PROGRESS"],
         },
         pickupTime: {
           gte: today,
           lt: tomorrow,
         },
-      },
-      include: {
-        accessibilityProfile: true,
-        createdBy: {
-          select: {
-            name: true,
-            phone: true,
-            email: true,
-          },
-        },
-      },
-      orderBy: { pickupTime: "asc" },
-    });
-
-    // Get advanced bookings this driver won for today
-    const advancedBookings = await prisma.advancedBooking.findMany({
-      where: {
-        status: "ACCEPTED",
-        acceptedBid: {
-          driverId: user.driver.id,
-        },
-        pickupTime: {
-          gte: today,
-          lt: tomorrow,
-        },
+        deletedAt: null,
       },
       include: {
         accessibilityProfile: true,
@@ -92,8 +68,7 @@ export async function getDriverBookingsForToday() {
 
     return {
       success: true,
-      instant: instantBookings,
-      advanced: advancedBookings,
+      bookings,  // ✅ Single array
     };
   } catch (error) {
     console.error("❌ Error fetching driver bookings:", error);
@@ -125,8 +100,8 @@ export async function getDriverUpcomingBookings() {
     const nextWeek = new Date();
     nextWeek.setDate(now.getDate() + 7);
 
-    // Instant bookings
-    const instantBookings = await prisma.instantBooking.findMany({
+    // ✅ Get all upcoming bookings (unified)
+    const bookings = await prisma.booking.findMany({
       where: {
         driverId: user.driver.id,
         status: {
@@ -136,27 +111,7 @@ export async function getDriverUpcomingBookings() {
           gte: now,
           lte: nextWeek,
         },
-      },
-      include: {
-        accessibilityProfile: true,
-        createdBy: {
-          select: { name: true, phone: true },
-        },
-      },
-      orderBy: { pickupTime: "asc" },
-    });
-
-    // Advanced bookings
-    const advancedBookings = await prisma.advancedBooking.findMany({
-      where: {
-        status: "ACCEPTED",
-        acceptedBid: {
-          driverId: user.driver.id,
-        },
-        pickupTime: {
-          gte: now,
-          lte: nextWeek,
-        },
+        deletedAt: null,
       },
       include: {
         accessibilityProfile: true,
@@ -172,8 +127,7 @@ export async function getDriverUpcomingBookings() {
 
     return {
       success: true,
-      instant: instantBookings,
-      advanced: advancedBookings,
+      bookings,  // ✅ Single array
     };
   } catch (error) {
     console.error("❌ Error fetching upcoming bookings:", error);
@@ -201,27 +155,12 @@ export async function getDriverCompletedBookings(limit = 20) {
       return { success: true, bookings: [] };
     }
 
-    const instantBookings = await prisma.instantBooking.findMany({
+    // ✅ Get completed bookings (unified)
+    const bookings = await prisma.booking.findMany({
       where: {
         driverId: user.driver.id,
         status: "COMPLETED",
-      },
-      include: {
-        accessibilityProfile: true,
-        createdBy: {
-          select: { name: true },
-        },
-      },
-      orderBy: { pickupTime: "desc" },
-      take: limit,
-    });
-
-    const advancedBookings = await prisma.advancedBooking.findMany({
-      where: {
-        status: "COMPLETED",
-        acceptedBid: {
-          driverId: user.driver.id,
-        },
+        deletedAt: null,
       },
       include: {
         accessibilityProfile: true,
@@ -238,8 +177,7 @@ export async function getDriverCompletedBookings(limit = 20) {
 
     return {
       success: true,
-      instant: instantBookings,
-      advanced: advancedBookings,
+      bookings,  // ✅ Single array
     };
   } catch (error) {
     console.error("❌ Error fetching completed bookings:", error);

@@ -23,11 +23,12 @@ export async function getRecentTripsForUser(limit = 10) {
 
     const userId = session.user.id;
 
-    // Get completed bookings created by this user (works for both PUBLIC and MANAGER)
-    const recentTrips = await prisma.advancedBooking.findMany({
+    // ✅ Get completed bookings created by this user (unified)
+    const recentTrips = await prisma.booking.findMany({
       where: {
         createdById: userId,
         status: "COMPLETED",
+        deletedAt: null,
       },
       select: {
         id: true,
@@ -37,9 +38,9 @@ export async function getRecentTripsForUser(limit = 10) {
         // Get accessibility data from the relation
         accessibilityProfile: {
           select: {
-            passengerCount: true,
-            wheelchairUsers: true,
-            wheelchairAccess: true,
+            ambulatoryPassengers: true,
+            wheelchairUsersStaySeated: true,
+            wheelchairUsersCanTransfer: true,
             carerPresent: true,
             femaleDriverOnly: true,
             quietEnvironment: true,
@@ -61,7 +62,7 @@ export async function getRecentTripsForUser(limit = 10) {
             driver: {
               select: {
                 name: true,
-                vehicleType: true,
+                vehicleClass: true,
               },
             },
           },

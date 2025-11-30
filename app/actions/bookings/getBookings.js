@@ -6,12 +6,11 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { matchDriverToBookingsCached } from "@/lib/matching/cached-matching-algorithm";
 
-
 /**
- * Get instant bookings for current user
- * (Public users see their own bookings)
+ * Get all bookings for current user
+ * (Shows their booking history with bids/driver info)
  */
-export async function getInstantBookings() {
+export async function getMyBookings() {
   try {
     const session = await getServerSession(authOptions);
     
@@ -19,43 +18,11 @@ export async function getInstantBookings() {
       return { success: false, error: "Unauthorized" };
     }
 
-    const bookings = await prisma.instantBooking.findMany({
-      where: { createdById: session.user.id },
-      include: {
-        accessibilityProfile: true,
-        driver: {
-          select: {
-            name: true,
-            phone: true,
-            vehicleType: true,
-            vehicleReg: true,
-          },
-        },
+    const bookings = await prisma.booking.findMany({
+      where: { 
+        createdById: session.user.id,
+        deletedAt: null,
       },
-      orderBy: { pickupTime: "asc" },
-    });
-
-    return { success: true, bookings };
-  } catch (error) {
-    console.error("❌ Error fetching instant bookings:", error);
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * Get advanced bookings for current user
- * (Public users see their own bookings with bids)
- */
-export async function getAdvancedBookings() {
-  try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
-      return { success: false, error: "Unauthorized" };
-    }
-
-    const bookings = await prisma.advancedBooking.findMany({
-      where: { createdById: session.user.id },
       include: {
         accessibilityProfile: true,
         bids: {
@@ -64,7 +31,7 @@ export async function getAdvancedBookings() {
               select: {
                 name: true,
                 phone: true,
-                vehicleType: true,
+                vehicleClass: true,
                 vehicleReg: true,
               },
             },
@@ -83,9 +50,18 @@ export async function getAdvancedBookings() {
               select: {
                 name: true,
                 phone: true,
-                vehicleType: true,
+                vehicleClass: true,
+                vehicleReg: true,
               },
             },
+          },
+        },
+        driver: {  // Direct driver assignment (if no bidding)
+          select: {
+            name: true,
+            phone: true,
+            vehicleClass: true,
+            vehicleReg: true,
           },
         },
       },
@@ -94,16 +70,16 @@ export async function getAdvancedBookings() {
 
     return { success: true, bookings };
   } catch (error) {
-    console.error(" Error fetching advanced bookings:", error);
+    console.error("❌ Error fetching bookings:", error);
     return { success: false, error: error.message };
   }
 }
 
 /**
- * Get available instant bookings for DRIVERS (with matching)
- * (Shows pending bookings they could accept)
+ * Get available bookings for DRIVERS (with matching)
+ * Shows ALL bookings they can bid on (regardless of pickup time)
  */
-export async function getAvailableInstantBookings() {
+export async function getAvailableBookings() {
   try {
     const session = await getServerSession(authOptions);
     
@@ -139,133 +115,18 @@ export async function getAvailableInstantBookings() {
       };
     }
 
-    // Get pending instant bookings
-    const allBookings = await prisma.instantBooking.findMany({
+    // Get all PENDING bookings (available for bidding)
+    const allBookings = await prisma.booking.findMany({
       where: {
-        status: "PENDING",
-        driverId: null,
-        pickupTime: {
-          gte: new Date(),
-        },
-     
-      },
-      include: {
-        accessibilityProfile: true,
-        createdBy: {
-          select: {
-            name: true,
-            business: {
-              select: {
-                name: true,
-                lat: true,
-                lng: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: { pickupTime: "asc" },
-    });
-
-    
-
-    // Add coordinates to bookings
-  const bookingsWithCoords = allBookings
-  .filter(booking => booking.pickupLatitude && booking.pickupLongitude)
-  .map(booking => ({
-    ...booking,
-    pickupLat: booking.pickupLatitude,
-    pickupLng: booking.pickupLongitude,
-  }));
-
-
-
-    // Run matching algorithm
-    const matches = await matchDriverToBookingsCached(driver, bookingsWithCoords);
-
-    // Return only matched bookings
-    if (!matches || !Array.isArray(matches)) {
-  
-  return { success: true, bookings: [] };
-}
-    const matchedBookings = matches.map(match => match.booking);
-
-    return { 
-      success: true, 
-      bookings: matchedBookings, 
-      driverProfile: driver 
-    };
-  } catch (error) {
-    console.error("❌ Error fetching available bookings:", error);
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * Get available advanced bookings for DRIVERS (with matching)
- * (Shows open bookings they could bid on)
- */
-export async function getAvailableAdvancedBookings() {
-  try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
-      return { success: false, error: "Unauthorized" };
-    }
-
-    // Get driver profile
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      include: {
-        driver: {
-          include: {
-            accessibilityProfile: true,
-          },
-        },
-      },
-    });
-
-    if (!user?.driver) {
-      return { success: false, error: "No driver profile found" };
-    }
-
-    const driver = user.driver;
-
-    // Check if driver has location set
-    if (!driver.baseLat || !driver.baseLng) {
-      return { 
-        success: true, 
-        bookings: [], 
-        driverProfile: driver,
-        error: "Driver location not set" 
-      };
-    }
-    console.log('🔍 Query conditions:', {
-  status: "OPEN",
-  visibility: ["PUBLIC", "PRIVATE_TO_COMPANY"],
-  bidDeadline: { gte: new Date() },
-  now: new Date(),
-});
-
-    // Get open advanced bookings
-    const allBookings = await prisma.advancedBooking.findMany({
-   where: {
-    AND: [
-      { status: "OPEN" },
-      { 
+        status: "PENDING",  // ✅ New unified status
         visibility: {
           in: ["PUBLIC", "PRIVATE_TO_COMPANY"],
-        }
+        },
+        pickupTime: {
+          gte: new Date(),  // Only future bookings
+        },
+        deletedAt: null,
       },
-      {
-        OR: [
-          { bidDeadline: { gte: new Date() } },
-          { bidDeadline: null },
-        ],
-      },
-      { deletedAt: null },
-    ],
-  },
       include: {
         accessibilityProfile: true,
         createdBy: {
@@ -299,42 +160,34 @@ export async function getAvailableAdvancedBookings() {
       orderBy: { pickupTime: "asc" },
     });
 
+    // Filter bookings with valid coordinates
+    const bookingsWithCoords = allBookings
+      .filter(booking => booking.pickupLatitude && booking.pickupLongitude)
+      .map(booking => ({
+        ...booking,
+        pickupLat: booking.pickupLatitude,
+        pickupLng: booking.pickupLongitude,
+      }));
 
+    // Run matching algorithm
+    const matches = await matchDriverToBookingsCached(driver, bookingsWithCoords);
 
+    if (!matches || !Array.isArray(matches)) {
+      return { success: true, bookings: [], count: 0 };
+    }
 
-   const bookingsWithCoords = allBookings
-  .filter(booking => booking.pickupLatitude && booking.pickupLongitude)
-  .map(booking => ({
-    ...booking,
-    pickupLat: booking.pickupLatitude,
-    pickupLng: booking.pickupLongitude,
-  }));
-
-
-
-
-const matches = await matchDriverToBookingsCached(driver, bookingsWithCoords);
-
-
-
-
-if (!matches || !Array.isArray(matches)) {
-  console.log('⚠️ Matches not an array, returning empty');
-  return { success: true, bookings: [], count: 0 };
-}
-
-
-    // Return only matched bookings
     const matchedBookings = matches.map(match => match.booking);
 
-    
+    console.log(`✅ Matched ${matchedBookings.length} bookings for driver`);
+
     return { 
       success: true, 
-      bookings: matchedBookings, 
+      bookings: matchedBookings,
+      count: matchedBookings.length,
       driverProfile: driver 
     };
   } catch (error) {
-    console.error("❌ Error fetching available advanced bookings:", error);
+    console.error("❌ Error fetching available bookings:", error);
     return { success: false, error: error.message };
   }
 }

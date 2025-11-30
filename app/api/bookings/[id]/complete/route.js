@@ -1,10 +1,10 @@
-// app/api/bookings/advanced/complete/route.js
+// app/api/bookings/[id]/complete/route.js
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 
-export async function POST(request) {
+export async function POST(request, { params }) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -15,8 +15,7 @@ export async function POST(request) {
       );
     }
 
-    const body = await request.json();
-    const { bookingId } = body;
+    const { id: bookingId } = await params;  // ✅ Get from params instead of body
 
     if (!bookingId) {
       return NextResponse.json(
@@ -38,8 +37,8 @@ export async function POST(request) {
       );
     }
 
-    // Verify booking and accepted bid
-    const booking = await prisma.advancedBooking.findUnique({
+    // ✅ Verify booking
+    const booking = await prisma.booking.findUnique({
       where: { id: bookingId },
       include: {
         acceptedBid: true,
@@ -53,36 +52,36 @@ export async function POST(request) {
       );
     }
 
-    if (!booking.acceptedBid || booking.acceptedBid.driverId !== user.driver.id) {
+    // ✅ Verify driver is assigned to this booking
+    if (booking.driverId !== user.driver.id) {
       return NextResponse.json(
         { success: false, error: "You are not assigned to this booking" },
         { status: 403 }
       );
     }
 
-    if (booking.status !== "ACCEPTED") {
+    // ✅ Check status - can complete from ACCEPTED or IN_PROGRESS
+    if (!["ACCEPTED", "BID_ACCEPTED", "IN_PROGRESS"].includes(booking.status)) {
       return NextResponse.json(
-        { success: false, error: "Booking is not in accepted status" },
+        { success: false, error: `Cannot complete booking with status: ${booking.status}` },
         { status: 400 }
       );
     }
 
-    // Mark as completed
-    await prisma.advancedBooking.update({
+    // ✅ Mark as completed
+    await prisma.booking.update({
       where: { id: bookingId },
       data: {
         status: "COMPLETED",
       },
     });
 
-   
-
     return NextResponse.json({
       success: true,
       message: "Booking completed successfully",
     });
   } catch (error) {
-    console.error("Error completing advanced booking:", error);
+    console.error("Error completing booking:", error);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 }

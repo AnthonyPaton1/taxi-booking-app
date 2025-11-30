@@ -1,4 +1,4 @@
-// app/api/bookings/advanced/[id]/cancel/route.js
+// app/api/bookings/[id]/cancel/route.js
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
@@ -15,12 +15,12 @@ export async function POST(req, { params }) {
       );
     }
 
-    const { id }  = await params;
+    const { id } = await params;
     const body = await req.json();
     const { reason } = body;
 
-    // Get booking with bids
-    const booking = await prisma.advancedBooking.findUnique({
+    // ✅ Get booking with bids
+    const booking = await prisma.booking.findUnique({
       where: { id },
       include: {
         createdBy: { select: { id: true } },
@@ -61,25 +61,23 @@ export async function POST(req, { params }) {
       );
     }
 
-   
-   
-
-       // Update with reason
+    // ✅ Update with reason
     await prisma.$transaction(async (tx) => {
-      await tx.advancedBooking.update({
+      await tx.booking.update({
         where: { id },
         data: {
           status: "CANCELED",
           canceledAt: new Date(),
-          cancellationReason: reason || null, // Save reason
+          canceledBy: "MANAGER",  // ✅ Track who cancelled
+          cancellationReason: reason || null,
         },
       });
 
-      // 2. Reject all pending bids
+      // Reject all pending bids
       if (booking.bids.length > 0) {
         await tx.bid.updateMany({
           where: {
-            advancedBookingId: id,
+            bookingId: id,  // ✅ Changed
             status: "PENDING",
           },
           data: {
@@ -113,11 +111,11 @@ export async function PATCH(req, { params }) {
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
 
-    // Get existing booking
-    const existingBooking = await prisma.advancedBooking.findUnique({
+    // ✅ Get existing booking
+    const existingBooking = await prisma.booking.findUnique({
       where: { id },
       include: {
         createdBy: { select: { id: true } },
@@ -148,14 +146,13 @@ export async function PATCH(req, { params }) {
       );
     }
 
-    // Update accessibility profile
+    // ✅ Update accessibility profile
     await prisma.accessibilityProfile.update({
       where: { id: existingBooking.accessibilityProfileId },
       data: {
-        passengerCount: body.accessibilityProfile.passengerCount,
-        wheelchairUsers: body.accessibilityProfile.wheelchairUsers,
-        wheelchairAccess: body.accessibilityProfile.wheelchairAccess,
-        doubleWheelchairAccess: body.accessibilityProfile.doubleWheelchairAccess,
+        ambulatoryPassengers: body.accessibilityProfile.passengerCount,
+        wheelchairUsersStaySeated: body.accessibilityProfile.wheelchairUsers || body.accessibilityProfile.wheelchairUsersStaySeated,
+        wheelchairUsersCanTransfer: body.accessibilityProfile.wheelchairUsersCanTransfer ?? 0,
         highRoof: body.accessibilityProfile.highRoof,
         carerPresent: body.accessibilityProfile.carerPresent,
         femaleDriverOnly: body.accessibilityProfile.femaleDriverOnly,
@@ -175,8 +172,8 @@ export async function PATCH(req, { params }) {
       },
     });
 
-    // Update booking details
-    const updatedBooking = await prisma.advancedBooking.update({
+    // ✅ Update booking details
+    const updatedBooking = await prisma.booking.update({
       where: { id },
       data: {
         pickupLocation: body.pickupLocation,

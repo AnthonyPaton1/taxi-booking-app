@@ -36,7 +36,7 @@ export default async function PendingBidsPage() {
           driver: {
             select: {
               name: true,
-              vehicleType: true,
+              vehicleClass: true,
               phone: true,
             },
           },

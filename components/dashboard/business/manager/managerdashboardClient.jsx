@@ -2,13 +2,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {useRouter} from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import IncidentFeedbackForm from "@/components/forms/incidentFeedbackForm";
 import { FileText, Building } from "lucide-react";
 import RecentTripsSection from "@/components/dashboard/RecentTripsSection";
 
-export default  function ManagerDashboardClient({
+export default function ManagerDashboardClient({
   user,
   houses,
   upcomingBookings,
@@ -18,44 +18,43 @@ export default  function ManagerDashboardClient({
 }) {
   const [showIncidentForm, setShowIncidentForm] = useState(false);
   const router = useRouter();
- 
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         {/* Header */}
-       <div className="bg-white rounded-lg shadow-sm p-6">
-  <div className="flex items-center justify-between">
-    <div>
-      <h1 className="text-2xl font-bold text-gray-900">
-        Welcome, {user.name}
-      </h1>
-      <ClientDate />
-    </div>
-    
-    <div className="flex items-center gap-4">
-      <div className="flex gap-2">
-        <button
-          onClick={() => router.push('/dashboard/manager/invoices/monthly')}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm"
-        >
-          <FileText className="w-5 h-5" />
-          <span className="hidden sm:inline">Monthly Invoices</span>
-        </button>
-        
-        <button
-          onClick={() => setShowIncidentForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition shadow-sm"
-        >
-          <FileText className="w-5 h-5" />
-          <span className="hidden sm:inline">Incident & Feedback</span>
-        </button>
-      </div>
-      
-      <Building className="w-12 h-12 text-blue-600" />
-    </div>
-  </div>
-</div>
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Welcome, {user.name}
+              </h1>
+              <ClientDate />
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => router.push('/dashboard/manager/invoices/monthly')}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm"
+                >
+                  <FileText className="w-5 h-5" />
+                  <span className="hidden sm:inline">Monthly Invoices</span>
+                </button>
+                
+                <button
+                  onClick={() => setShowIncidentForm(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition shadow-sm"
+                >
+                  <FileText className="w-5 h-5" />
+                  <span className="hidden sm:inline">Incident & Feedback</span>
+                </button>
+              </div>
+              
+              <Building className="w-12 h-12 text-blue-600" />
+            </div>
+          </div>
+        </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -86,21 +85,14 @@ export default  function ManagerDashboardClient({
           />
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Quick Actions - ✅ UPDATED */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <QuickAction
-            title="Book Advanced Ride"
-            description="Schedule transport 48hrs+ ahead"
+            title="Book a Ride"
+            description="Schedule transport for your residents"
             href="/dashboard/manager/book-ride"
             color="blue"
             icon="📅"
-          />
-          <QuickAction
-            title="Book Instant Ride"
-            description="Request immediate transport"
-            href="/dashboard/manager/instant-booking"
-            color="purple"
-            icon="⚡"
           />
           <QuickAction
             title="View All Bookings"
@@ -111,7 +103,7 @@ export default  function ManagerDashboardClient({
           />
         </div>
 
-        
+        {/* Pending Bids Alert */}
         {stats.pendingBids > 0 && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <div className="flex items-center gap-2">
@@ -126,7 +118,7 @@ export default  function ManagerDashboardClient({
                 </p>
               </div>
               <Link
-                href="/dashboard/manager/pending-bids"
+                href="/dashboard/manager/bookings?filter=pending"
                 className="ml-auto bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded font-medium"
               >
                 Review Bids
@@ -135,69 +127,69 @@ export default  function ManagerDashboardClient({
           </div>
         )}
 
-         {/* 🔥 NEW: Recent Trips Section (Full Width) */}
-          <div className="lg:col-span-2">
-            <RecentTripsSection 
-              trips={recentTrips} 
-              houseId={houseId}
-            />
-          </div>
+        {/* Recent Trips Section */}
+        <div className="lg:col-span-2">
+          <RecentTripsSection 
+            trips={recentTrips} 
+            houseId={houseId}
+          />
+        </div>
 
         {/* Upcoming Bookings */}
-<div className="bg-white rounded-lg shadow-sm p-6">
-  <div className="flex justify-between items-center mb-4">
-    <h2 className="text-lg font-semibold text-gray-900">
-      Upcoming Bookings
-    </h2>
-    <Link
-      href="/dashboard/manager/bookings"
-      className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
-    >
-      View All
-      <svg 
-        className="w-4 h-4" 
-        fill="none" 
-        stroke="currentColor" 
-        viewBox="0 0 24 24"
-      >
-        <path 
-          strokeLinecap="round" 
-          strokeLinejoin="round" 
-          strokeWidth={2} 
-          d="M9 5l7 7-7 7" 
-        />
-      </svg>
-    </Link>
-  </div>
-  
-  {upcomingBookings.length === 0 ? (
-    <div className="text-center py-12">
-      <svg
-        className="w-16 h-16 text-gray-400 mx-auto mb-4"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-        />
-      </svg>
-      <p className="text-gray-600 text-lg mb-1">No upcoming bookings</p>
-      <p className="text-gray-500 text-sm">
-        Use the quick actions above to create a booking
-      </p>
-    </div>
-  ) : (
-    <div className="space-y-3">
-      {upcomingBookings.map((booking) => (
-        <BookingCard key={booking.id} booking={booking} />
-      ))}
-    </div>
-  )}
-</div>
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">
+              Upcoming Bookings
+            </h2>
+            <Link
+              href="/dashboard/manager/bookings"
+              className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+            >
+              View All
+              <svg 
+                className="w-4 h-4" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M9 5l7 7-7 7" 
+                />
+              </svg>
+            </Link>
+          </div>
+          
+          {upcomingBookings.length === 0 ? (
+            <div className="text-center py-12">
+              <svg
+                className="w-16 h-16 text-gray-400 mx-auto mb-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+              <p className="text-gray-600 text-lg mb-1">No upcoming bookings</p>
+              <p className="text-gray-500 text-sm">
+                Use the quick actions above to create a booking
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {upcomingBookings.map((booking) => (
+                <BookingCard key={booking.id} booking={booking} />
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Houses Overview */}
         <div className="bg-white rounded-lg shadow-sm p-6">
@@ -254,7 +246,7 @@ const StatCard = ({ title, value, color, icon, highlight }) => {
   );
 };
 
-// Quick Action Card
+// Quick Action Card - ✅ UPDATED
 const QuickAction = ({ title, description, href, color, icon }) => {
   const colors = {
     blue: "border-blue-200 hover:bg-blue-50",
@@ -274,11 +266,11 @@ const QuickAction = ({ title, description, href, color, icon }) => {
   );
 };
 
-// Booking Card Preview
+// Booking Card Preview - ✅ UPDATED
 const BookingCard = ({ booking }) => {
   const pickupTime = new Date(booking.pickupTime);
   const hasBids = booking.bids && booking.bids.length > 0;
-  const isAccepted = booking.status === "ACCEPTED";
+  const isAccepted = booking.status === "ACCEPTED" || booking.status === "BID_ACCEPTED";
 
   return (
     <Link
@@ -314,15 +306,16 @@ const BookingCard = ({ booking }) => {
             {booking.pickupLocation} → {booking.dropoffLocation}
           </p>
 
-          {/* ✅ ADD THIS: Show passenger initials */}
+          {/* ✅ UPDATED passenger info */}
           <p className="text-xs text-gray-500 mt-1">
-            {booking.accessibilityProfile?.initials || "N/A"} • {booking.passengerCount} passenger{booking.passengerCount !== 1 ? "s" : ""}
+            {booking.initials?.join(", ") || "N/A"} • {booking.accessibilityProfile?.ambulatoryPassengers || 1} passenger
+            {(booking.accessibilityProfile?.ambulatoryPassengers || 1) !== 1 ? "s" : ""}
           </p>
 
           {isAccepted && booking.acceptedBid && (
             <p className="text-sm text-green-700 mt-2">
-              Driver: {booking.acceptedBid.driver.user.name} •{" "}
-              {booking.acceptedBid.driver.user.phone}
+              Driver: {booking.acceptedBid.driver.user?.name || booking.acceptedBid.driver.name} •{" "}
+              {booking.acceptedBid.driver.user?.phone || booking.acceptedBid.driver.phone}
             </p>
           )}
         </div>
@@ -336,6 +329,7 @@ const BookingCard = ({ booking }) => {
     </Link>
   );
 };
+
 // House Card
 const HouseCard = ({ house }) => (
   <div className="border border-gray-200 rounded-lg p-4">

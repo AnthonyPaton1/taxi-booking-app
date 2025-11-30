@@ -16,21 +16,13 @@ import {
   Image as ImageIcon,
   CheckCircle,
 } from "lucide-react";
+import { formatDateTime } from "@/lib/dateUtils";
 
 export default function CoordinatorIncidentsClient({ incidents }) {
   const [filter, setFilter] = useState("all");
   const [expandedId, setExpandedId] = useState(null);
 
-  const formatDateTime = (date) => {
-    return new Date(date).toLocaleDateString("en-GB", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+
 
   const getIncidentTypeColor = (type) => {
     const colors = {

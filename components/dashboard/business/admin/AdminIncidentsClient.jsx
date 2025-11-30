@@ -16,21 +16,12 @@ import {
   CheckCircle,
   XCircle,
 } from "lucide-react";
+import { formatDateTime } from "@/lib/dateUtils";
 
 export default function AdminIncidentsClient({ incidents }) {
   const [filter, setFilter] = useState("all"); // all, emergency, followUp, resolved
   const [expandedId, setExpandedId] = useState(null);
 
-  const formatDateTime = (date) => {
-    return new Date(date).toLocaleDateString("en-GB", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
 
   const getIncidentTypeColor = (type) => {
     const colors = {

@@ -85,13 +85,10 @@ export default function NotificationsPage() {
     }
   };
 
-  // Get booking link based on which booking exists
+  // ✅ Get booking link (unified)
   const getBookingLink = (notification) => {
-    if (notification.advancedBooking) {
-      return `/dashboard/bookings/advanced/${notification.advancedBookingId}`;
-    }
-    if (notification.instantBooking) {
-      return `/dashboard/bookings/instant/${notification.instantBookingId}`;
+    if (notification.bookingId) {
+      return `/dashboard/bookings/${notification.bookingId}`;
     }
     return null;
   };

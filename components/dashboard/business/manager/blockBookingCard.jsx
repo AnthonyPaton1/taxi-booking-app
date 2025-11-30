@@ -14,28 +14,15 @@ import {
   ChevronDown,
   ChevronUp
 } from "lucide-react";
+import { formatDateTime } from "@/lib/dateUtils";
+import { formatDate } from "@/lib/dateUtils";
 
 export default function BlockBookingCard({ booking }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const formatDateTime = (dateStr) => {
-    return new Date(dateStr).toLocaleString("en-GB", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+ 
 
-  const formatDate = (dateStr) => {
-    const date = new Date(dateStr + 'T12:00:00');
-    return date.toLocaleDateString("en-GB", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-    });
-  };
+ 
 
   const getStatusBadge = (status) => {
     const badges = {

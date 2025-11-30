@@ -3,10 +3,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
-import SingleBookingClient from "@/components/dashboard/business/singleAdvancedBookingClient";
-import SingleInstantBookingClient from "@/components/dashboard/business/singleInstantBookingClient";
+import SingleBookingClient from "@/components/dashboard/business/singleBookingClient";  
 
-export default async function SingleBookingPage({ params, searchParams }) {
+export default async function SingleBookingPage({ params }) {
   const session = await getServerSession(authOptions);
 
   if (!session || session.user.role !== "MANAGER") {
@@ -14,90 +13,75 @@ export default async function SingleBookingPage({ params, searchParams }) {
   }
 
   const { id } = await params;
-  const resolvedSearchParams = await searchParams;
-  const bookingType = resolvedSearchParams?.type || "advanced";
 
-  let booking = null;
-
-  if (bookingType === "instant") {
-    // Fetch instant booking
-    booking = await prisma.instantBooking.findUnique({
-      where: { id },
-      include: {
-        accessibilityProfile: true,
-        driver: {
-          include: {
-            user: {
-              select: { name: true, email: true, phone: true },
-            },
-          },
-        },
-        createdBy: {
-          select: {
-            name: true,
-            houses: {
-              select: {
-                label: true,
-                id: true,
-              },
-            },
+  //  Fetch unified booking
+  const booking = await prisma.booking.findUnique({
+    where: { id },
+    include: {
+      business: true,
+      accessibilityProfile: true,
+      driver: {
+        include: {
+          user: {
+            select: { name: true, email: true, phone: true },
           },
         },
       },
-    });
-  } else {
-    // Fetch advanced booking
-    booking = await prisma.advancedBooking.findUnique({
-      where: { id },
-      include: {
-        business: true,
-        accessibilityProfile: true,
-        bids: {
-          where: {
-            status: {
-              in: ["PENDING", "ACCEPTED"]
-            }
-          },
-          include: {
-            driver: {
-              select: {
-                id: true, // ✅ MUST include id
-                vehicleType: true,
-                user: {
-                  select: {
-                    name: true,
-                    email: true,
-                    phone: true,
-                  },
+      bids: {
+        where: {
+          status: {
+            in: ["PENDING", "ACCEPTED"]
+          }
+        },
+        include: {
+          driver: {
+            select: {
+              id: true,
+              vehicleClass: true,
+              user: {
+                select: {
+                  name: true,
+                  email: true,
+                  phone: true,
                 },
               },
             },
           },
-          orderBy: {
-            amountCents: "asc",
-          },
         },
-        acceptedBid: {
-          include: {
-            driver: {
-              select: {
-                id: true, // ✅ MUST include id
-                vehicleType: true,
-
-                user: {
-                  select: {
-                    name: true,
-                    email: true,
-                    phone: true,
-                  },
+        orderBy: {
+          amountCents: "asc",
+        },
+      },
+      acceptedBid: {
+        include: {
+          driver: {
+            select: {
+              id: true,
+              vehicleClass: true,
+              user: {
+                select: {
+                  name: true,
+                  email: true,
+                  phone: true,
                 },
               },
             },
           },
         },
       },
-    });
-  }
+      createdBy: {
+        select: {
+          name: true,
+          houses: {
+            select: {
+              label: true,
+              id: true,
+            },
+          },
+        },
+      },
+    },
+  });
 
   if (!booking) {
     notFound();
@@ -114,11 +98,7 @@ export default async function SingleBookingPage({ params, searchParams }) {
 
   return (
     <div className="container mx-auto p-6 max-w-7xl">
-      {bookingType === "instant" ? (
-        <SingleInstantBookingClient booking={booking} />
-      ) : (
-        <SingleBookingClient booking={booking} bookingType={bookingType} />
-      )}
+      <SingleBookingClient booking={booking} />
     </div>
   );
 }

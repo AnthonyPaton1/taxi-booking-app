@@ -4,6 +4,11 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 
+
+export async function GET() {
+  return NextResponse.json({ message: "Route is working" });
+}
+
 export async function POST(request) {
   try {
     const session = await getServerSession(authOptions);
@@ -30,11 +35,15 @@ export async function POST(request) {
       where: { email: session.user.email },
     });
 
-    const booking = await prisma.advancedBooking.findUnique({
+    //  Get unified booking
+    const booking = await prisma.booking.findUnique({
       where: { id: bookingId },
       include: {
         bids: {
           where: { id: bidId },
+          include: {
+            driver: true,  
+          },
         },
       },
     });
@@ -53,7 +62,7 @@ export async function POST(request) {
       );
     }
 
-    if (booking.status !== "OPEN") {
+    if (booking.status !== "PENDING") {  
       return NextResponse.json(
         { success: false, error: "Booking is not open for bids" },
         { status: 400 }
@@ -68,14 +77,16 @@ export async function POST(request) {
       );
     }
 
-    // Accept the bid using a transaction
+    //  Accept the bid using a transaction
     await prisma.$transaction(async (tx) => {
       // 1. Update the booking status and assign driver
-      await tx.advancedBooking.update({
+      await tx.booking.update({ 
         where: { id: bookingId },
         data: {
-          status: "ACCEPTED",
+          status: "BID_ACCEPTED",  
           acceptedBidId: bidId,
+          driverId: bid.driverId,  
+          acceptedAt: new Date(),
         },
       });
 
@@ -84,21 +95,22 @@ export async function POST(request) {
         where: { id: bidId },
         data: {
           status: "ACCEPTED",
+          acceptedAt: new Date(),
         },
       });
 
       // 3. Reject all other bids for this booking
       await tx.bid.updateMany({
         where: {
-          advancedBookingId: bookingId,
+          bookingId: bookingId, 
           id: { not: bidId },
+          status: "PENDING", 
         },
         data: {
-          status: "DECLINED",
+          status: "REJECTED",
         },
       });
     });
-
 
     return NextResponse.json({
       success: true,

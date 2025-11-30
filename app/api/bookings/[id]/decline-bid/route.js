@@ -53,7 +53,7 @@ export async function POST(request) {
       );
     }
 
-    if (bid.booking.status !== "OPEN") {
+    if (bid.booking.status !== "PENDING") {
       return NextResponse.json(
         { success: false, error: "Booking is not open" },
         { status: 400 }
@@ -65,7 +65,6 @@ export async function POST(request) {
       where: { id: bidId },
       data: { status: "REJECTED" },
     });
-
 
     return NextResponse.json({
       success: true,

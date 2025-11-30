@@ -23,53 +23,68 @@ export default async function DriverBookingDetailsPage({ params }) {
     redirect("/dashboard/driver");
   }
 
-  // Try advanced booking first
-  let booking = await prisma.advancedBooking.findUnique({
+  // ✅ Get unified booking
+  const booking = await prisma.booking.findUnique({
     where: { id },
     include: {
       accessibilityProfile: true,
-      business: { select: { name: true, phone: true, email: true } },
-      createdBy: { select: { name: true, email: true, phone: true } },
+      business: { 
+        select: { name: true, phone: true, email: true } 
+      },
+      createdBy: { 
+        select: { name: true, email: true, phone: true } 
+      },
       bids: {
         where: { driverId: user.driver.id },
         orderBy: { createdAt: "desc" },
       },
       acceptedBid: {
         include: {
-          driver: { select: { id: true, name: true, phone: true, vehicleReg: true } },
+          driver: { 
+            select: { 
+              id: true, 
+              name: true, 
+              phone: true, 
+              vehicleReg: true,
+              user: {
+                select: {
+                  name: true,
+                  phone: true,
+                }
+              }
+            } 
+          },
         },
       },
-      _count: { select: { bids: true } },
+      driver: {
+        select: {
+          id: true,
+          name: true,
+          phone: true,
+          vehicleReg: true,
+          user: {
+            select: {
+              name: true,
+              phone: true,
+            }
+          }
+        }
+      },
+      _count: { 
+        select: { bids: true } 
+      },
     },
   });
 
-  let bookingType = "advanced";
-  let myBid = null;
-  let didWinBid = false;
-
-  // If not found, try instant booking
-  if (!booking) {
-    booking = await prisma.instantBooking.findUnique({
-      where: { id },
-      include: {
-        accessibilityProfile: true,
-        business: { select: { name: true, phone: true, email: true } },
-        createdBy: { select: { name: true, email: true, phone: true } },
-        driver: { select: { id: true, name: true, phone: true, vehicleReg: true } },
-      },
-    });
-    bookingType = "instant";
-  } else {
-    // Advanced booking - get bid info
-    myBid = booking.bids[0] || null;
-    didWinBid = booking.acceptedBid?.driver?.id === user.driver.id;
-  }
-
   if (!booking) notFound();
+
+  // Get driver's bid info
+  const myBid = booking.bids[0] || null;
+  const didWinBid = booking.acceptedBid?.driver?.id === user.driver.id;
 
   return (
     <DriverBookingDetailsClient
-      booking={{ ...booking, type: bookingType }}
+      booking={booking}
       myBid={myBid}
       didWinBid={didWinBid}
       driverId={user.driver.id}

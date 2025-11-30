@@ -13,18 +13,17 @@ import {
   AlertCircle,
   Search,
   ArrowLeft,
-  Zap,
-  Timer,
 } from "lucide-react";
+import { formatDateTime } from "@/lib/dateUtils";
 
 export default function AllBookingsListClient({
   bookings,
   counts,
   currentFilter,
   currentSearch,
-  bookingType,
   currentPage,
-  totalPages
+  totalPages,
+ 
 }) {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState(currentSearch);
@@ -34,7 +33,6 @@ export default function AllBookingsListClient({
     const params = new URLSearchParams();
     if (searchTerm) params.set("search", searchTerm);
     if (currentFilter !== "all") params.set("filter", currentFilter);
-    params.set("type", bookingType);
     router.push(`/dashboard/manager/bookings?${params.toString()}`);
   };
 
@@ -42,138 +40,80 @@ export default function AllBookingsListClient({
     const params = new URLSearchParams();
     if (filter !== "all") params.set("filter", filter);
     if (searchTerm) params.set("search", searchTerm);
-    params.set("type", bookingType);
     router.push(`/dashboard/manager/bookings?${params.toString()}`);
   };
 
-  const handleTypeChange = (type) => {
-    const params = new URLSearchParams();
-    params.set("type", type);
-    if (currentFilter !== "all") params.set("filter", currentFilter);
-    if (searchTerm) params.set("search", searchTerm);
-    router.push(`/dashboard/manager/bookings?${params.toString()}`);
-  };
 
-  const formatDateTime = (date) => {
-    return new Date(date).toLocaleString("en-GB", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  const formatCurrency = (amount) => {
-    // Handle both cents (advanced) and regular amounts (instant)
-    const value = amount > 1000 ? amount / 100 : amount;
+  const formatCurrency = (amountCents) => {
     return new Intl.NumberFormat("en-GB", {
       style: "currency",
       currency: "GBP",
-    }).format(value);
+    }).format(amountCents / 100);
   };
 
+  // ✅ Unified status badge - works for all booking types
   const getStatusBadge = (booking) => {
-    if (bookingType === "advanced") {
-      const hasBids = booking.bids && booking.bids.length > 0;
+    const hasBids = booking.bids && booking.bids.length > 0;
 
-      if (booking.status === "ACCEPTED") {
-        return (
-          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-            <CheckCircle className="w-3 h-3 mr-1" />
-            Confirmed
-          </span>
-        );
-      }
-
-      if (booking.status === "COMPLETED") {
-        return (
-          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-            <CheckCircle className="w-3 h-3 mr-1" />
-            Completed
-          </span>
-        );
-      }
-
-      if (booking.status === "CANCELED") {
-        return (
-          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-            <XCircle className="w-3 h-3 mr-1" />
-            Cancelled
-          </span>
-        );
-      }
-
-      if (hasBids) {
-        return (
-          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-            <AlertCircle className="w-3 h-3 mr-1" />
-            {booking.bids.length} Bid{booking.bids.length !== 1 ? "s" : ""}
-          </span>
-        );
-      }
-
+    // Completed
+    if (booking.status === "COMPLETED") {
       return (
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-          <Clock className="w-3 h-3 mr-1" />
-          Awaiting Bids
-        </span>
-      );
-    } else {
-      // Instant booking statuses
-      if (booking.status === "ACCEPTED") {
-        return (
-          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-            <CheckCircle className="w-3 h-3 mr-1" />
-            Assigned
-          </span>
-        );
-      }
-
-      if (booking.status === "COMPLETED") {
-        return (
-          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-            <CheckCircle className="w-3 h-3 mr-1" />
-            Completed
-          </span>
-        );
-      }
-
-      if (booking.status === "CANCELED") {
-        return (
-          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-            <XCircle className="w-3 h-3 mr-1" />
-            Cancelled
-          </span>
-        );
-      }
-
-      return (
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-          <Zap className="w-3 h-3 mr-1" />
-          Pending
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+          <CheckCircle className="w-3 h-3 mr-1" />
+          Completed
         </span>
       );
     }
+
+    // Cancelled
+    if (booking.status === "CANCELED") {
+      return (
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+          <XCircle className="w-3 h-3 mr-1" />
+          Cancelled
+        </span>
+      );
+    }
+
+    // Confirmed/Accepted
+    if (booking.status === "ACCEPTED" || booking.status === "BID_ACCEPTED") {
+      return (
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+          <CheckCircle className="w-3 h-3 mr-1" />
+          Confirmed
+        </span>
+      );
+    }
+
+    // Pending with bids
+    if (booking.status === "PENDING" && hasBids) {
+      return (
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+          <AlertCircle className="w-3 h-3 mr-1" />
+          {booking.bids.length} Bid{booking.bids.length !== 1 ? "s" : ""}
+        </span>
+      );
+    }
+
+    // Pending without bids
+    return (
+      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+        <Clock className="w-3 h-3 mr-1" />
+        Awaiting Bids
+      </span>
+    );
   };
 
-  const filters =
-    bookingType === "advanced"
-      ? [
-          { key: "all", label: "All", count: counts.all },
-          { key: "upcoming", label: "Upcoming", count: counts.upcoming },
-          { key: "pending", label: "Needs Review", count: counts.pending },
-          { key: "awaiting", label: "Awaiting Bids", count: counts.awaiting },
-          { key: "confirmed", label: "Confirmed", count: counts.confirmed },
-          {key: "canceled", label: "Cancelled", count: counts.canceled},
-          {key: "completed", label: "Completed", count: counts.completed}
-        ]
-      : [
-          { key: "all", label: "All", count: counts.all },
-          { key: "upcoming", label: "Upcoming", count: counts.upcoming },
-          { key: "confirmed", label: "Assigned", count: counts.confirmed },
-        ];
+  //  Unified filters
+  const filters = [
+    { key: "all", label: "All", count: counts.all },
+    { key: "upcoming", label: "Upcoming", count: counts.upcoming },
+    { key: "pending", label: "Needs Review", count: counts.pending },
+    { key: "awaiting", label: "Awaiting Bids", count: counts.awaiting },
+    { key: "confirmed", label: "Confirmed", count: counts.confirmed },
+    { key: "canceled", label: "Cancelled", count: counts.canceled },
+    { key: "completed", label: "Completed", count: counts.completed }
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -190,50 +130,13 @@ export default function AllBookingsListClient({
             </Link>
             <h1 className="text-3xl font-bold text-gray-900">All Bookings</h1>
           </div>
-          <div className="flex gap-2">
-            <Link
-              href="/dashboard/manager/book-ride"
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2"
-            >
-              <Timer className="w-4 h-4" />
-              Pre-Schedule
-            </Link>
-            <Link
-              href="/dashboard/manager/instant-booking"
-              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 font-medium flex items-center gap-2"
-            >
-              <Zap className="w-4 h-4" />
-              Instant Book
-            </Link>
-          </div>
-        </div>
-
-        {/* Booking Type Toggle */}
-        <div className="bg-white rounded-lg shadow-sm p-2">
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleTypeChange("advanced")}
-              className={`flex-1 px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
-                bookingType === "advanced"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              <Timer className="w-5 h-5" />
-              Pre-Scheduled Bookings
-            </button>
-            <button
-              onClick={() => handleTypeChange("instant")}
-              className={`flex-1 px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
-                bookingType === "instant"
-                  ? "bg-purple-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              <Zap className="w-5 h-5" />
-              Instant Bookings
-            </button>
-          </div>
+          <Link
+            href="/dashboard/manager/book-ride"
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2"
+          >
+            <Calendar className="w-4 h-4" />
+            Book Ride
+          </Link>
         </div>
 
         {/* Search Bar */}
@@ -260,7 +163,7 @@ export default function AllBookingsListClient({
                 type="button"
                 onClick={() => {
                   setSearchTerm("");
-                  handleTypeChange(bookingType);
+                  router.push("/dashboard/manager/bookings");
                 }}
                 className="text-gray-600 hover:text-gray-900 px-4"
               >
@@ -279,9 +182,7 @@ export default function AllBookingsListClient({
                 onClick={() => handleFilterChange(filter.key)}
                 className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors ${
                   currentFilter === filter.key
-                    ? bookingType === "advanced"
-                      ? "bg-blue-600 text-white"
-                      : "bg-purple-600 text-white"
+                    ? "bg-blue-600 text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
@@ -289,9 +190,7 @@ export default function AllBookingsListClient({
                 <span
                   className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
                     currentFilter === filter.key
-                      ? bookingType === "advanced"
-                        ? "bg-blue-700"
-                        : "bg-purple-700"
+                      ? "bg-blue-700"
                       : "bg-gray-200"
                   }`}
                 >
@@ -311,16 +210,10 @@ export default function AllBookingsListClient({
               <p className="text-gray-500 text-sm mb-6">
                 {searchTerm
                   ? "Try adjusting your search"
-                  : `Create your first ${
-                      bookingType === "advanced" ? "pre-scheduled" : "instant"
-                    } booking`}
+                  : "Create your first booking"}
               </p>
               <Link
-                href={
-                  bookingType === "advanced"
-                    ? "/dashboard/manager/book-ride"
-                    : "/dashboard/manager/instant-booking"
-                }
+                href="/dashboard/manager/book-ride"
                 className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium"
               >
                 Create Booking
@@ -329,18 +222,13 @@ export default function AllBookingsListClient({
           ) : (
             <div className="divide-y divide-gray-200">
               {bookings.map((booking) => {
-                const lowestBid =
-                  bookingType === "advanced" ? booking.bids[0] : null;
+                const lowestBid = booking.bids?.[0];
                 const isPast = new Date(booking.pickupTime) < new Date();
-                const linkHref =
-                  bookingType === "advanced"
-                   ? `/dashboard/manager/bookings/${booking.id}`
-                    : `/dashboard/manager/bookings/${booking.id}?type=instant`;
 
                 return (
                   <Link
                     key={booking.id}
-                    href={linkHref}
+                    href={`/dashboard/manager/bookings/${booking.id}`}
                     className="block p-6 hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex items-start justify-between gap-4">
@@ -353,7 +241,7 @@ export default function AllBookingsListClient({
                             {formatDateTime(booking.pickupTime)}
                           </div>
                           {getStatusBadge(booking)}
-                          {isPast && booking.status === "OPEN" && (
+                          {isPast && booking.status === "PENDING" && (
                             <span className="text-xs text-red-600 font-medium">
                               (Past)
                             </span>
@@ -378,134 +266,99 @@ export default function AllBookingsListClient({
                         {/* Passenger Count */}
                         <div className="flex items-center text-sm text-gray-600">
                           <Users className="w-4 h-4 mr-2" />
-                          {booking.passengerCount} passenger
-                          {booking.passengerCount !== 1 ? "s" : ""}
-                          {booking.wheelchairUsers > 0 &&
-                            ` • ${booking.wheelchairUsers} wheelchair user${
-                              booking.wheelchairUsers !== 1 ? "s" : ""
+                          {booking.accessibilityProfile?.ambulatoryPassengers || 1} passenger
+                          {(booking.accessibilityProfile?.ambulatoryPassengers || 1) !== 1 ? "s" : ""}
+                          {booking.accessibilityProfile?.wheelchairUsersStaySeated > 0 &&
+                            ` • ${booking.accessibilityProfile.wheelchairUsersStaySeated} wheelchair user${
+                              booking.accessibilityProfile.wheelchairUsersStaySeated !== 1 ? "s" : ""
                             }`}
                         </div>
 
-                        {/* Driver Info */}
-                        {bookingType === "advanced" &&
-                          booking.status === "ACCEPTED" &&
+                        {/* Driver Info - if accepted */}
+                        {(booking.status === "ACCEPTED" || booking.status === "BID_ACCEPTED") &&
                           booking.acceptedBid && (
                             <div className="bg-green-50 border border-green-200 rounded p-3 text-sm">
                               <p className="font-medium text-green-900">
-                                Driver: {booking.acceptedBid.driver.name}
+                                Driver: {booking.acceptedBid.driver.user.name}
                               </p>
                               <p className="text-green-700">
-                                {booking.acceptedBid.driver.vehicleType} •{" "}
-                                {booking.acceptedBid.driver.phone}
-                              </p>
-                            </div>
-                          )}
-
-                        {bookingType === "instant" &&
-                          booking.assignedDriver && (
-                            <div className="bg-purple-50 border border-purple-200 rounded p-3 text-sm">
-                              <p className="font-medium text-purple-900">
-                                Driver: {booking.assignedDriver.user.name}
-                              </p>
-                              <p className="text-purple-700">
-                                {booking.assignedDriver.user.phone}
+                                {booking.acceptedBid.driver.vehicleClass} •{" "}
+                                {booking.acceptedBid.driver.user.phone}
                               </p>
                             </div>
                           )}
                       </div>
 
-                      {/* Right Side - Actions/Price */}
+                      {/* Right Side - Price/Actions */}
                       <div className="text-right space-y-2">
-                        <div className="flex items-center gap-2">
-                          {/* Booking Type Badge */}
-                            {bookingType === "instant" ? (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                              <Zap className="w-3 h-3 mr-1" />
-                            Instant
-                            </span>
-                            ) : (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            <Calendar className="w-3 h-3 mr-1" />
-                            Advanced
-                          </span>
-                            )}
-
-                          {/* Status Badge */}
-                            {getStatusBadge(booking.status)}
-                            </div>
-                        {bookingType === "advanced" &&
-                          booking.status === "ACCEPTED" &&
+                        {/* Accepted bid price */}
+                        {(booking.status === "ACCEPTED" || booking.status === "BID_ACCEPTED") &&
                           booking.acceptedBid && (
                             <div className="text-2xl font-bold text-gray-900">
                               {formatCurrency(booking.acceptedBid.amountCents)}
                             </div>
                           )}
 
-                        {bookingType === "advanced" &&
-                          booking.status === "OPEN" &&
-                          lowestBid && (
-                            <div>
-                              <p className="text-xs text-gray-500">
-                                Lowest bid
-                              </p>
-                              <p className="text-2xl font-bold text-green-600">
-                                {formatCurrency(lowestBid.amountCents)}
-                              </p>
-                            </div>
-                          )}
+                        {/* Lowest bid for pending bookings */}
+                        {booking.status === "PENDING" && lowestBid && (
+                          <div>
+                            <p className="text-xs text-gray-500">Lowest bid</p>
+                            <p className="text-2xl font-bold text-green-600">
+                              {formatCurrency(lowestBid.amountCents)}
+                            </p>
+                          </div>
+                        )}
 
-                        {bookingType === "advanced" &&
-                          booking.status === "OPEN" &&
-                          booking.bids.length > 0 && (
-                            <button className="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700">
-                              Review Bids
-                            </button>
-                          )}
+                        {/* Review bids button */}
+                        {booking.status === "PENDING" && booking.bids?.length > 0 && (
+                          <button className="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700">
+                            Review Bids
+                          </button>
+                        )}
                       </div>
                     </div>
-
                   </Link>
                 );
               })}
             </div>
           )}
         </div>
-             {/* PAGINATION */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow">
-          <Link
-            href={`?type=${bookingType}&filter=${currentFilter}&search=${currentSearch}&page=${Math.max(1, currentPage - 1)}`}
-            className={`px-4 py-2 rounded-lg font-medium ${
-              currentPage === 1
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-blue-600 text-white hover:bg-blue-700'
-            }`}
-            onClick={(e) => currentPage === 1 && e.preventDefault()}
-          >
-            ← Previous
-          </Link>
 
-          <span className="text-gray-700">
-            Page {currentPage} of {totalPages}
-          </span>
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow">
+            <Link
+              href={`?filter=${currentFilter}&search=${currentSearch}&page=${Math.max(1, currentPage - 1)}`}
+              className={`px-4 py-2 rounded-lg font-medium ${
+                currentPage === 1
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+              onClick={(e) => currentPage === 1 && e.preventDefault()}
+            >
+              ← Previous
+            </Link>
 
-          <Link
-            href={`?type=${bookingType}&filter=${currentFilter}&search=${currentSearch}&page=${Math.min(totalPages, currentPage + 1)}`}
-            className={`px-4 py-2 rounded-lg font-medium ${
-              currentPage === totalPages
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-blue-600 text-white hover:bg-blue-700'
-            }`}
-            onClick={(e) => currentPage === totalPages && e.preventDefault()}
-          >
-            Next →
-          </Link>
-        </div>
-      )}
-    </div>
+            <span className="text-gray-700">
+              Page {currentPage} of {totalPages}
+            </span>
 
-
+            <Link
+              href={`?filter=${currentFilter}&search=${currentSearch}&page=${Math.min(totalPages, currentPage + 1)}`}
+              className={`px-4 py-2 rounded-lg font-medium ${
+                currentPage === totalPages
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+              onClick={(e) => currentPage === totalPages && e.preventDefault()}
+            >
+              Next →
+            </Link>
+          </div>
+        )}
       </div>
-    
+    </div>
   );
 }
+
+//{formatDateTime(booking.pickupTime)}

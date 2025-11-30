@@ -13,6 +13,7 @@ import {
   Accessibility,
   ArrowLeft,
 } from "lucide-react";
+import { formatDate, formatTime } from "@/lib/dateUtils";
 
 export default function WeeklyScheduleClient({
   bookingsByDay,
@@ -28,22 +29,7 @@ export default function WeeklyScheduleClient({
     }).format(amountCents / 100);
   };
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-GB", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-    });
-  };
 
-  const formatTime = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString("en-GB", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
 
   const getDayName = (dateString) => {
     const date = new Date(dateString);
@@ -246,7 +232,10 @@ const DayCard = ({ date, bookings, isToday, onClick, isSelected }) => {
         {bookings.length > 0 && (
           <p className="text-xs text-gray-500 mt-1">
             {formatCurrency(
-              bookings.reduce((sum, b) => sum + (b.bidAmount || 0), 0)
+              bookings.reduce(
+                (sum, b) => sum + (b.acceptedBid?.amountCents || b.finalCostPence || 0),
+                0
+              )
             )}
           </p>
         )}
@@ -255,14 +244,13 @@ const DayCard = ({ date, bookings, isToday, onClick, isSelected }) => {
   );
 };
 
+
 // Booking Card Component
 const BookingCard = ({ booking, formatTime, formatCurrency }) => {
-  const bookingUrl =
-    booking.type === "instant"
-      ? `/dashboard/driver/instant/${booking.id}`
-      : `/dashboard/driver/bookings/${booking.id}`;
+ const bookingUrl = `/dashboard/driver/bookings/${booking.id}`;
 
-  return (
+
+return (
     <Link href={bookingUrl}>
       <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer">
         <div className="flex items-start justify-between">
@@ -272,16 +260,23 @@ const BookingCard = ({ booking, formatTime, formatCurrency }) => {
               <span className="font-semibold text-gray-900">
                 {formatTime(booking.pickupTime)}
               </span>
+              {/* ✅ Show status instead of type */}
               <span
                 className={`text-xs px-2 py-1 rounded ${
-                  booking.type === "instant"
+                  booking.status === "PENDING"
+                    ? "bg-yellow-100 text-yellow-800"
+                    : booking.status === "BID_ACCEPTED"
+                    ? "bg-blue-100 text-blue-800"
+                    : booking.status === "ACCEPTED"
+                    ? "bg-green-100 text-green-800"
+                    : booking.status === "IN_PROGRESS"
                     ? "bg-purple-100 text-purple-800"
-                    : "bg-blue-100 text-blue-800"
+                    : "bg-gray-100 text-gray-800"
                 }`}
               >
-                {booking.type === "instant" ? "Instant" : "Advanced"}
+                {booking.status}
               </span>
-              {booking.accessibilityProfile?.requiresWheelchair && (
+              {booking.accessibilityProfile?.wheelchairUsersStaySeated > 0 && (
                 <Accessibility className="w-4 h-4 text-purple-600" />
               )}
             </div>
@@ -299,21 +294,28 @@ const BookingCard = ({ booking, formatTime, formatCurrency }) => {
 
               <div className="flex items-center">
                 <Phone className="w-4 h-4 mr-2" />
-                {booking.createdBy.name} • {booking.createdBy.phone}
+                {booking.createdBy?.name} • {booking.createdBy?.phone || "No phone"}
               </div>
 
-              {booking.accessibilityProfile?.initials && (
+              {booking.initials && booking.initials.length > 0 && (
                 <p className="text-xs text-gray-500">
-                  Passenger: {booking.accessibilityProfile.initials}
+                  Passengers: {booking.initials.join(", ")}
                 </p>
               )}
             </div>
           </div>
 
           <div className="text-right ml-4">
-            {booking.bidAmount && (
+            {/* ✅ Show accepted bid amount if exists */}
+            {booking.acceptedBid && (
               <p className="text-lg font-bold text-green-700">
-                {formatCurrency(booking.bidAmount)}
+                {formatCurrency(booking.acceptedBid.amountCents)}
+              </p>
+            )}
+            {/* ✅ Or show final cost if directly assigned */}
+            {!booking.acceptedBid && booking.finalCostPence && (
+              <p className="text-lg font-bold text-green-700">
+                {formatCurrency(booking.finalCostPence)}
               </p>
             )}
             <ChevronRight className="w-5 h-5 text-gray-400 ml-auto mt-2" />
@@ -323,6 +325,7 @@ const BookingCard = ({ booking, formatTime, formatCurrency }) => {
     </Link>
   );
 };
+
 
 // Stat Card Component
 const StatCard = ({ title, value, icon, color }) => {

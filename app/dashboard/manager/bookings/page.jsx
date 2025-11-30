@@ -5,10 +5,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import AllBookingsListClient from "@/components/dashboard/business/allBookingsListClient";
 
-
 export default async function AllBookingsPage({ searchParams }) {
   const session = await getServerSession(authOptions);
-  
 
   if (!session || session.user.role !== "MANAGER") {
     redirect("/login");
@@ -22,17 +20,17 @@ export default async function AllBookingsPage({ searchParams }) {
     redirect("/login");
   }
 
-  // AWAIT searchParams first!
+  // Await searchParams
   const params = await searchParams;
-  const bookingType = params?.type || "advanced";
   const filter = params?.filter || "all";
   const search = params?.search || "";
   const page = parseInt(params?.page) || 1;
-  const pageSize = 20; 
- 
+  const pageSize = 20;
 
+  // ✅ Base query for unified bookings
   const baseWhere = {
     createdById: user.id,
+    deletedAt: null,
   };
 
   if (search) {
@@ -40,54 +38,61 @@ export default async function AllBookingsPage({ searchParams }) {
       { pickupLocation: { contains: search, mode: "insensitive" } },
       { dropoffLocation: { contains: search, mode: "insensitive" } },
       { 
-      initials: {
-        hasSome: [search.toUpperCase()] // Search in initials array
-      }
-    },
+        initials: {
+          hasSome: [search.toUpperCase()]
+        }
+      },
     ];
   }
 
-  let bookings = [];
-  let counts = {};
+  // ✅ Apply filter to unified bookings
+  const bookingWhere = { ...baseWhere };
 
-  if (bookingType === "advanced") {
-  const advancedWhere = { ...baseWhere };
-
-    if (filter === "all") {
-    
-    advancedWhere.status = { in: ["OPEN", "ACCEPTED"] };
+  if (filter === "all") {
+    bookingWhere.status = { in: ["PENDING", "BID_ACCEPTED", "ACCEPTED"] };
   } else if (filter === "pending") {
-    advancedWhere.status = "OPEN";
-    advancedWhere.bids = { some: {} };
+    bookingWhere.status = "PENDING";
+    bookingWhere.bids = { some: {} };
   } else if (filter === "awaiting") {
-    advancedWhere.status = "OPEN";
-    advancedWhere.bids = { none: {} };
+    bookingWhere.status = "PENDING";
+    bookingWhere.bids = { none: {} };
   } else if (filter === "confirmed") {
-    advancedWhere.status = "ACCEPTED";
+    bookingWhere.status = { in: ["BID_ACCEPTED", "ACCEPTED"] };
   } else if (filter === "completed") {
-    advancedWhere.status = "COMPLETED";
+    bookingWhere.status = "COMPLETED";
   } else if (filter === "canceled") {
-    advancedWhere.status = "CANCELED";
+    bookingWhere.status = "CANCELED";
   } else if (filter === "upcoming") {
-    advancedWhere.pickupTime = { gte: new Date() };
-    advancedWhere.status = { in: ["OPEN", "ACCEPTED"] };
+    bookingWhere.pickupTime = { gte: new Date() };
+    bookingWhere.status = { in: ["PENDING", "BID_ACCEPTED", "ACCEPTED"] };
   }
 
- 
-
-  //pagination
-   const totalCount = await prisma.advancedBooking.count({
-    where: advancedWhere,
+  // ✅ Get total count for pagination
+  const totalCount = await prisma.booking.count({
+    where: bookingWhere,
   });
 
-  bookings = await prisma.advancedBooking.findMany({
-    where: advancedWhere,
+  // ✅ Fetch unified bookings
+  const bookings = await prisma.booking.findMany({
+    where: bookingWhere,
     include: {
       accessibilityProfile: true,
+      driver: {
+        include: {
+          user: {
+            select: { name: true, email: true, phone: true },
+          },
+        },
+      },
       bids: {
         include: {
           driver: {
-            select: { name: true, vehicleType: true, phone: true },
+            select: { 
+              id: true,
+              name: true, 
+              vehicleClass: true, 
+              phone: true 
+            },
           },
         },
         orderBy: { amountCents: "asc" },
@@ -95,160 +100,108 @@ export default async function AllBookingsPage({ searchParams }) {
       acceptedBid: {
         include: {
           driver: {
-            select: { name: true, vehicleType: true, phone: true },
+            select: { 
+              id: true,
+              name: true, 
+              vehicleClass: true, 
+              phone: true 
+            },
+          },
+        },
+      },
+      createdBy: {
+        select: {
+          name: true,
+          houses: {
+            select: {
+              label: true,
+              id: true,
+            },
           },
         },
       },
     },
     orderBy: { pickupTime: "desc" },
-    skip: (page - 1) * pageSize, 
-    take: pageSize,               
+    skip: (page - 1) * pageSize,
+    take: pageSize,
   });
-  
 
+  const totalPages = Math.ceil(totalCount / pageSize);
 
-const totalPages = Math.ceil(totalCount / pageSize);
-const [total, pending, awaiting, confirmed, upcoming, canceled, completed] = await Promise.all([
-  prisma.advancedBooking.count({ 
-    where: { 
-      createdById: user.id,
-      status: { in: ["OPEN", "ACCEPTED"] }
-    } 
-  }).catch(e => { console.error('Query 1 failed:', e.message); throw e;  }),
-  
-  prisma.advancedBooking.count({
-    where: { createdById: user.id, status: "OPEN", bids: { some: {} } },
-  }).catch(e => { console.error('Query 2 failed:', e.message); throw e; }),
-  
-  prisma.advancedBooking.count({
-    where: { createdById: user.id, status: "OPEN", bids: { none: {} } },
-  }).catch(e => { console.error('Query 3 failed:', e.message); throw e; }),
-  
-  prisma.advancedBooking.count({
-    where: { createdById: user.id, status: "ACCEPTED" },
-  }).catch(e => { console.error('Query 4 failed:', e.message); throw e; }),
-  
-  prisma.advancedBooking.count({
-    where: {
-      createdById: user.id,
-      pickupTime: { gte: new Date() },
-      status: { in: ["OPEN", "ACCEPTED"] },
-    },
-  }).catch(e => { console.error('Query 5 failed:', e.message); throw e; }),
-  
-  prisma.advancedBooking.count({
-    where: { createdById: user.id, status: "CANCELED" },
-  }).catch(e => { console.error('Query 6 failed (CANCELED):', e.message); throw e; }),
-  
-  prisma.advancedBooking.count({
-    where: { createdById: user.id, status: "COMPLETED" },
-  }).catch(e => { console.error('Query 7 failed (COMPLETED):', e.message); throw e; }),
-]);
+  // ✅ Get counts for filter tabs
+  const [total, pending, awaiting, confirmed, upcoming, canceled, completed] = await Promise.all([
+    prisma.booking.count({
+      where: {
+        createdById: user.id,
+        status: { in: ["PENDING", "BID_ACCEPTED", "ACCEPTED"] },
+        deletedAt: null,
+      }
+    }),
+    prisma.booking.count({
+      where: { 
+        createdById: user.id, 
+        status: "PENDING", 
+        bids: { some: {} },
+        deletedAt: null,
+      },
+    }),
+    prisma.booking.count({
+      where: { 
+        createdById: user.id, 
+        status: "PENDING", 
+        bids: { none: {} },
+        deletedAt: null,
+      },
+    }),
+    prisma.booking.count({
+      where: { 
+        createdById: user.id, 
+        status: { in: ["BID_ACCEPTED", "ACCEPTED"] },
+        deletedAt: null,
+      },
+    }),
+    prisma.booking.count({
+      where: {
+        createdById: user.id,
+        pickupTime: { gte: new Date() },
+        status: { in: ["PENDING", "BID_ACCEPTED", "ACCEPTED"] },
+        deletedAt: null,
+      },
+    }),
+    prisma.booking.count({
+      where: { 
+        createdById: user.id, 
+        status: "CANCELED",
+        deletedAt: null,
+      },
+    }),
+    prisma.booking.count({
+      where: { 
+        createdById: user.id, 
+        status: "COMPLETED",
+        deletedAt: null,
+      },
+    }),
+  ]);
 
-  counts = { all: total, pending, awaiting, confirmed, upcoming, canceled, completed };
+  const counts = { 
+    all: total, 
+    pending, 
+    awaiting, 
+    confirmed, 
+    upcoming, 
+    canceled, 
+    completed 
+  };
 
-   return (
+  return (
     <AllBookingsListClient
       bookings={bookings}
       counts={counts}
       currentFilter={filter}
       currentSearch={search}
-      bookingType={bookingType}
-      currentPage={page}    
+      currentPage={page}
       totalPages={totalPages}
     />
   );
-} else {
-  // Instant bookings
-  const instantWhere = { ...baseWhere };
-
-    if (filter === "all") {
-    
-    instantWhere.status = { in: ["PENDING", "ACCEPTED"] };
-  } else if (filter === "confirmed") {
-    instantWhere.status = "ACCEPTED";
-  } else if (filter === "completed") {
-    instantWhere.status = "COMPLETED";
-  } else if (filter === "canceled") {
-    instantWhere.status = "CANCELED";
-  } else if (filter === "upcoming") {
-    instantWhere.pickupTime = { gte: new Date() };
-    instantWhere.status = { in: ["PENDING", "ACCEPTED"] };
-  }
-
-
-
-  const totalCount = await prisma.instantBooking.count({
-    where: instantWhere,
-  });
-
-  bookings = await prisma.instantBooking.findMany({
-  where: instantWhere,
-  include: {
-    accessibilityProfile: true,
-    driver: {
-      include: {
-        user: {
-          select: { name: true, email: true, phone: true },
-        },
-      },
-    },
-    createdBy: {
-      select: {
-        name: true,
-        houses: {
-          select: {
-            label: true,
-            id: true,
-          },
-        },
-      },
-    },
-  },
-  orderBy: { pickupTime: "desc" },
-  skip: (page - 1) * pageSize, 
-    take: pageSize,  
-});
-
-
-const totalPages = Math.ceil(totalCount / pageSize);
-  const [total, confirmed, upcoming, canceled, completed] = await Promise.all([
-      prisma.instantBooking.count({ 
-    where: { 
-      createdById: user.id,
-      status: { in: ["PENDING", "ACCEPTED"] } 
-    } 
-  }),
-    prisma.instantBooking.count({
-      where: { createdById: user.id, status: "ACCEPTED" },
-    }),
-    prisma.instantBooking.count({
-      where: {
-        createdById: user.id,
-        pickupTime: { gte: new Date() },
-        status: { in: ["PENDING", "ACCEPTED"] },
-      },
-    }),
-      prisma.instantBooking.count({
-    where: { createdById: user.id, status: "CANCELED" },
-  }),
-  prisma.instantBooking.count({
-    where: { createdById: user.id, status: "COMPLETED" },
-  }),
-  ]);
-
-  counts = { all: total, pending: 0, awaiting: 0, confirmed, upcoming, canceled, completed };
-  return (
-      <AllBookingsListClient
-        bookings={bookings}
-        counts={counts}
-        currentFilter={filter}
-        currentSearch={search}
-        bookingType={bookingType}
-        currentPage={page}
-        totalPages={totalPages}
-      />
-    );
-}
-
 }

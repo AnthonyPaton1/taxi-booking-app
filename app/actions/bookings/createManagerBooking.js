@@ -88,33 +88,58 @@ export async function createManagerBooking(data) {
       };
     }
 
+    const vehicleTypeMap = {
+  'wav': 'SIDE_LOADING_WAV',
+  'car': 'STANDARD_CAR',
+  'either': 'STANDARD_CAR',
+  'standard': 'STANDARD_CAR',
+  'large': 'LARGE_CAR',
+  // Keep enum values as-is if already correct
+  'STANDARD_CAR': 'STANDARD_CAR',
+  'LARGE_CAR': 'LARGE_CAR',
+  'SIDE_LOADING_WAV': 'SIDE_LOADING_WAV',
+  'REAR_LOADING_WAV': 'REAR_LOADING_WAV',
+  'DOUBLE_WAV': 'DOUBLE_WAV',
+  'MINIBUS_STANDARD': 'MINIBUS_STANDARD',
+  'MINIBUS_ACCESSIBLE': 'MINIBUS_ACCESSIBLE',
+};
+
     // Vehicle type handling with proper fallback
     const vehicleType = sanitizedData.vehicleType || 'either';
+    let finalVehicleType = vehicleTypeMap[vehicleType] || 'STANDARD_CAR';
     
-    // If wheelchair user is checked but vehicle type is not WAV, auto-set to WAV
-    const finalVehicleType = sanitizedData.wheelchairAccess && vehicleType === 'either' 
-      ? 'wav' 
-      : vehicleType;
+   
+// Smart logic: if wheelchairs but they said "car", upgrade to WAV
+if (sanitizedData.wheelchairUsers > 0 && finalVehicleType === 'STANDARD_CAR') {
+  // Use wheelchair config to determine best WAV type
+  if (sanitizedData.wheelchairConfig?.requiresDoubleWAV || sanitizedData.wheelchairUsers >= 2) {
+    finalVehicleType = 'DOUBLE_WAV';
+  } else if (sanitizedData.wheelchairConfig?.requiresRearLoading) {
+    finalVehicleType = 'REAR_LOADING_WAV';
+  } else {
+    finalVehicleType = 'SIDE_LOADING_WAV'; // Default WAV
+  }
+}
+   
 
     // Step 1: Create AccessibilityProfile with vehicle type (using sanitized data)
     const accessibilityProfile = await prisma.accessibilityProfile.create({
       data: {
-        vehicleType: finalVehicleType,
-        
-        // Passenger details
-        passengerCount: parseInt(sanitizedData.passengerCount) || 1,
-        wheelchairUsers: parseInt(sanitizedData.wheelchairUsers) || 0,
-        carerPresent: sanitizedData.carerPresent || false,
-        escortRequired: sanitizedData.escortRequired || false,
-        
-        // Mobility & Physical
-        wheelchairAccess: sanitizedData.wheelchairAccess || false,
-        doubleWheelchairAccess: sanitizedData.doubleWheelchairAccess || false,
-        highRoof: sanitizedData.highRoof || false,
-        seatTransferHelp: sanitizedData.seatTransferHelp || false,
-        mobilityAidStorage: sanitizedData.mobilityAidStorage || false,
-        electricScooterStorage: sanitizedData.electricScooterStorage || false,
-        
+    vehicleClassRequired: finalVehicleType, // ✅ CHANGED from vehicleType
+    
+    // Passenger details - UPDATED FIELD NAMES
+    ambulatoryPassengers: parseInt(sanitizedData.passengerCount) || 1,
+    wheelchairUsersStaySeated: parseInt(sanitizedData.wheelchairUsers) || 0,
+    wheelchairUsersCanTransfer: 0, // Default
+    carerPresent: sanitizedData.carerPresent || false,
+    escortRequired: sanitizedData.escortRequired || false,
+    
+    // Mobility & Physical
+    highRoof: sanitizedData.highRoof || false,
+    seatTransferHelp: sanitizedData.seatTransferHelp || false,
+    mobilityAidStorage: sanitizedData.mobilityAidStorage || false,
+    electricScooterStorage: sanitizedData.electricScooterStorage || false,
+
         // Sensory preferences
         quietEnvironment: sanitizedData.quietEnvironment || false,
         noConversation: sanitizedData.noConversation || false,
@@ -143,12 +168,11 @@ export async function createManagerBooking(data) {
 
     // Step 2: Calculate bid deadline (48 hours before pickup)
     const pickupTime = new Date(sanitizedData.pickupTime);
-    const bidDeadline = new Date(pickupTime.getTime() - (48 * 60 * 60 * 1000));
 
     // Step 3: Create the AdvancedBooking with accessibility profile (using sanitized data)
-    const booking = await prisma.advancedBooking.create({
+    const booking = await prisma.booking.create({
       data: {
-        status: "OPEN",
+        status: "PENDING",
         
         // Use sanitized location strings and validated coordinates
         pickupLocation: sanitizedData.pickupLocation,
@@ -163,8 +187,6 @@ export async function createManagerBooking(data) {
         returnTime: sanitizedData.returnTime ? new Date(sanitizedData.returnTime) : null,
         initials: residentInitials,
 
-        passengerCount: parseInt(sanitizedData.passengerCount) || 1,
-        
         // Link to accessibility profile
         accessibilityProfile: {
           connect: { id: accessibilityProfile.id },
@@ -172,7 +194,7 @@ export async function createManagerBooking(data) {
         
         // Bidding settings
         visibility: "PRIVATE_TO_COMPANY",
-        bidDeadline: bidDeadline,
+        
         
         // Relations
         createdBy: { connect: { id: session.user.id } },

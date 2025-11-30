@@ -7,13 +7,14 @@ import EditBookingForm from "@/components/forms/business/editBookingForm";
 
 export default async function EditBookingPage({ params }) {
   const session = await getServerSession(authOptions);
-   const { id } = await params;
+  const { id } = await params;
 
   if (!session || session.user.role !== "MANAGER") {
     redirect("/login");
   }
 
-  const booking = await prisma.advancedBooking.findUnique({
+  // ✅ Get unified booking
+  const booking = await prisma.booking.findUnique({
     where: { id },
     include: {
       accessibilityProfile: true,
@@ -70,3 +71,5 @@ export default async function EditBookingPage({ params }) {
     </div>
   );
 }
+
+

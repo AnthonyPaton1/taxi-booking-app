@@ -8,57 +8,14 @@ import { prisma } from "@/lib/db";
 /**
  * Get complete driver profile with all relations
  */
-export async function getDriverProfile() {
-  try {
-    const session = await getServerSession(authOptions);
+// app/actions/driver/getDriverProfile.js
 
-    if (!session?.user?.id) {
-      return { success: false, error: "Not authenticated" };
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      include: {
-        driver: {
-          include: {
-            accessibilityProfile: true,
-            compliance: true,
-          },
-        },
-      },
-    });
-
-    if (!user) {
-      return { success: false, error: "User not found" };
-    }
-
-    if (!user.driver) {
-      return { success: true, hasDriver: false, user };
-    }
-
-    return {
-      success: true,
-      hasDriver: true,
-      user,
-      driver: user.driver,
-      accessibilityProfile: user.driver.accessibilityProfile,
-      compliance: user.driver.compliance,
-    };
-  } catch (error) {
-    console.error("❌ Error fetching driver profile:", error);
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * Get driver statistics (for dashboard)
- */
 export async function getDriverStats() {
   try {
     const session = await getServerSession(authOptions);
-
+    
     if (!session?.user?.id) {
-      return { success: false, error: "Not authenticated" };
+      return { success: false, error: "Unauthorized" };
     }
 
     const user = await prisma.user.findUnique({
@@ -67,98 +24,66 @@ export async function getDriverStats() {
     });
 
     if (!user?.driver) {
-      return {
-        success: true,
-        stats: {
-          todaysJobs: 0,
-          upcomingJobs: 0,
-          completedJobs: 0,
-          totalEarnings: 0,
-        },
-      };
+      return { success: false, error: "No driver profile found" };
     }
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-
     const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // Count today's jobs
-    const todaysInstant = await prisma.instantBooking.count({
+    // ✅ Count today's jobs (unified)
+    const todaysJobs = await prisma.booking.count({
       where: {
         driverId: user.driver.id,
         pickupTime: { gte: today, lt: tomorrow },
         status: { in: ["ACCEPTED", "IN_PROGRESS"] },
+        deletedAt: null,
       },
     });
 
-    const todaysAdvanced = await prisma.advancedBooking.count({
-      where: {
-        acceptedBid: { driverId: user.driver.id },
-        pickupTime: { gte: today, lt: tomorrow },
-        status: "ACCEPTED",
-      },
-    });
-
-    // Count upcoming jobs (next 7 days)
-    const nextWeek = new Date();
-    nextWeek.setDate(today.getDate() + 7);
-
-    const upcomingInstant = await prisma.instantBooking.count({
+    // ✅ Count upcoming jobs (unified)
+    const upcomingJobs = await prisma.booking.count({
       where: {
         driverId: user.driver.id,
-        pickupTime: { gte: tomorrow, lte: nextWeek },
+        pickupTime: { gte: new Date() },
         status: { in: ["ACCEPTED", "IN_PROGRESS"] },
+        deletedAt: null,
       },
     });
 
-    const upcomingAdvanced = await prisma.advancedBooking.count({
-      where: {
-        acceptedBid: { driverId: user.driver.id },
-        pickupTime: { gte: tomorrow, lte: nextWeek },
-        status: "ACCEPTED",
-      },
-    });
-
-    // Count completed jobs (all time)
-    const completedInstant = await prisma.instantBooking.count({
+    // ✅ Count completed jobs (unified)
+    const completedJobs = await prisma.booking.count({
       where: {
         driverId: user.driver.id,
         status: "COMPLETED",
+        deletedAt: null,
       },
     });
 
-    const completedAdvanced = await prisma.advancedBooking.count({
-      where: {
-        acceptedBid: { driverId: user.driver.id },
-        status: "COMPLETED",
-      },
-    });
-
-    // Calculate total earnings from accepted bids
-    const acceptedBids = await prisma.bid.findMany({
+    // ✅ Calculate total earnings (unified)
+    const completedWithEarnings = await prisma.booking.findMany({
       where: {
         driverId: user.driver.id,
-        status: "ACCEPTED",
+        status: "COMPLETED",
+        deletedAt: null,
       },
-      select: {
-        amountCents: true,
+      include: {
+        acceptedBid: true,
       },
     });
 
-    const totalEarnings = acceptedBids.reduce(
-      (sum, bid) => sum + bid.amountCents,
-      0
-    );
+    const totalEarnings = completedWithEarnings.reduce((sum, booking) => {
+      return sum + (booking.acceptedBid?.amountCents || booking.finalCostPence || 0);
+    }, 0);
 
     return {
       success: true,
       stats: {
-        todaysJobs: todaysInstant + todaysAdvanced,
-        upcomingJobs: upcomingInstant + upcomingAdvanced,
-        completedJobs: completedInstant + completedAdvanced,
-        totalEarnings, // in pence
+        todaysJobs,
+        upcomingJobs,
+        completedJobs,
+        totalEarnings,
       },
     };
   } catch (error) {

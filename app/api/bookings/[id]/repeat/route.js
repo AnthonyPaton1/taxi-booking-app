@@ -11,19 +11,21 @@ export async function POST(req, { params }) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { bookingId, dates } = await req.json();
-    const { id } = params;
+    const { dates } = await req.json();
+    const { id } = await params;  // ✅ Added await
 
-    // Verify the original booking exists and belongs to the user's business
-    const originalBooking = await prisma.advancedBooking.findUnique({
+    // ✅ Verify the original booking exists
+    const originalBooking = await prisma.booking.findUnique({
       where: { id },
       include: {
         business: true,
+        accessibilityProfile: true,
         acceptedBid: {
           include: {
             driver: {
               include: {
-                user: true
+                user: true,
+                accessibilityProfile: true
               }
             }
           }
@@ -36,7 +38,7 @@ export async function POST(req, { params }) {
     }
 
     // Verify user has access to this business
-    if (originalBooking.business.managerId !== session.user.id) {
+    if (originalBooking.business?.managerId !== session.user.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
@@ -56,35 +58,54 @@ export async function POST(req, { params }) {
         returnDate.setHours(parseInt(returnHour), parseInt(returnMinute), 0, 0);
       }
 
-      // Create the new booking with all the same details
-      const newBooking = await prisma.advancedBooking.create({
+      // ✅ Create the new booking with all the same details
+      const newBooking = await prisma.booking.create({
         data: {
           businessId: originalBooking.businessId,
+          createdById: session.user.id,  // ✅ Required field
           pickupLocation: originalBooking.pickupLocation,
-          pickupPostcode: originalBooking.pickupPostcode,
+          pickupLatitude: originalBooking.pickupLatitude,
+          pickupLongitude: originalBooking.pickupLongitude,
           dropoffLocation: originalBooking.dropoffLocation,
-          dropoffPostcode: originalBooking.dropoffPostcode,
+          dropoffLatitude: originalBooking.dropoffLatitude,
+          dropoffLongitude: originalBooking.dropoffLongitude,
           pickupTime: pickupDate,
           returnTime: returnDate,
-          roundTrip: originalBooking.roundTrip,
           initials: originalBooking.initials,
-          passengerCount: originalBooking.passengerCount,
-          wheelchairUsers: originalBooking.wheelchairUsers,
-          wheelchairAccess: originalBooking.wheelchairAccess,
-          femaleDriverOnly: originalBooking.femaleDriverOnly,
-          carerPresent: originalBooking.carerPresent,
-          assistanceAnimal: originalBooking.assistanceAnimal,
-          additionalNeeds: originalBooking.additionalNeeds,
-          managerNotes: originalBooking.managerNotes ? 
-            `${originalBooking.managerNotes}\n\n[Repeated from booking #${originalBooking.id}]` : 
-            `Repeated from booking #${originalBooking.id}`,
-          createdBy: session.user.name || session.user.email,
-          status: "PENDING"
+          visibility: originalBooking.visibility,
+          status: "PENDING",  // ✅ Open for bids
+          
+          // ✅ Create accessibility profile
+          accessibilityProfile: {
+            create: {
+              vehicleClassRequired: originalBooking.accessibilityProfile.vehicleClassRequired,
+              ambulatoryPassengers: originalBooking.accessibilityProfile.ambulatoryPassengers,
+              wheelchairUsersStaySeated: originalBooking.accessibilityProfile.wheelchairUsersStaySeated,
+              wheelchairUsersCanTransfer: originalBooking.accessibilityProfile.wheelchairUsersCanTransfer,
+              femaleDriverOnly: originalBooking.accessibilityProfile.femaleDriverOnly,
+              carerPresent: originalBooking.accessibilityProfile.carerPresent,
+              escortRequired: originalBooking.accessibilityProfile.escortRequired,
+              highRoof: originalBooking.accessibilityProfile.highRoof,
+              seatTransferHelp: originalBooking.accessibilityProfile.seatTransferHelp,
+              mobilityAidStorage: originalBooking.accessibilityProfile.mobilityAidStorage,
+              electricScooterStorage: originalBooking.accessibilityProfile.electricScooterStorage,
+              quietEnvironment: originalBooking.accessibilityProfile.quietEnvironment,
+              noConversation: originalBooking.accessibilityProfile.noConversation,
+              noScents: originalBooking.accessibilityProfile.noScents,
+              visualSchedule: originalBooking.accessibilityProfile.visualSchedule,
+              signLanguageRequired: originalBooking.accessibilityProfile.signLanguageRequired,
+              textOnlyCommunication: originalBooking.accessibilityProfile.textOnlyCommunication,
+              assistanceRequired: originalBooking.accessibilityProfile.assistanceRequired,
+              assistanceAnimal: originalBooking.accessibilityProfile.assistanceAnimal,
+              familiarDriverOnly: originalBooking.accessibilityProfile.familiarDriverOnly,
+              medicationOnBoard: originalBooking.accessibilityProfile.medicationOnBoard,
+              firstAidTrained: originalBooking.accessibilityProfile.firstAidTrained,
+              additionalNeeds: originalBooking.accessibilityProfile.additionalNeeds,
+            }
+          },
         }
       });
 
-      // Booking created as PENDING - open for all drivers to bid
-      
       createdBookings.push(newBooking);
     }
 

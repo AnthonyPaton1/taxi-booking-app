@@ -93,7 +93,7 @@ export async function POST(req) {
   }
 }
 
-// (optional) list bids for a ride: /api/bids?rideRequestId=...
+
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const rideRequestId = searchParams.get("rideRequestId");

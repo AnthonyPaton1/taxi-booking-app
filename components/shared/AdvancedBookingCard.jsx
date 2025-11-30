@@ -28,7 +28,7 @@ export default function AdvancedBookingCard({ booking, showBidButton = true }) {
     setSubmitting(true);
     
     const result = await createBid({
-      advancedBookingId: booking.id,
+      bookingId: booking.id,
       amountCents: Math.round(amountPounds * 100),
       message: message || null,
     });

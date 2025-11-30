@@ -31,15 +31,18 @@ export default async function DriverWeeklySchedulePage() {
   const sevenDaysFromNow = new Date(today);
   sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
 
-  // Get accepted instant bookings
-  const instantBookings = await prisma.instantBooking.findMany({
+  // ✅ Get all accepted bookings (unified)
+  const bookings = await prisma.booking.findMany({
     where: {
       driverId: user.driver.id,
-      status: "ACCEPTED",
+      status: {
+        in: ["ACCEPTED", "IN_PROGRESS"],
+      },
       pickupTime: {
         gte: today,
         lte: sevenDaysFromNow,
       },
+      deletedAt: null,
     },
     include: {
       accessibilityProfile: true,
@@ -49,71 +52,32 @@ export default async function DriverWeeklySchedulePage() {
           phone: true,
         },
       },
+      acceptedBid: {
+        select: {
+          amountCents: true,
+        },
+      },
     },
     orderBy: {
       pickupTime: "asc",
     },
   });
 
-  // Get accepted advanced bookings (via accepted bids)
-  const acceptedBids = await prisma.bid.findMany({
-    where: {
-      driverId: user.driver.id,
-      status: "ACCEPTED",
-      advancedBooking: {
-        pickupTime: {
-          gte: today,
-          lte: sevenDaysFromNow,
-        },
-        status: "ACCEPTED",
-      },
-    },
-    include: {
-      advancedBooking: {
-        include: {
-          accessibilityProfile: true,
-          createdBy: {
-            select: {
-              name: true,
-              phone: true,
-            },
-          },
-        },
-      },
-    },
-    orderBy: {
-      advancedBooking: {
-        pickupTime: "asc",
-      },
-    },
-  });
-
-  const advancedBookings = acceptedBids.map((bid) => ({
-    ...bid.advancedBooking,
-    bidAmount: bid.amountCents,
+  // ✅ Format bookings with serializable dates and earnings
+  const allBookings = bookings.map((b) => ({
+    ...b,
+    // Convert Date objects to ISO strings for serialization
+    pickupTime: b.pickupTime.toISOString(),
+    returnTime: b.returnTime ? b.returnTime.toISOString() : null,
+    createdAt: b.createdAt.toISOString(),
+    updatedAt: b.updatedAt.toISOString(),
+    confirmedAt: b.confirmedAt ? b.confirmedAt.toISOString() : null,
+    canceledAt: b.canceledAt ? b.canceledAt.toISOString() : null,
+    acceptedAt: b.acceptedAt ? b.acceptedAt.toISOString() : null,
+    bidDeadline: b.bidDeadline ? b.bidDeadline.toISOString() : null,
+    // Get earnings from acceptedBid or finalCostPence
+    bidAmount: b.acceptedBid?.amountCents || b.finalCostPence || 0,
   }));
-
-  // Combine and organize by day
-  const allBookings = [
-    ...instantBookings.map((b) => ({ 
-      ...b, 
-      type: "instant",
-      //  Convert Date objects to ISO strings for serialization
-      pickupTime: b.pickupTime.toISOString(),
-      returnTime: b.returnTime ? b.returnTime.toISOString() : null,
-      createdAt: b.createdAt.toISOString(),
-      updatedAt: b.updatedAt.toISOString(),
-    })),
-    ...advancedBookings.map((b) => ({ 
-      ...b, 
-      type: "advanced",
-      //  Convert Date objects to ISO strings for serialization
-      pickupTime: b.pickupTime.toISOString(),
-      returnTime: b.returnTime ? b.returnTime.toISOString() : null,
-      createdAt: b.createdAt.toISOString(),
-      updatedAt: b.updatedAt.toISOString(),
-    })),
-  ].sort((a, b) => new Date(a.pickupTime) - new Date(b.pickupTime));
 
   // Group by day
   const bookingsByDay = {};

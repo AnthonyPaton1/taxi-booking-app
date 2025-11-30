@@ -42,23 +42,26 @@ export default async function HousesManagementPage() {
   // Get booking counts for each house
   const housesWithStats = await Promise.all(
     user.houses.map(async (house) => {
-      const [upcomingBookings, totalBookings] = await Promise.all([
-        // Count upcoming advanced bookings
-        prisma.advancedBooking.count({
-          where: {
-            createdById: user.id,
-            pickupTime: { gte: new Date() },
-            status: { in: ["OPEN", "ACCEPTED"] },
-          },
-        }),
-        // Count all bookings
-        prisma.advancedBooking.count({
-          where: {
-            createdById: user.id,
-            
-          },
-        }),
-      ]);
+     const [upcomingBookings, totalBookings] = await Promise.all([
+  // ✅ Count upcoming bookings (unified)
+  prisma.booking.count({
+    where: {
+      createdById: user.id,
+      pickupTime: { gte: new Date() },
+      status: {
+        in: ["PENDING", "BID_ACCEPTED", "ACCEPTED"]
+      },
+      deletedAt: null,
+    }
+  }),
+  // ✅ Count total bookings (unified)
+  prisma.booking.count({
+    where: {
+      createdById: user.id,
+      deletedAt: null,
+    }
+  }),
+]);
 
       return {
         ...house,

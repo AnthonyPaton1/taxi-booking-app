@@ -6,7 +6,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 /**
- * Create a bid on an advanced booking
+ * Create a bid on a booking
  */
 export async function createBid(input) {
   try {
@@ -16,10 +16,10 @@ export async function createBid(input) {
       return { success: false, error: "Unauthorized" };
     }
 
-    const { advancedBookingId, amountCents, message, etaMinutes, vehicleNotes } = input;
+    const { bookingId, amountCents, message, etaMinutes, vehicleNotes } = input;  
 
     // Validate input
-    if (!advancedBookingId || !amountCents) {
+    if (!bookingId || !amountCents) {
       return { success: false, error: "Missing required fields" };
     }
 
@@ -41,14 +41,15 @@ export async function createBid(input) {
       return { success: false, error: "Driver not approved yet" };
     }
 
-    // Check if ride exists and is still open
-    const booking = await prisma.advancedBooking.findUnique({
-      where: { id: advancedBookingId },
+    // ✅ Check if booking exists and is still open
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
       select: {
         id: true,
         status: true,
         acceptedBidId: true,
         bidDeadline: true,
+        pickupTime: true,
       },
     });
 
@@ -56,7 +57,7 @@ export async function createBid(input) {
       return { success: false, error: "Booking not found" };
     }
 
-    if (booking.status !== "OPEN") {
+    if (booking.status !== "PENDING") {  
       return { success: false, error: "Booking is no longer open for bidding" };
     }
 
@@ -71,7 +72,7 @@ export async function createBid(input) {
     // Check if driver already bid
     const existingBid = await prisma.bid.findFirst({
       where: {
-        advancedBookingId,
+        bookingId,  
         userId: session.user.id,
         status: "PENDING",
       },
@@ -81,10 +82,10 @@ export async function createBid(input) {
       return { success: false, error: "You've already placed a bid on this booking" };
     }
 
-    // Create bid
+    //  Create bid
     const bid = await prisma.bid.create({
       data: {
-        advancedBookingId,
+        bookingId,  
         userId: session.user.id,
         driverId: user.driver.id,
         amountCents,
@@ -105,9 +106,9 @@ export async function createBid(input) {
 }
 
 /**
- * Get all bids for an advanced booking
+ * Get all bids for a booking
  */
-export async function getBidsForBooking(advancedBookingId) {
+export async function getBidsForBooking(bookingId) { 
   try {
     const session = await getServerSession(authOptions);
     
@@ -117,14 +118,14 @@ export async function getBidsForBooking(advancedBookingId) {
 
     const bids = await prisma.bid.findMany({
       where: {
-        advancedBookingId,
+        bookingId, 
         deletedAt: null,
       },
       include: {
         driver: {
           select: {
             name: true,
-            vehicleType: true,
+            vehicleClass: true,  
             vehicleReg: true,
             phone: true,
           },
@@ -136,7 +137,7 @@ export async function getBidsForBooking(advancedBookingId) {
           },
         },
       },
-      orderBy: { amountCents: "asc" }, // Lowest bid first
+      orderBy: { amountCents: "asc" },
     });
 
     return { success: true, bids };
@@ -157,11 +158,11 @@ export async function deleteBid(bidId) {
       return { success: false, error: "Unauthorized" };
     }
 
-    // Get bid
+    
     const bid = await prisma.bid.findUnique({
       where: { id: bidId },
       include: {
-        advancedBooking: {
+        booking: {  
           select: {
             status: true,
             acceptedBidId: true,
@@ -190,7 +191,7 @@ export async function deleteBid(bidId) {
       data: { deletedAt: new Date() },
     });
 
-    console.log("✅ Bid deleted:", bidId);
+    console.log(" Bid deleted:", bidId);
 
     return { success: true };
   } catch (error) {
@@ -202,7 +203,7 @@ export async function deleteBid(bidId) {
 /**
  * Accept a bid (Manager approves winning bid)
  */
-export async function acceptBid(bidId, advancedBookingId) {
+export async function acceptBid(bidId, bookingId) { 
   try {
     const session = await getServerSession(authOptions);
     
@@ -210,9 +211,9 @@ export async function acceptBid(bidId, advancedBookingId) {
       return { success: false, error: "Unauthorized" };
     }
 
-    // Get booking
-    const booking = await prisma.advancedBooking.findUnique({
-      where: { id: advancedBookingId },
+    // ✅ Get booking
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
       include: {
         createdBy: true,
         bids: {
@@ -225,7 +226,7 @@ export async function acceptBid(bidId, advancedBookingId) {
       return { success: false, error: "Booking not found" };
     }
 
-    // Check if user is the creator (or manager of the business)
+    // Check if user is the creator
     if (booking.createdById !== session.user.id) {
       return { success: false, error: "Only the booking creator can accept bids" };
     }
@@ -236,18 +237,21 @@ export async function acceptBid(bidId, advancedBookingId) {
 
     const bid = booking.bids[0];
 
-    // Update in transaction
+    // ✅ Update in transaction
     await prisma.$transaction(async (tx) => {
       // Accept the winning bid
       await tx.bid.update({
         where: { id: bidId },
-        data: { status: "ACCEPTED" },
+        data: { 
+          status: "ACCEPTED",
+          acceptedAt: new Date(),
+        },
       });
 
       // Decline all other bids
       await tx.bid.updateMany({
         where: {
-          advancedBookingId,
+          bookingId,  // ✅ Changed
           id: { not: bidId },
           status: "PENDING",
         },
@@ -255,11 +259,13 @@ export async function acceptBid(bidId, advancedBookingId) {
       });
 
       // Update booking
-      await tx.advancedBooking.update({
-        where: { id: advancedBookingId },
+      await tx.booking.update({  // ✅ Changed
+        where: { id: bookingId },
         data: {
-          status: "ACCEPTED",
+          status: "BID_ACCEPTED",  // ✅ Changed status
           acceptedBidId: bidId,
+          driverId: bid.driverId,  // ✅ Assign driver
+          acceptedAt: new Date(),
         },
       });
     });
@@ -273,148 +279,3 @@ export async function acceptBid(bidId, advancedBookingId) {
   }
 }
 
-/**
- * Accept an instant booking (Driver clicks "Accept")
- */
-export async function acceptInstantBooking(bookingId) {
-  try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
-      return { success: false, error: "Unauthorized" };
-    }
-
-    // Get driver profile
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      include: { driver: true },
-    });
-
-    if (!user?.driver) {
-      return { success: false, error: "No driver profile found" };
-    }
-
-    if (!user.driver.approved) {
-      return { success: false, error: "Driver not approved yet" };
-    }
-
-    // Get booking
-    const booking = await prisma.instantBooking.findUnique({
-      where: { id: bookingId },
-    });
-
-    if (!booking) {
-      return { success: false, error: "Booking not found" };
-    }
-
-    if (booking.status !== "PENDING") {
-      return { success: false, error: "Booking is no longer available" };
-    }
-
-    if (booking.driverId) {
-      return { success: false, error: "Booking already accepted by another driver" };
-    }
-
-    // Accept booking
-    await prisma.instantBooking.update({
-      where: { id: bookingId },
-      data: {
-        status: "ACCEPTED",
-        driverId: user.driver.id,
-        acceptedAt: new Date(),
-        acceptedByUserId: session.user.id,
-      },
-    });
-
-    console.log("✅ Instant booking accepted:", bookingId);
-
-    return { success: true };
-  } catch (error) {
-    console.error("❌ Error accepting booking:", error);
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * Mark instant booking as in progress
- */
-export async function startInstantBooking(bookingId) {
-  try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
-      return { success: false, error: "Unauthorized" };
-    }
-
-    const booking = await prisma.instantBooking.findUnique({
-      where: { id: bookingId },
-      include: { driver: { include: { user: true } } },
-    });
-
-    if (!booking) {
-      return { success: false, error: "Booking not found" };
-    }
-
-    if (booking.driver?.user.id !== session.user.id) {
-      return { success: false, error: "Not your booking" };
-    }
-
-    if (booking.status !== "ACCEPTED") {
-      return { success: false, error: "Booking must be accepted first" };
-    }
-
-    await prisma.instantBooking.update({
-      where: { id: bookingId },
-      data: { status: "IN_PROGRESS" },
-    });
-
-    console.log("✅ Booking started:", bookingId);
-
-    return { success: true };
-  } catch (error) {
-    console.error("❌ Error starting booking:", error);
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * Complete instant booking
- */
-export async function completeInstantBooking(bookingId) {
-  try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
-      return { success: false, error: "Unauthorized" };
-    }
-
-    const booking = await prisma.instantBooking.findUnique({
-      where: { id: bookingId },
-      include: { driver: { include: { user: true } } },
-    });
-
-    if (!booking) {
-      return { success: false, error: "Booking not found" };
-    }
-
-    if (booking.driver?.user.id !== session.user.id) {
-      return { success: false, error: "Not your booking" };
-    }
-
-    if (booking.status !== "IN_PROGRESS") {
-      return { success: false, error: "Booking must be in progress" };
-    }
-
-    await prisma.instantBooking.update({
-      where: { id: bookingId },
-      data: { status: "COMPLETED" },
-    });
-
-    console.log("✅ Booking completed:", bookingId);
-
-    return { success: true };
-  } catch (error) {
-    console.error("❌ Error completing booking:", error);
-    return { success: false, error: error.message };
-  }
-}

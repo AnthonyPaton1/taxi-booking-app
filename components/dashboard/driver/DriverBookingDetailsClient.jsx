@@ -18,6 +18,7 @@ import {
   Accessibility,
 } from "lucide-react";
 import { toast } from "sonner";
+import { formatDateTime } from "@/lib/dateUtils";
 
 export default function DriverBookingDetailsClient({
   booking,
@@ -42,17 +43,7 @@ export default function DriverBookingDetailsClient({
     }).format(cents / 100);
   };
 
-  const formatDateTime = (date) => {
-    if (!mounted) return "Loading..."; // ← Add this check
-    return new Date(date).toLocaleString("en-GB", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+
 
   const handleSubmitBid = async (e) => {
     e.preventDefault();

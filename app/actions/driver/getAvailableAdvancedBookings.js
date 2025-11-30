@@ -4,15 +4,20 @@ import { prisma } from "@/lib/db";
 
 export async function getAvailableAdvancedBookings() {
   const user = await getSessionUser();
-  if (!user) return []; // Fail-safe return
+  console.log("👤 User:", user?.id);
+  if (!user) return [];
 
   const driver = await prisma.driver.findUnique({
     where: { userId: user.id },
+    include: {
+      accessibilityProfile: true
+    }
   });
 
+  console.log("🚗 Driver:", driver?.id, "Class:", driver?.vehicleClass, "Approved:", driver?.approved);
   if (!driver) return [];
 
-  return prisma.advancedBooking.findMany({
+  const bookings = await prisma.advancedBooking.findMany({
     where: {
       status: "OPEN",
       NOT: {
@@ -21,6 +26,17 @@ export async function getAvailableAdvancedBookings() {
         },
       },
     },
+    include: {
+      accessibilityProfile: true  
+    },
     orderBy: { pickupTime: "asc" },
   });
+
+  console.log("📋 Found bookings:", bookings.length);
+  bookings.forEach(b => {
+    console.log(`  - Booking ${b.id}: ${b.pickupLocation} → ${b.dropoffLocation}`);
+    console.log(`    Vehicle needed: ${b.accessibilityProfile?.vehicleClassRequired}`);
+  });
+
+  return bookings;
 }

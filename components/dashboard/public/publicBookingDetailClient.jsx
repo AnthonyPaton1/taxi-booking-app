@@ -21,22 +21,14 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import StatusMessage from "@/components/shared/statusMessage";
+import { formatDateTime } from "@/lib/dateUtils";
 
 export default function PublicBookingDetailClient({ booking }) {
   const [status, setStatus] = useState("");
   const [selectedBidId, setSelectedBidId] = useState(null);
   const router = useRouter();
 
-  const formatDateTime = (date) => {
-    return new Date(date).toLocaleString("en-GB", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+
 
   const formatCurrency = (amountCents) => {
     return new Intl.NumberFormat("en-GB", {
