@@ -57,8 +57,6 @@ export default function TermsAndConditions() {
             <li><strong>"Driver"</strong> is an independent private hire vehicle operator providing transport services</li>
             <li><strong>"Passenger"</strong> is the individual being transported</li>
             <li><strong>"Booking"</strong> refers to a transport request made through the Platform</li>
-            <li><strong>"Advanced Booking"</strong> is a booking made 48+ hours in advance with driver bidding</li>
-            <li><strong>"Instant Booking"</strong> is a booking requiring immediate dispatch (within 48 hours)</li>
           </ul>
         </section>
 
@@ -86,6 +84,8 @@ export default function TermsAndConditions() {
           <h3 className="text-xl font-semibold text-gray-800 mb-3">Account Creation</h3>
           <ul className="list-disc pl-6 space-y-2 text-gray-700">
             <li>You must be 18 years or older to create an account</li>
+            <li>Public users, you Sign up using your oAuth Google Account</li>
+            <li>Businesses and Drivers sign up by registering themselves and creating their account</li>
             <li>You must provide accurate and complete information</li>
             <li>You are responsible for maintaining account security</li>
             <li>You must not share your login credentials</li>
@@ -120,7 +120,19 @@ export default function TermsAndConditions() {
         <section id="user-roles" className="mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">4. User Roles and Responsibilities</h2>
           
-          <h3 className="text-xl font-semibold text-gray-800 mb-3">Admin</h3>
+        <h3 className="text-xl font-semibold text-gray-800 mb-3">Public</h3>
+<ul className="list-disc pl-6 space-y-2 text-gray-700">
+  <li>Full oversight of your own account</li>
+  <li>Book transport for yourself or family members</li>
+  <li>Save passenger profiles for quick repeat bookings</li>
+  <li>Compare driver quotes and choose the best fit</li>
+  <li>Access your complete booking history</li>
+  <li>Rate and review drivers after journeys</li>
+  <li>Your account can be deleted at any time</li>
+  <li>We reserve the right to store your information for a period of no more than 6 months after deletion</li>
+</ul>
+
+          <h3 className="text-xl font-semibold text-gray-800 mb-3 mt-3">Admin (Business - Head Office)</h3>
           <ul className="list-disc pl-6 space-y-2 text-gray-700">
             <li>Full oversight of business account</li>
             <li>Onboard Coordinators and Managers</li>
@@ -129,7 +141,7 @@ export default function TermsAndConditions() {
             <li>Review incident reports</li>
           </ul>
 
-          <h3 className="text-xl font-semibold text-gray-800 mb-3 mt-6">Coordinator</h3>
+          <h3 className="text-xl font-semibold text-gray-800 mb-3 mt-6">Coordinator (Business - Area Managers)</h3>
           <ul className="list-disc pl-6 space-y-2 text-gray-700">
             <li>Oversee specific geographical areas</li>
             <li>Onboard Managers for houses within their area</li>
@@ -137,11 +149,11 @@ export default function TermsAndConditions() {
             <li>Review incident reports for their area</li>
           </ul>
 
-          <h3 className="text-xl font-semibold text-gray-800 mb-3 mt-6">Manager</h3>
+          <h3 className="text-xl font-semibold text-gray-800 mb-3 mt-6">Manager (Business - House Managers)</h3>
           <ul className="list-disc pl-6 space-y-2 text-gray-700">
             <li>Create bookings for residents/passengers</li>
             <li>Provide accurate passenger information and accessibility needs</li>
-            <li>Review and accept driver bids (for Advanced Bookings)</li>
+            <li>Review and accept driver estimates</li>
             <li>Communicate any special requirements</li>
             <li>Submit incident reports when necessary</li>
             <li>Ensure passenger is ready for pickup</li>
@@ -150,7 +162,7 @@ export default function TermsAndConditions() {
           <h3 className="text-xl font-semibold text-gray-800 mb-3 mt-6">Driver</h3>
           <ul className="list-disc pl-6 space-y-2 text-gray-700">
             <li>Maintain valid credentials and insurance</li>
-            <li>Bid on Advanced Bookings that match their capabilities</li>
+            <li>Bid on All Bookings that match their capabilities</li>
             <li>Accept Instant Bookings they can fulfill</li>
             <li>Arrive on time and notify if delayed</li>
             <li>Provide safe and professional transport</li>
@@ -160,35 +172,29 @@ export default function TermsAndConditions() {
           </ul>
         </section>
 
+        
         {/* 5. Booking Terms */}
         <section id="booking-terms" className="mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">5. Booking Terms</h2>
           
-          <h3 className="text-xl font-semibold text-gray-800 mb-3">Advanced Bookings (48+ hours notice)</h3>
+          <h3 className="text-xl font-semibold text-gray-800 mb-3">How Bookings Work</h3>
           <ul className="list-disc pl-6 space-y-2 text-gray-700">
-            <li>Booking must be made at least 48 hours before pickup time</li>
-            <li>Multiple drivers may bid on the booking</li>
-            <li>Manager selects the winning bid based on price and driver suitability</li>
-            <li>Once accepted, the booking becomes a contract between Business and Driver</li>
-            <li>Bidding period closes when Manager accepts a bid</li>
-          </ul>
-
-          <h3 className="text-xl font-semibold text-gray-800 mb-3 mt-6">Instant Bookings (within 48 hours)</h3>
-          <ul className="list-disc pl-6 space-y-2 text-gray-700">
-            <li>For urgent transport needs requiring immediate dispatch</li>
-            <li>Available drivers can accept bookings on a first-come basis</li>
-            <li>Pricing may be higher due to urgency</li>
-            <li>Availability is not guaranteed during peak times</li>
+            <li>All bookings receive quotes from qualified drivers</li>
+            <li>Earlier submissions give more drivers time to respond</li>
+            <li>You compare prices, ratings, and driver profiles</li>
+            <li>Choose the driver that best fits your needs</li>
+            <li>Once accepted, the booking becomes a contract between you and the driver</li>
+            <li>Quote period closes when you accept a driver</li>
           </ul>
 
           <h3 className="text-xl font-semibold text-gray-800 mb-3 mt-6">Booking Information Requirements</h3>
-          <p className="text-gray-700 mb-2">Managers must provide accurate information:</p>
+          <p className="text-gray-700 mb-2">You must provide accurate information:</p>
           <ul className="list-disc pl-6 space-y-2 text-gray-700">
             <li>Pickup and dropoff addresses with postcodes</li>
             <li>Date and time of journey</li>
             <li>Number of passengers and wheelchair users</li>
             <li>All accessibility requirements and support needs</li>
-            <li>Passenger initials (for audit trail)</li>
+            <li>Passenger details (for audit trail)</li>
             <li>Any special instructions or medical considerations</li>
           </ul>
           <p className="text-gray-700 mt-4">
@@ -206,7 +212,7 @@ export default function TermsAndConditions() {
           </p>
           <ul className="list-disc pl-6 space-y-2 text-gray-700">
             <li>Set their own working hours and availability</li>
-            <li>Determine their own bid prices for Advanced Bookings</li>
+            <li>Determine their own bid prices for All Bookings</li>
             <li>Maintain their own insurance and vehicle</li>
             <li>Are responsible for their own tax and National Insurance</li>
             <li>Have direct contractual relationships with Businesses for each booking</li>
@@ -233,35 +239,128 @@ export default function TermsAndConditions() {
           </ul>
         </section>
 
-        {/* 7. Payment Terms */}
-        <section id="payment-terms" className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">7. Payment Terms</h2>
-          
-          <h3 className="text-xl font-semibold text-gray-800 mb-3">Current Payment Model</h3>
-          <p className="text-gray-700 mb-4">
-            Payment is arranged directly between Businesses and Drivers. NEAT Transport does not currently process payments through the platform.
-          </p>
+  {/* 7. Payment Terms */}
+<section id="payment-terms" className="mb-8">
+  <h2 className="text-2xl font-bold text-gray-900 mb-4">7. Payment Terms</h2>
+  
+  <h3 className="text-xl font-semibold text-gray-800 mb-3">Driver Subscription Model</h3>
+  <p className="text-gray-700 mb-4">
+    NEAT Transport operates on a subscription model. Drivers pay a monthly fee to access the platform and keep 100% of passenger fares. Passengers never pay platform fees.
+  </p>
 
-          <h3 className="text-xl font-semibold text-gray-800 mb-3">Future Payment Integration</h3>
-          <p className="text-gray-700 mb-4">
-            When payment processing is introduced via PayPal:
-          </p>
-          <ul className="list-disc pl-6 space-y-2 text-gray-700">
-            <li>Platform fee structure will be communicated in advance</li>
-            <li>Drivers will receive payment minus platform fees</li>
-            <li>Businesses will be invoiced through the platform</li>
-            <li>Payment terms and dispute resolution will be updated</li>
-          </ul>
-        </section>
+   {/* Pre-Launch Free Access */}
+<div className="bg-green-50 border-l-4 border-green-500 p-4 mb-6">
+  <h4 className="font-bold text-gray-900 mb-2">Phase 1 - Post-Launch Free Access</h4>
+  <p className="text-gray-700">
+    We aim to keep the app free for as long as possible for all drivers (Founding Drivers). 
+    This gives you access to the whole app and all its benefits, including our intelligent matching 
+    algorithm that connects you with passengers based on their specific accessibility needs.
+  </p>
+  <p className="text-gray-700 mt-3">
+    As the app grows and it becomes necessary to cover operational costs (hosting, insurance, support), 
+    we will move to a subscription-based model via PayPal starting at <strong>just £4 per day</strong> (£125/month), 
+    which will automatically reduce with loyalty after 12 and 24 months.
+  </p>
+  <p className="text-gray-700 mt-3">
+    We will provide <strong>30 days written notice</strong> before subscription fees commence.
+  </p>
+</div>
 
-        {/* 8. Cancellations and Refunds */}
+{/* Subscription Tiers */}
+<div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
+  <h4 className="font-bold text-gray-900 mb-3">Phase 2 - Subscription Tiers</h4>
+  
+  <div className="space-y-4">
+    {/* Founding Driver */}
+    <div>
+      <p className="font-semibold text-gray-900 mb-1">
+        👑 Founding Driver <span className="text-sm font-normal text-gray-600">(Limited to First 100 Drivers)</span>
+      </p>
+      <p className="text-gray-700 ml-6">
+        <strong>£99/month locked forever</strong> - your rate is guaranteed for the lifetime of your account. 
+        You will never be subject to future rate increases, even as standard pricing changes.
+      </p>
+    </div>
+
+    {/* Standard Driver */}
+    <div>
+      <p className="font-semibold text-gray-900 mb-1">
+        Standard Driver
+      </p>
+      <p className="text-gray-700 ml-6 mb-2">
+        <strong>£125/month</strong> (just £4/day) for new drivers. Your price automatically reduces with loyalty:
+      </p>
+      <div className="ml-12 space-y-1 text-gray-700">
+        <p>• <strong>Months 1-11:</strong> £125/month</p>
+        <p>• <strong>After 12 months:</strong> £115/month (automatic upgrade)</p>
+        <p>• <strong>After 24 months:</strong> £105/month (automatic upgrade)</p>
+      </div>
+      <p className="text-gray-700 ml-6 mt-2 text-sm italic">
+        Tier upgrades happen automatically - no action needed from you.
+      </p>
+    </div>
+  </div>
+  
+  <div className="mt-4 p-3 bg-white rounded border border-blue-200">
+    <p className="text-sm text-gray-700">
+      <strong>💡 Why subscriptions?</strong> Unlike Uber's 25-30% commission, our flat monthly fee means 
+      you keep 100% of your fares. Average drivers earn <strong>£400-600 more per month</strong> on NEAT 
+      compared to commission-based platforms.
+    </p>
+  </div>
+</div>
+ 
+
+  {/* When Subscriptions Activate */}
+  <h4 className="font-semibold text-gray-800 mb-2">When Subscriptions Become Active:</h4>
+  <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-6">
+    <li>Founding Driver rate (£99/month) available to first 100 subscribers</li>
+    <li>Standard rate (£125/month) applies to all subsequent drivers</li>
+    <li>Loyalty tier upgrades apply automatically based on subscription start date</li>
+    <li>30 days written notice provided to all active drivers</li>
+  </ul>
+
+  {/* Payment Terms */}
+  <h4 className="font-semibold text-gray-800 mb-2">Payment Terms:</h4>
+  <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-6">
+    <li>Subscriptions are billed monthly via PayPal</li>
+    <li>First payment due upon subscription activation</li>
+    <li>Auto-renewal on the same day each month</li>
+    <li>Cancel anytime through your PayPal account</li>
+    <li>No per-ride commissions - keep 100% of passenger fares</li>
+  </ul>
+
+  {/* Cancellation Policy */}
+  <h4 className="font-semibold text-gray-800 mb-2">Cancellation Policy:</h4>
+  <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-6">
+    <li>Cancel anytime, no cancellation fees</li>
+    <li>Access continues until end of current billing period</li>
+    <li>No refunds for partial months</li>
+    <li>Re-subscribing after cancellation starts new subscription period (tier progress resets)</li>
+  </ul>
+
+  {/* Our Commitment */}
+  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-6">
+    <p className="text-gray-700">
+      <strong>Our Promise:</strong> We are building a sustainable platform, not a profit-extraction machine. 
+      Our flat subscription model means you keep 100% of your fares - no commission on rides, ever. 
+      This creates a fair, transparent marketplace where drivers earn more and passengers pay less.
+    </p>
+  </div>
+</section>
+
+      {/* 8. Cancellations and Refunds */}
         <section id="cancellations" className="mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">8. Cancellations and Refunds</h2>
           
-          <h3 className="text-xl font-semibold text-gray-800 mb-3">Cancellation by Business/Manager</h3>
+          <p className="text-gray-700 mb-4">
+            We understand things happen beyond everyone's control. We urge all parties to cancel as soon as possible to maintain fairness for everyone on the platform.
+          </p>
+
+          <h3 className="text-xl font-semibold text-gray-800 mb-3">Cancellation by User (Business or Public)</h3>
           <ul className="list-disc pl-6 space-y-2 text-gray-700">
             <li><strong>More than 24 hours notice:</strong> Free cancellation</li>
-            <li><strong>12-24 hours notice:</strong> 50% cancellation fee (payable to driver)</li>
+            <li><strong>12-24 hours notice:</strong> Cancellation fee may apply at driver's discretion</li>
             <li><strong>Less than 12 hours notice:</strong> 100% cancellation fee (payable to driver)</li>
             <li><strong>No-show:</strong> Full fare plus waiting time charges</li>
           </ul>
@@ -270,9 +369,22 @@ export default function TermsAndConditions() {
           <ul className="list-disc pl-6 space-y-2 text-gray-700">
             <li><strong>More than 24 hours notice:</strong> No penalty (booking returned to available pool)</li>
             <li><strong>Less than 24 hours notice:</strong> Account warning; repeated cancellations may result in suspension</li>
-            <li><strong>Emergency situations:</strong> Must contact manager immediately; no penalty if genuine emergency</li>
+            <li><strong>Emergency situations:</strong> Must contact user immediately; no penalty if genuine emergency</li>
             <li><strong>No-show:</strong> Serious breach; immediate account review and potential termination</li>
           </ul>
+
+          <h3 className="text-xl font-semibold text-gray-800 mb-3 mt-6">Cancellation of Subscription</h3>
+          <div className="space-y-3">
+            <p className='text-gray-700'>Subscription fees are generally <strong>non-refundable</strong>. However, we understand that 
+exceptional circumstances may arise. If you believe you are entitled to a refund 
+due to platform issues, billing errors, or other extraordinary situations, please 
+contact support using the contact form below, giving as much detail and information as possible. Refunds are reviewed on a case-by-case basis at our discretion.</p>
+
+
+<p className='text-gray-700'>Standard cancellations do not qualify for refunds. You may cancel anytime and 
+retain access until the end of your current billing period.</p>
+            
+          </div>
 
           <h3 className="text-xl font-semibold text-gray-800 mb-3 mt-6">Force Majeure</h3>
           <p className="text-gray-700">

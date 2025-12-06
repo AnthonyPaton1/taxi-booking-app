@@ -65,16 +65,16 @@ const faqItems = [
       "NEAT is a marketplace platform connecting care companies with independent, qualified drivers who specialize in accessible transport. We're NOT a taxi company – we provide the technology to make accessible transport booking transparent, fair, and compliant with CQC requirements.",
   },
   {
-    id: "item-2",
-    question: "How does the bidding system work?",
-    answer:
-      "For bookings made 48+ hours in advance, you post the journey details and qualified drivers submit competitive bids. You review the bids (comparing price, ratings, and vehicle type) and choose the best option for your residents. For urgent bookings (within 48 hours), available drivers can accept immediately.",
-  },
+  id: "item-2",
+  question: "How does the comparison system work?",
+  answer:
+    "Book a ride via the app - the earlier you book, the more competitive quotes you'll receive from a variety of qualified drivers. Compare prices, ratings, and vehicle types, then choose the best driver to suit your requirements.",
+},
   {
     id: "item-3",
     question: "Who can use NEAT?",
     answer:
-      "NEAT is designed for care companies, residential homes, and organizations booking transport for residents or service users. Independent private hire drivers with wheelchair accessible vehicles (or other adaptations) can register to offer their services.",
+      "NEAT is designed for everyone from members of the public who book for themselves to care companies, residential homes, and organizations booking transport for residents or service users. Independent private hire drivers with wheelchair accessible vehicles (or other adaptations) can register to offer their services.",
   },
   {
     id: "item-4",
@@ -92,7 +92,7 @@ const faqItems = [
     id: "item-6",
     question: "How much does it cost?",
     answer:
-      "For care companies: NEAT is currently and always will be free to use. Drivers set their own rates through competitive bidding on Advanced Bookings. Payment processing for drivers via a subscription will be implemented later with clear pricing announced in advance.",
+      "For Users: NEAT is currently and always will be free to use. Drivers set their own rates through competitive pricing. Payment processing for drivers via a subscription will be implemented later with clear pricing announced in advance.",
   },
   {
     id: "item-7",

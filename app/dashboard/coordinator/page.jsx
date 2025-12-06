@@ -57,12 +57,13 @@ export default async function CoordinatorDashboardPage() {
     where: {
       role: "MANAGER",
       areaId: user.areaId,
-      deletedAt: null, // ✅ Only show active managers
+      businessId: user.businessId,
+      deletedAt: null, 
     },
     include: {
       houses: {
         where: {
-          deletedAt: null // ✅ Only show active houses
+          deletedAt: null 
         },
         include: {
           residents: true,

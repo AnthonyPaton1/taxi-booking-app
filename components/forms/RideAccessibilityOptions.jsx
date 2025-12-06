@@ -15,16 +15,23 @@ export default function RideAccessibilityOptions({
 }) {
   const [showAllOptions, setShowAllOptions] = useState(false);
 
-  // Handle vehicle type radio change - works with both setFormData and handleChange
+ 
+  const onChange = handleChange || ((e) => {
+    const { name, type, checked, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value
+    }));
+  });
+
+  
   const handleVehicleTypeChange = (value) => {
     if (setFormData) {
-      // If setFormData is available, use it
       setFormData((prev) => ({
         ...prev,
         vehicleType: value
       }));
     } else if (handleChange) {
-      // Otherwise use handleChange (simulating an event)
       handleChange({
         target: {
           name: 'vehicleType',
@@ -124,7 +131,7 @@ export default function RideAccessibilityOptions({
             id={`${prefix}wheelchairAccess`}
             name="wheelchairAccess"
             checked={formData.wheelchairAccess || false}
-            onChange={handleChange}
+            onChange={onChange}
             className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
           />
           <div className="ml-3">
@@ -144,7 +151,7 @@ export default function RideAccessibilityOptions({
             id={`${prefix}femaleDriverOnly`}
             name="femaleDriverOnly"
             checked={formData.femaleDriverOnly || false}
-            onChange={handleChange}
+            onChange={onChange}
             className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
           />
           <div className="ml-3">
@@ -164,7 +171,7 @@ export default function RideAccessibilityOptions({
             id={`${prefix}carerPresent`}
             name="carerPresent"
             checked={formData.carerPresent || false}
-            onChange={handleChange}
+            onChange={onChange}
             className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
           />
           <div className="ml-3">
@@ -184,7 +191,7 @@ export default function RideAccessibilityOptions({
             id={`${prefix}assistanceRequired`}
             name="assistanceRequired"
             checked={formData.assistanceRequired || false}
-            onChange={handleChange}
+            onChange={onChange}
             className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
           />
           <div className="ml-3">
@@ -208,7 +215,7 @@ export default function RideAccessibilityOptions({
               id={`${prefix}nonWAVvehicle`}
               name="nonWAVvehicle"
               checked={formData.nonWAVvehicle || false}
-              onChange={handleChange}
+              onChange={onChange}
               className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
             />
             <div className="ml-3">
@@ -228,7 +235,7 @@ export default function RideAccessibilityOptions({
               id={`${prefix}quietEnvironment`}
               name="quietEnvironment"
               checked={formData.quietEnvironment || false}
-              onChange={handleChange}
+              onChange={onChange}
               className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
             />
             <div className="ml-3">
@@ -248,7 +255,7 @@ export default function RideAccessibilityOptions({
               id={`${prefix}noConversation`}
               name="noConversation"
               checked={formData.noConversation || false}
-              onChange={handleChange}
+              onChange={onChange}
               className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
             />
             <div className="ml-3">
@@ -268,7 +275,7 @@ export default function RideAccessibilityOptions({
               id={`${prefix}visualSchedule`}
               name="visualSchedule"
               checked={formData.visualSchedule || false}
-              onChange={handleChange}
+              onChange={onChange}
               className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
             />
             <div className="ml-3">
@@ -288,7 +295,7 @@ export default function RideAccessibilityOptions({
               id={`${prefix}assistanceAnimal`}
               name="assistanceAnimal"
               checked={formData.assistanceAnimal || false}
-              onChange={handleChange}
+              onChange={onChange}
               className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
             />
             <div className="ml-3">
@@ -308,7 +315,7 @@ export default function RideAccessibilityOptions({
               id={`${prefix}familiarDriverOnly`}
               name="familiarDriverOnly"
               checked={formData.familiarDriverOnly || false}
-              onChange={handleChange}
+              onChange={onChange}
               className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
             />
             <div className="ml-3">
@@ -328,7 +335,7 @@ export default function RideAccessibilityOptions({
               id={`${prefix}escortRequired`}
               name="escortRequired"
               checked={formData.escortRequired || false}
-              onChange={handleChange}
+              onChange={onChange}
               className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
             />
             <div className="ml-3">
@@ -348,7 +355,7 @@ export default function RideAccessibilityOptions({
               id={`${prefix}signLanguageRequired`}
               name="signLanguageRequired"
               checked={formData.signLanguageRequired || false}
-              onChange={handleChange}
+              onChange={onChange}
               className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
             />
             <div className="ml-3">
@@ -368,7 +375,7 @@ export default function RideAccessibilityOptions({
               id={`${prefix}textOnlyCommunication`}
               name="textOnlyCommunication"
               checked={formData.textOnlyCommunication || false}
-              onChange={handleChange}
+              onChange={onChange}
               className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
             />
             <div className="ml-3">
@@ -388,7 +395,7 @@ export default function RideAccessibilityOptions({
               id={`${prefix}medicationOnBoard`}
               name="medicationOnBoard"
               checked={formData.medicationOnBoard || false}
-              onChange={handleChange}
+              onChange={onChange}
               className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
             />
             <div className="ml-3">

@@ -29,8 +29,8 @@ export default function HowItWorks() {
         {/* For Care Companies */}
         <section className="mb-16">
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-blue-900 mb-3">For Care Companies</h2>
-            <p className="text-gray-600">Book accessible transport for your residents in 4 simple steps</p>
+            <h2 className="text-3xl font-bold text-blue-900 mb-3">For Care Companies and Businesses</h2>
+            <p className="text-gray-600">Book accessible transport for your residents and patients in 4 simple steps</p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -58,7 +58,7 @@ export default function HowItWorks() {
                 <h3 className="text-xl font-semibold text-gray-900">Book a Journey</h3>
               </div>
               <p className="text-gray-600">
-                Enter pickup/dropoff details, accessibility needs, and passenger requirements. Choose between instant or advanced bookings.
+                Enter pickup/dropoff details, accessibility needs, and passenger requirements. Create repeat journeys and block book trips.
               </p>
             </div>
 
@@ -69,10 +69,10 @@ export default function HowItWorks() {
               </div>
               <div className="flex items-center gap-2 mb-3">
                 <Search className="w-6 h-6 text-purple-600" />
-                <h3 className="text-xl font-semibold text-gray-900">Review Bids</h3>
+                <h3 className="text-xl font-semibold text-gray-900">Review Quotes</h3>
               </div>
               <p className="text-gray-600">
-                For advanced bookings, qualified drivers bid on your job. Compare prices, ratings, and driver profiles to choose the best fit.
+                For all bookings, qualified drivers bid/quote on your job. Compare prices, ratings, and driver profiles to choose the best fit, the earlier you submit your booking the best chance you have of comparible prices
               </p>
             </div>
 
@@ -92,76 +92,146 @@ export default function HowItWorks() {
           </div>
         </section>
 
-        {/* Booking Types */}
+          {/* For public users */}
         <section className="mb-16">
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-blue-900 mb-3">Two Types of Bookings</h2>
-            <p className="text-gray-600">Choose the right option for your needs</p>
+            <h2 className="text-3xl font-bold text-blue-900 mb-3">For the Public</h2>
+            <p className="text-gray-600">Book accessible transport for yourself or family members in 4 simple steps</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Step 1 */}
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mb-4">
+                <span className="text-2xl font-bold text-blue-600">1</span>
+              </div>
+              <div className="flex items-center gap-2 mb-3">
+                <Users className="w-6 h-6 text-blue-600" />
+                <h3 className="text-xl font-semibold text-gray-900">Sign Up</h3>
+              </div>
+              <p className="text-gray-600">
+                Create your Personal account, Signup using your Google Login credentials.
+              </p>
+            </div>
+
+            {/* Step 2 */}
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="bg-green-100 w-12 h-12 rounded-full flex items-center justify-center mb-4">
+                <span className="text-2xl font-bold text-green-600">2</span>
+              </div>
+              <div className="flex items-center gap-2 mb-3">
+                <Calendar className="w-6 h-6 text-green-600" />
+                <h3 className="text-xl font-semibold text-gray-900">Book a Journey</h3>
+              </div>
+              <p className="text-gray-600">
+                Enter pickup/dropoff details, accessibility needs, and passenger requirements. 
+              </p>
+            </div>
+
+            {/* Step 3 */}
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="bg-purple-100 w-12 h-12 rounded-full flex items-center justify-center mb-4">
+                <span className="text-2xl font-bold text-purple-600">3</span>
+              </div>
+              <div className="flex items-center gap-2 mb-3">
+                <Search className="w-6 h-6 text-purple-600" />
+                <h3 className="text-xl font-semibold text-gray-900">Review Quotes</h3>
+              </div>
+              <p className="text-gray-600">
+                For all bookings, qualified drivers bid/quote on your job. Compare prices, ratings, and driver profiles to choose the best fit, the earlier you submit your booking the best chance you have of comparible prices
+              </p>
+            </div>
+
+            {/* Step 4 */}
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="bg-orange-100 w-12 h-12 rounded-full flex items-center justify-center mb-4">
+                <span className="text-2xl font-bold text-orange-600">4</span>
+              </div>
+              <div className="flex items-center gap-2 mb-3">
+                <CheckCircle className="w-6 h-6 text-orange-600" />
+                <h3 className="text-xl font-semibold text-gray-900">Accept & Track</h3>
+              </div>
+              <p className="text-gray-600">
+                Accept your preferred driver. Get confirmation, track the journey, and maintain full audit trails for CQC compliance.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        
+        <section className="mb-16">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-blue-900 mb-3">More about NEAT</h2>
+            <p className="text-gray-600">A brief overview of the App</p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-8">
-            {/* Advanced Bookings */}
+           
             <div className="bg-gradient-to-br from-blue-50 to-white rounded-lg shadow-md p-8 border-2 border-blue-200">
               <div className="flex items-center gap-3 mb-4">
                 <Calendar className="w-8 h-8 text-blue-600" />
-                <h3 className="text-2xl font-bold text-blue-900">Advanced Bookings</h3>
+                <h3 className="text-2xl font-bold text-blue-900">How Pricing Works</h3>
               </div>
               <p className="text-gray-700 mb-4">
-                <strong>48+ hours in advance</strong>
+                <strong>Completely Free to use</strong>
               </p>
               <ul className="space-y-3">
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Drivers compete by submitting bids</span>
+                  <span className="text-gray-700">Drivers compete by submitting price estimates</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Compare prices and driver profiles</span>
+                  <span className="text-gray-700">Earlier submissions give more drivers time to respond</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Choose the driver that best fits your needs</span>
+                  <span className="text-gray-700">Compare prices, ratings, and driver profiles</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Lower prices due to advance planning</span>
+                  <span className="text-gray-700">Choose the best fit for your needs and budget</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Guaranteed driver availability</span>
+                  <span className="text-gray-700">Transparent - no hidden fees or surge pricing</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span className="text-gray-700">Fair rates set by independent drivers</span>
                 </li>
               </ul>
             </div>
 
-            {/* Instant Bookings */}
+            
             <div className="bg-gradient-to-br from-orange-50 to-white rounded-lg shadow-md p-8 border-2 border-orange-200">
               <div className="flex items-center gap-3 mb-4">
                 <Clock className="w-8 h-8 text-orange-600" />
-                <h3 className="text-2xl font-bold text-orange-900">Instant Bookings</h3>
+                <h3 className="text-2xl font-bold text-orange-900">What Makes Us Different</h3>
               </div>
               <p className="text-gray-700 mb-4">
-                <strong>Within 48 hours</strong>
+                <strong>Built from experience </strong>
               </p>
               <ul className="space-y-3">
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">For urgent transport needs</span>
+                  <span className="text-gray-700">We're a marketplace, not a taxi company</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Available drivers can accept immediately</span>
+                  <span className="text-gray-700">Drivers are independent contractors who set their rates</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">First-come, first-served basis</span>
+                  <span className="text-gray-700">No exploitative pricing or commission cuts.</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Transparent pricing shown upfront</span>
+                  <span className="text-gray-700">CQC-compliant audit trails included</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">Quick confirmation</span>
+                  <span className="text-gray-700">Driver verification and passenger safety first</span>
                 </li>
               </ul>
             </div>
@@ -194,7 +264,7 @@ export default function HowItWorks() {
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-3 text-center">Browse & Bid</h3>
               <p className="text-gray-600 text-center">
-                See available jobs that match your vehicle and capabilities. Bid competitively on advanced bookings or accept instant jobs.
+                See available jobs that match your vehicle and capabilities. Submit your approximate price, this will be matched against other suitable vehicles, availability and distance.
               </p>
             </div>
 
@@ -276,13 +346,13 @@ export default function HowItWorks() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href="/auth/signup"
+              href="/"
               className="bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold hover:bg-blue-50 transition shadow-lg"
             >
               Sign Up as Care Company
             </Link>
             <Link
-              href="/auth/signup"
+              href="/"
               className="bg-blue-500 text-white px-8 py-4 rounded-lg font-semibold hover:bg-blue-400 transition border-2 border-white"
             >
               Register as Driver

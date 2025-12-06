@@ -18,8 +18,7 @@ export default function AddAreaForm() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-//      console.log('🚀 Submitting to:', '/api/admin/areas/add');
-//   console.log('📦 Data:', formData);
+
 
     try {
       const response = await fetch('/api/admin/areas/add', {

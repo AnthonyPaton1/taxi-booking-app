@@ -126,7 +126,7 @@ export default async function AvailableBookingsPage() {
     distance: match.distance,
   }));
 
-  console.log(`✅ Found ${matchedBookings.length} matched bookings out of ${availableBookings.length} total`);
+ 
 
   return (
     <AvailableBookingsClient

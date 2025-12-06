@@ -32,11 +32,11 @@ export default async function PublicDashboardPage() {
 
   const [activeBookings, awaitingAction, pastBookings] = await Promise.all([
     // Active/upcoming bookings
-    prisma.advancedBooking.findMany({
+    prisma.booking.findMany({
       where: {
         createdById: user.id,
         pickupTime: { gte: today },
-        status: { in: ["OPEN", "ACCEPTED", "SCHEDULED"] },
+        status: { in: ["PENDING", "BID_ACCEPTED", "ACCEPTED", "IN_PROGRESS"] },
       },
       include: {
         accessibilityProfile: true,
@@ -44,7 +44,15 @@ export default async function PublicDashboardPage() {
           where: { status: "PENDING" },
           include: {
             driver: {
-              select: { name: true, vehicleType: true, phone: true },
+              include: {
+                user: {
+                  select: { 
+                    name: true, 
+                    phone: true, 
+                    email: true 
+                  }
+                }
+              }
             },
           },
           orderBy: { amountCents: "asc" },
@@ -52,7 +60,15 @@ export default async function PublicDashboardPage() {
         acceptedBid: {
           include: {
             driver: {
-              select: { name: true, vehicleType: true, phone: true },
+              include: {
+                user: {
+                  select: { 
+                    name: true, 
+                    phone: true, 
+                    email: true 
+                  }
+                }
+              }
             },
           },
         },
@@ -62,19 +78,19 @@ export default async function PublicDashboardPage() {
     }),
 
     // Bookings with bids needing review
-    prisma.advancedBooking.count({
+    prisma.booking.count({
       where: {
         createdById: user.id,
-        status: "OPEN",
-        bids: { some: {} },
+        status: "PENDING",
+        bids: { some: { status: "PENDING" } },
       },
     }),
 
     // Past bookings
-    prisma.advancedBooking.count({
+    prisma.booking.count({
       where: {
         createdById: user.id,
-        status: { in: ["COMPLETED", "CANCELED", "CLOSED"] },
+        status: { in: ["COMPLETED", "CANCELED"] },
       },
     }),
   ]);

@@ -4,6 +4,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/db";
+import { matchDriverToBookingsCached } from '@/lib/matching/cached-matching-algorithm';
 import { sanitizeBookingData } from "@/lib/validation";
 
 export async function createPublicBooking(formData) {
@@ -28,7 +29,16 @@ export async function createPublicBooking(formData) {
       return { success: false, error: "Missing pickup or dropoff location" };
     }
 
-    // 3. Normalize times
+    // 3. Validate coordinates are present
+    if (!sanitizedData.pickupLat || !sanitizedData.pickupLng) {
+      return { success: false, error: "Pickup location must have valid coordinates" };
+    }
+
+    if (!sanitizedData.dropoffLat || !sanitizedData.dropoffLng) {
+      return { success: false, error: "Dropoff location must have valid coordinates" };
+    }
+
+    // 4. Normalize times
     const pickupTime = new Date(sanitizedData.pickupTime);
     if (isNaN(pickupTime.getTime())) {
       return { success: false, error: "Invalid pickup time" };
@@ -38,109 +48,151 @@ export async function createPublicBooking(formData) {
       ? new Date(sanitizedData.returnTime)
       : null;
 
-    // 4. Decide booking type (INSTANT = today, ADVANCED = future)
-    const todayStr = new Date().toISOString().split("T")[0];
-    const isInstant = sanitizedData.pickupDate === todayStr;
+    // 5. Vehicle type mapping (same logic as manager)
+    const vehicleTypeMap = {
+      'wav': 'SIDE_LOADING_WAV',
+      'car': 'STANDARD_CAR',
+      'either': 'STANDARD_CAR',
+      'standard': 'STANDARD_CAR',
+      'large': 'LARGE_CAR',
+      'STANDARD_CAR': 'STANDARD_CAR',
+      'LARGE_CAR': 'LARGE_CAR',
+      'SIDE_LOADING_WAV': 'SIDE_LOADING_WAV',
+      'REAR_LOADING_WAV': 'REAR_LOADING_WAV',
+      'DOUBLE_WAV': 'DOUBLE_WAV',
+      'MINIBUS_STANDARD': 'MINIBUS_STANDARD',
+      'MINIBUS_ACCESSIBLE': 'MINIBUS_ACCESSIBLE',
+    };
 
-    // 5. Create booking in transaction
+    const vehicleType = sanitizedData.vehicleType || 'either';
+    let finalVehicleType = vehicleTypeMap[vehicleType] || 'STANDARD_CAR';
+
+    // Smart logic: if wheelchairs but they said "car", upgrade to WAV
+    if (sanitizedData.wheelchairUsers > 0 && finalVehicleType === 'STANDARD_CAR') {
+      if (sanitizedData.wheelchairConfig?.requiresDoubleWAV || sanitizedData.wheelchairUsers >= 2) {
+        finalVehicleType = 'DOUBLE_WAV';
+      } else if (sanitizedData.wheelchairConfig?.requiresRearLoading) {
+        finalVehicleType = 'REAR_LOADING_WAV';
+      } else {
+        finalVehicleType = 'SIDE_LOADING_WAV';
+      }
+    }
+
+    // 6. Create booking in transaction
     const result = await prisma.$transaction(async (tx) => {
-      // Step 1: Create AccessibilityProfile (using sanitized data)
+      // Step 1: Create AccessibilityProfile
       const accessibilityProfile = await tx.accessibilityProfile.create({
         data: {
-          // Mobility
+          vehicleClassRequired: finalVehicleType,
           
+          // Passenger details
+          ambulatoryPassengers: parseInt(sanitizedData.passengerCount) || 1,
+          wheelchairUsersStaySeated: parseInt(sanitizedData.wheelchairUsers) || 0,
+          wheelchairUsersCanTransfer: 0,
+          carerPresent: sanitizedData.carerPresent || false,
+          escortRequired: sanitizedData.escortRequired || false,
+          
+          // Mobility
           highRoof: sanitizedData.highRoof || false,
           seatTransferHelp: sanitizedData.seatTransferHelp || false,
           mobilityAidStorage: sanitizedData.mobilityAidStorage || false,
           electricScooterStorage: sanitizedData.electricScooterStorage || false,
 
-          // Passenger details
-ambulatoryPassengers: Number(sanitizedData.passengerCount) || 1,             wheelchairUsersStaySeated: Number(sanitizedData.wheelchairUsers) || 0,
-wheelchairUsersCanTransfer: 0,
-          ageOfPassenger: sanitizedData.ageOfPassenger || null,
-          carerPresent: sanitizedData.carerPresent || false,
-          escortRequired: sanitizedData.escortRequired || false,
-
           // Sensory
           quietEnvironment: sanitizedData.quietEnvironment || false,
           noConversation: sanitizedData.noConversation || false,
           noScents: sanitizedData.noScents || false,
-          specificMusic: sanitizedData.specificMusic || null, // SANITIZED
           visualSchedule: sanitizedData.visualSchedule || false,
-
+          specificMusic: sanitizedData.specificMusic || null,
+          
           // Communication
           signLanguageRequired: sanitizedData.signLanguageRequired || false,
           textOnlyCommunication: sanitizedData.textOnlyCommunication || false,
-          preferredLanguage: sanitizedData.preferredLanguage || null, // SANITIZED
+          preferredLanguage: sanitizedData.preferredLanguage || null,
           translationSupport: sanitizedData.translationSupport || false,
-
+          
           // Special requirements
           assistanceRequired: sanitizedData.assistanceRequired || false,
           assistanceAnimal: sanitizedData.assistanceAnimal || false,
           familiarDriverOnly: sanitizedData.familiarDriverOnly || false,
           femaleDriverOnly: sanitizedData.femaleDriverOnly || false,
           nonWAVvehicle: sanitizedData.nonWAVvehicle || false,
-
+          
           // Health
           medicationOnBoard: sanitizedData.medicationOnBoard || false,
-          medicalConditions: sanitizedData.medicalConditions || null, // SANITIZED
+          medicalConditions: sanitizedData.medicalConditions || null,
           firstAidTrained: sanitizedData.firstAidTrained || false,
           conditionAwareness: sanitizedData.conditionAwareness || false,
-
+          
           // Additional
-          additionalNeeds: sanitizedData.additionalNeeds || null, // SANITIZED
+          additionalNeeds: sanitizedData.additionalNeeds || null,
         },
       });
 
-      // Step 2: Create booking (Instant or Advanced)
-      let booking;
-
-      if (isInstant) {
-        booking = await tx.instantBooking.create({
-          data: {
-            createdById: session.user.id,
-            pickupTime,
-            returnTime,
-            pickupLocation: sanitizedData.pickupLocation, // SANITIZED
-            dropoffLocation: sanitizedData.dropoffLocation, // SANITIZED
-            initials: sanitizedData.initials || [], // Array of passenger initials
-            status: "PENDING",
-            accessibilityProfileId: accessibilityProfile.id,
+      // Step 2: Create Booking
+      const booking = await tx.booking.create({
+        data: {
+          status: "PENDING",
+          
+          // Locations with coordinates
+          pickupLocation: sanitizedData.pickupLocation,
+          pickupLatitude: sanitizedData.pickupLat,
+          pickupLongitude: sanitizedData.pickupLng,
+          
+          dropoffLocation: sanitizedData.dropoffLocation,
+          dropoffLatitude: sanitizedData.dropoffLat,
+          dropoffLongitude: sanitizedData.dropoffLng,
+          
+          pickupTime: pickupTime,
+          returnTime: returnTime,
+          initials: sanitizedData.initials || [],
+          
+          // Link to accessibility profile
+          accessibilityProfile: {
+            connect: { id: accessibilityProfile.id },
           },
-        });
-      } else {
-        // Calculate bid deadline (e.g., 24 hours before pickup)
-        const bidDeadline = new Date(pickupTime);
-        bidDeadline.setHours(bidDeadline.getHours() - 24);
+          
+          // Visibility for public bookings
+          visibility: "PUBLIC",
+          
+          // Link to user (no business for public users)
+          createdBy: { connect: { id: session.user.id } },
+        },
+      });
 
-        booking = await tx.advancedBooking.create({
-          data: {
-            createdById: session.user.id,
-            pickupTime,
-            returnTime,
-            pickupLocation: sanitizedData.pickupLocation, // SANITIZED
-            dropoffLocation: sanitizedData.dropoffLocation, // SANITIZED
-            initials: sanitizedData.initials || [],
-            status: "OPEN",
-            visibility: "PUBLIC", // Public users create public bookings
-            bidDeadline,
-            accessibilityProfileId: accessibilityProfile.id,
-          },
-        });
-      }
-
-      return { booking, type: isInstant ? "INSTANT" : "ADVANCED" };
+      return { booking, accessibilityProfile };
     });
 
-    console.log(`✅ ${result.type} booking created:`, result.booking.id);
+    console.log(`✅ Public booking created:`, result.booking.id);
+
+    try {
+  const matchedDrivers = await matchDriverToBookingsCached(result.booking.id);
+  
+  if (matchedDrivers.length > 0) {
+    console.log(`✅ Found ${matchedDrivers.length} matching drivers for public booking`);
+    console.log('Top 3 matches:', matchedDrivers.slice(0, 3).map(d => ({
+      name: d.name,
+      score: d.matchScore,
+      distance: d.distance?.toFixed(1) + ' miles'
+    })));
+  }
+} catch (matchError) {
+  console.error('❌ Matcher error:', matchError.message);
+}
+
 
     return {
       success: true,
       bookingId: result.booking.id,
-      type: result.type,
+      message: "Booking created successfully. Drivers are being notified.",
+      vehicleType: finalVehicleType,
+      coordinates: {
+        pickup: { lat: sanitizedData.pickupLat, lng: sanitizedData.pickupLng },
+        dropoff: { lat: sanitizedData.dropoffLat, lng: sanitizedData.dropoffLng }
+      }
     };
   } catch (error) {
-    console.error("❌ Error creating booking:", error);
+    console.error("❌ Error creating public booking:", error);
     return {
       success: false,
       error: error.message || "Failed to create booking",

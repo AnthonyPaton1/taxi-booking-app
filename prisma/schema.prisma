@@ -217,6 +217,14 @@ model Driver {
   accessibilityProfile      AccessibilityProfile @relation("DriverAccessibility", fields: [accessibilityProfileId], references: [id], onDelete: Cascade)
   user                      User                 @relation("UserDriver", fields: [userId], references: [id], onDelete: Cascade)
   compliance                DriverCompliance?    @relation("DriverComplianceRelation")
+    // Subscription fields
+  isSubscribed          Boolean   @default(false)
+  subscriptionTier      String    @default("STANDARD") // FOUNDING, STANDARD, SILVER, GOLD, PLATINUM
+  subscriptionStartDate DateTime?
+  subscriptionExpiresAt DateTime?
+  paypalSubscriptionId  String?   @unique
+  paypalPlanId          String?
+  lastPaymentDate       DateTime?
 
   @@index([approved, suspended, deletedAt, vehicleClass])
   @@index([baseLat, baseLng])
@@ -247,6 +255,8 @@ model DriverCompliance {
   nextDbsCheckDue             DateTime?
   deletedAt                   DateTime?
   driver                      Driver    @relation("DriverComplianceRelation", fields: [driverId], references: [id], onDelete: Cascade)
+
+
 
   @@index([driverId])
   @@index([nextDbsCheckDue, deletedAt])

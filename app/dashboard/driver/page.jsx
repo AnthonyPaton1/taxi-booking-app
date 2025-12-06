@@ -8,7 +8,8 @@ import DriverDashboardClient from "@/components/dashboard/driver/DriverDashboard
 import dynamic from 'next/dynamic';
 import { getDriverStats } from "@/app/actions/driver/getDriverProfile";
 import { getDriverBookingsForToday } from "@/app/actions/driver/getDriverBookings";
-import { getAvailableBookings } from "@/app/actions/bookings/getBookings";  
+import { getAvailableBookings } from "@/app/actions/bookings/getBookings"; 
+import SubscriptionBadge from "@/components/dashboard/driver/SubscriptionBadge"; 
 
 const DriverOnboardingForm = dynamic(
   () => import('@/components/forms/driver/DriverOnboardingForm'),
@@ -28,22 +29,22 @@ export default async function DriverDashboardPage() {
     redirect("/login");
   }
 
-  // Fetch user with driver profile
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    include: {
-      driver: {
-        include: {
-          accessibilityProfile: true,
-          compliance: true,
-        },
+// Fetch user with driver profile
+const user = await prisma.user.findUnique({
+  where: { email: session.user.email },
+  include: {
+    driver: {
+      include: {
+        accessibilityProfile: true,
+        compliance: true,
       },
     },
-  });
+  },
+});
 
-  if (!user) {
-    redirect("/auth/login");
-  }
+if (!user) {
+  redirect("/auth/login");
+}
 
   const hasOnboarded = !!user.driver;
 
@@ -51,7 +52,7 @@ export default async function DriverDashboardPage() {
     return <DriverOnboardingForm />;
   }
 
-// app/dashboard/driver/page.jsx
+
 
 const recentBids = await prisma.bid.findMany({
   where: {
@@ -80,7 +81,8 @@ const recentBids = await prisma.bid.findMany({
     getAvailableBookings(),  
   ]);
 
-  return (
+  return (<>
+    
     <DriverDashboardClient
       user={user}
       driver={user.driver}
@@ -88,6 +90,8 @@ const recentBids = await prisma.bid.findMany({
       todaysBookings={todaysBookings.success ? todaysBookings.bookings : []}  
       availableBookings={availableBookingsResult.success ? availableBookingsResult.bookings : []}  
       recentBids={recentBids}
-    />
+      />
+      <SubscriptionBadge driver={user.driver} />
+      </>
   );
 }

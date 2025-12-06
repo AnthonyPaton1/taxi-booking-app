@@ -26,7 +26,7 @@ export default async function PublicHistoryPage() {
   }
 
   // Get all bookings (past and present)
-  const bookings = await prisma.advancedBooking.findMany({
+  const bookings = await prisma.booking.findMany({
     where: {
       createdById: user.id,
     },
@@ -44,7 +44,7 @@ export default async function PublicHistoryPage() {
           driver: {
             select: {
               name: true,
-              vehicleType: true,
+              vehicleClass: true,
             },
           },
         },

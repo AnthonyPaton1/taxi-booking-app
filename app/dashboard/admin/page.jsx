@@ -62,6 +62,7 @@ export default async function AdminDashboardPage() {
       users: {
         where: {
           role: "COORDINATOR",
+          businessId: user.businessId,
         },
         select: {
           id: true,
@@ -98,6 +99,7 @@ export default async function AdminDashboardPage() {
   const managers = await prisma.user.findMany({
     where: {
       role: "MANAGER",
+      businessId: user.businessId,
     },
     include: {
       area: {
@@ -133,7 +135,7 @@ export default async function AdminDashboardPage() {
     },
   });
 
-  // ✅ Get total bookings stats (unified)
+  //  Get total bookings stats (unified)
   const bookingsCount = await prisma.booking.count({
     where: {
       deletedAt: null,
@@ -149,7 +151,7 @@ export default async function AdminDashboardPage() {
     totalManagers: managers.length,
     totalHouses: houses.length,
     totalResidents: houses.reduce((sum, h) => sum + h.residents.length, 0),
-    totalBookings: bookingsCount,  // ✅ Single count
+    totalBookings: bookingsCount,  // Single count
     feedbackCount,
   };
 

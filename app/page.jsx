@@ -64,12 +64,12 @@ const HomePage = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-blue-800">
             <CalendarDays size={20} />
-            Book in Advance or Instantly
+            Booking is easy
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          Book journeys 48+ hours ahead with competitive driver bidding, or use Instant Bookings for urgent transport needs within 48 hours. Perfect for regular appointments or last-minute trips.
-        </CardContent>
+       <CardContent>
+  Qualified drivers submit competitive bids for your journey. Compare prices, ratings, and vehicle types to choose the best fit for your needs. No hidden fees, no surprises.
+</CardContent>
       </Card>
 
       <Card className="hover:shadow-xl transition-shadow duration-300">
@@ -79,9 +79,9 @@ const HomePage = () => {
             Transparent Pricing
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          For advanced bookings, qualified drivers submit competitive bids. Compare prices, ratings, and vehicle types to choose the best fit for your needs. No hidden fees, no surprises.
-        </CardContent>
+       <CardContent>
+  Book transport for any date and time - whether it's tomorrow or next month. Drivers compete to offer you the best price and service. Early bookings typically receive more bids, giving you better choice and value.
+</CardContent>
       </Card>
 
       <Card className="hover:shadow-xl transition-shadow duration-300">
