@@ -2,8 +2,6 @@
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import { roleAccess } from "@/lib/roles";
-// REMOVED: Rate limiting doesn't work in Edge Runtime
-// import { rateLimit, getClientIp } from "@/lib/rateLimit";
 
 const protectedRoutes = {
   "/dashboard/admin": roleAccess.admin,
@@ -11,6 +9,7 @@ const protectedRoutes = {
   "/dashboard/driver": roleAccess.driver,
   "/dashboard/coordinator": roleAccess.coordinator,
   "/dashboard/public": roleAccess.public,
+  "/house/dashboard": ["HOUSE_STAFF"],
   "/dashboard/super-admin": ["SUPER_ADMIN"]
 };
 
@@ -24,7 +23,7 @@ const protectedApiRoutes = {
   "/api/bids": ["DRIVER", "MANAGER", "ADMIN"],
   "/api/rides": ["ADMIN", "MANAGER", "COORDINATOR", "DRIVER"],
   "/api/residents": ["ADMIN", "MANAGER", "COORDINATOR"],
-  "/api/incidents": ["ADMIN", "MANAGER", "COORDINATOR", "DRIVER"],
+  "/api/incidents": ["ADMIN", "MANAGER", "COORDINATOR", "DRIVER", "HOUSE_STAFF"], // UPDATED: Allow house staff
   "/api/invite": roleAccess.admin,
   "/api/onboarding": ["ADMIN", "DRIVER", "MANAGER", "COORDINATOR"],
   "/api/edit-details": ["ADMIN", "COORDINATOR"],
@@ -71,8 +70,30 @@ function applySecurityHeaders(response) {
 export async function middleware(req) {
   const { pathname } = req.nextUrl;
   const isApiRoute = pathname.startsWith('/api');
+  const isHouseRoute = pathname.startsWith('/house');
 
-  // Get token
+  // NEW: Handle house routes separately
+  if (isHouseRoute) {
+    // Allow access to login page
+    if (pathname === '/house/login') {
+      const response = NextResponse.next();
+      return applySecurityHeaders(response);
+    }
+
+    // Check for house session cookie
+    const houseSession = req.cookies.get('house-session');
+    
+    if (!houseSession) {
+      const response = NextResponse.redirect(new URL('/house/login', req.url));
+      return applySecurityHeaders(response);
+    }
+
+    // Allow through if house session exists
+    const response = NextResponse.next();
+    return applySecurityHeaders(response);
+  }
+
+  // Get token for user routes
   const token = await getToken({ 
     req, 
     secret: process.env.NEXTAUTH_SECRET
@@ -86,6 +107,31 @@ export async function middleware(req) {
   // Middleware runs on Edge Runtime which doesn't support Redis/ioredis
   
   if (isApiRoute) {
+    // Special handling for house API routes
+    if (pathname.startsWith('/api/house')) {
+      const houseSession = req.cookies.get('house-session');
+      
+      // Login route is public
+      if (pathname === '/api/house/login') {
+        const response = NextResponse.next();
+        return applySecurityHeaders(response);
+      }
+
+      // Other house API routes require session
+      if (!houseSession) {
+        return new NextResponse(
+          JSON.stringify({ success: false, error: 'Unauthorized' }),
+          {
+            status: 401,
+            headers: { 'Content-Type': 'application/json' }
+          }
+        );
+      }
+
+      const response = NextResponse.next();
+      return applySecurityHeaders(response);
+    }
+
     // No token = return 401 JSON (don't redirect)
     if (!token) {
       return new NextResponse(
@@ -161,11 +207,13 @@ export async function middleware(req) {
 export const config = {
   matcher: [
     "/dashboard/:path*",
+    "/house/:path*", 
     "/onboarding/driver",
     "/api/admin/:path*",
     "/api/coordinator/:path*",
     "/api/manager/:path*",
     "/api/driver/:path*",
+    "/api/house/:path*", 
     "/api/bookings/advanced/:path*",
     "/api/bookings/[id]/:path*",
     "/api/bids/:path*",

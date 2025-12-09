@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PostcodeInput } from "@/components/shared/PostcodeInput";
 import { toast } from "sonner";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 
 export default function AddHouseForm({
@@ -20,6 +20,7 @@ export default function AddHouseForm({
 }) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const [formData, setFormData] = useState({
     label: "",
@@ -27,6 +28,8 @@ export default function AddHouseForm({
     city: "",
     postcode: "",
     notes: "",
+    password: "", // NEW
+    confirmPassword: "", // NEW
   });
 
   const handleChange = (e) => {
@@ -41,8 +44,19 @@ export default function AddHouseForm({
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.label || !formData.line1 || !formData.city || !formData.postcode) {
+    if (!formData.label || !formData.line1 || !formData.city || !formData.postcode || !formData.password) {
       toast.error("Please complete all required fields");
+      return;
+    }
+
+    // Validate password
+    if (formData.password.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("Passwords do not match");
       return;
     }
 
@@ -74,16 +88,18 @@ export default function AddHouseForm({
 
       // Step 2: Create house
       const payload = {
-        ...formData,
+        label: formData.label,
+        line1: formData.line1,
+        city: formData.city,
         postcode: postcodeData.coordinates.postcode, // Normalized
+        notes: formData.notes,
+        password: formData.password, // NEW: include password
         lat: postcodeData.coordinates.lat,
         lng: postcodeData.coordinates.lng,
         businessId,
         managerId,
         areaId,
       };
-
-    
 
       const response = await fetch("/api/manager/houses", {
         method: "POST",
@@ -191,6 +207,65 @@ export default function AddHouseForm({
             required
             disabled={submitting}
           />
+        </div>
+
+        {/* NEW: House Password Section */}
+        <div className="border-t border-gray-200 pt-4 mt-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            House Staff Access
+          </h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Set a password for read-only staff access at this house
+          </p>
+
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                House Password <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="e.g., House123"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  disabled={submitting}
+                  minLength={6}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  disabled={submitting}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Minimum 6 characters (e.g., "House123" or "Spring24")
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                Confirm Password <span className="text-red-500">*</span>
+              </label>
+              <Input
+                id="confirmPassword"
+                name="confirmPassword"
+                type={showPassword ? "text" : "password"}
+                placeholder="Re-enter password"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                required
+                disabled={submitting}
+                minLength={6}
+              />
+            </div>
+          </div>
         </div>
 
         <div>

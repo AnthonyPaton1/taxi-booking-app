@@ -7,6 +7,8 @@ import Link from "next/link";
 import IncidentFeedbackForm from "@/components/forms/incidentFeedbackForm";
 import { FileText, Building } from "lucide-react";
 import RecentTripsSection from "@/components/dashboard/RecentTripsSection";
+import { Key } from "lucide-react";
+import HousePasswordModal from "./HousePasswordModal";
 
 export default function ManagerDashboardClient({
   user,
@@ -330,20 +332,57 @@ const BookingCard = ({ booking }) => {
   );
 };
 
-// House Card
-const HouseCard = ({ house }) => (
-  <div className="border border-gray-200 rounded-lg p-4">
-    <h3 className="font-semibold text-gray-900">{house.label}</h3>
-    <p className="text-sm text-gray-600 mt-1">
-      {house.line1}, {house.city}
-    </p>
-    <p className="text-sm text-gray-800">{house.postcode}</p>
-    {house.area && (
-      <p className="text-xs text-gray-800 mt-2">Area: {house.area.name}</p>
-    )}
-    <p className="text-xs text-gray-800">Residents: {house.residents?.length || 0}</p>
-  </div>
-);
+const HouseCard = ({ house }) => {
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const handlePasswordSuccess = () => {
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 3000);
+  };
+
+  return (
+    <>
+      <div className="border border-gray-200 rounded-lg p-4 relative">
+        {/* Success message */}
+        {showSuccess && (
+          <div className="absolute top-2 right-2 bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
+            Password updated
+          </div>
+        )}
+
+        <div className="flex justify-between items-start mb-2">
+          <h3 className="font-semibold text-gray-900">{house.label}</h3>
+          <button
+            onClick={() => setIsPasswordModalOpen(true)}
+            className="text-gray-400 hover:text-blue-600 transition-colors"
+            title="Change house password"
+          >
+            <Key size={18} />
+          </button>
+        </div>
+
+        <p className="text-sm text-gray-600 mt-1">
+          {house.line1}, {house.city}
+        </p>
+        <p className="text-sm text-gray-800">{house.postcode}</p>
+        {house.area && (
+          <p className="text-xs text-gray-800 mt-2">Area: {house.area.name}</p>
+        )}
+        <p className="text-xs text-gray-800">
+          Residents: {house.residents?.length || 0}
+        </p>
+      </div>
+
+      <HousePasswordModal
+        house={house}
+        isOpen={isPasswordModalOpen}
+        onClose={() => setIsPasswordModalOpen(false)}
+        onSuccess={handlePasswordSuccess}
+      />
+    </>
+  );
+};
 
 // Client Date Component
 function ClientDate() {

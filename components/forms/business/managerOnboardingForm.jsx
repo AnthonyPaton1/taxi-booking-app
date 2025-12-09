@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PostcodeInput } from "@/components/shared/PostcodeInput";
 import { toast } from "sonner";
+import { Eye, EyeOff, Info } from "lucide-react";
 
 const OnboardingManager = ({ managerEmail, name, area }) => {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
+  const [showPasswords, setShowPasswords] = useState({});
 
   const [houses, setHouses] = useState([
     {
@@ -19,6 +21,9 @@ const OnboardingManager = ({ managerEmail, name, area }) => {
       city: "",
       postcode: "",
       notes: "",
+      username: "", 
+      password: "", 
+      confirmPassword: "", 
     },
   ]);
 
@@ -28,20 +33,96 @@ const OnboardingManager = ({ managerEmail, name, area }) => {
     setHouses(updated);
   };
 
+  const togglePasswordVisibility = (index) => {
+    setShowPasswords(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
+
   const addHouse = () => {
     setHouses([
       ...houses,
-      { label: "", line1: "", city: "", postcode: "", notes: "" },
+      { 
+        label: "", 
+        line1: "", 
+        city: "", 
+        postcode: "", 
+        notes: "",
+        username: "", // FIXED: was userName
+        password: "",
+        confirmPassword: "",
+      },
     ]);
   };
 
   const removeHouse = (index) => {
     setHouses(houses.filter((_, i) => i !== index));
+    const newShowPasswords = { ...showPasswords };
+    delete newShowPasswords[index];
+    setShowPasswords(newShowPasswords);
   };
 
-  const isValid = houses.every(
-    (h) => h.label && h.line1 && h.city && h.postcode
-  );
+  // NEW: Password validation helper
+  const validatePassword = (password) => {
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSpecialChar = /[!@#$%^&*]/.test(password);
+    
+    return password.length >= 8 && hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar;
+  };
+
+  // NEW: Username validation helper
+  const validateUsername = (username) => {
+    const isValidFormat = /^[a-z0-9-]+$/.test(username);
+    return username.length >= 6 && username.length <= 20 && isValidFormat;
+  };
+
+  // UPDATED: Enhanced validation
+  const validateHouses = () => {
+    // Check all required fields
+    const allFieldsComplete = houses.every(
+      (h) => h.label && h.line1 && h.city && h.postcode && h.username && h.password && h.confirmPassword
+    );
+
+    if (!allFieldsComplete) {
+      return { valid: false, error: "Please complete all required fields" };
+    }
+
+    // Check username and password requirements
+    for (let i = 0; i < houses.length; i++) {
+      const house = houses[i];
+      
+      // Validate username format
+      if (!validateUsername(house.username)) {
+        return { 
+          valid: false, 
+          error: `Property ${i + 1}: Username must be 6-20 characters (lowercase letters, numbers, hyphens only)`,
+          houseIndex: i
+        };
+      }
+      
+      // Validate password complexity
+      if (!validatePassword(house.password)) {
+        return { 
+          valid: false, 
+          error: `Property ${i + 1}: Password must be at least 8 characters with uppercase, lowercase, number, and special character`,
+          houseIndex: i
+        };
+      }
+
+      if (house.password !== house.confirmPassword) {
+        return { 
+          valid: false, 
+          error: `Property ${i + 1}: Passwords do not match`,
+          houseIndex: i
+        };
+      }
+    }
+
+    return { valid: true };
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -51,8 +132,20 @@ const OnboardingManager = ({ managerEmail, name, area }) => {
       return;
     }
 
-    if (!isValid) {
-      toast.error("Please complete all required fields.");
+    // Validate houses including passwords
+    const validation = validateHouses();
+    if (!validation.valid) {
+      toast.error(validation.error);
+      
+      // Scroll to invalid house if index provided
+      if (validation.houseIndex !== undefined) {
+        setTimeout(() => {
+          const houseCard = document.getElementById(`house-card-${validation.houseIndex}`);
+          if (houseCard) {
+            houseCard.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+        }, 100);
+      }
       return;
     }
     
@@ -75,14 +168,12 @@ const OnboardingManager = ({ managerEmail, name, area }) => {
 
         const postcodeData = await postcodeValidation.json();
 
-        // Check BOTH response.ok AND data.valid
         if (!postcodeValidation.ok || !postcodeData.valid) {
           toast.dismiss();
           toast.error(`Property ${i + 1}: ${postcodeData.error || "Postcode not found"}`, {
             duration: 5000,
           });
           
-          // Scroll to the invalid house postcode field
           setTimeout(() => {
             const postcodeField = document.getElementById(`house-postcode-${i}`);
             if (postcodeField) {
@@ -98,19 +189,22 @@ const OnboardingManager = ({ managerEmail, name, area }) => {
           return;
         }
 
-        // Add validated house with coordinates
         validatedHouses.push({
-          ...house,
-          postcode: postcodeData.coordinates.postcode, // Normalized
-          lat: postcodeData.coordinates.lat,            // Float
-          lng: postcodeData.coordinates.lng,            // Float
+          label: house.label,
+          line1: house.line1,
+          city: house.city,
+          postcode: postcodeData.coordinates.postcode,
+          notes: house.notes,
+          username: house.username, 
+          password: house.password,
+          lat: postcodeData.coordinates.lat,
+          lng: postcodeData.coordinates.lng,
         });
       }
 
       toast.dismiss();
-      toast.loading("Submitting houses...");
+      toast.loading("Setting up houses...");
 
-      // Step 2: Submit with validated houses
       const payload = { 
         managerEmail, 
         name, 
@@ -142,13 +236,14 @@ const OnboardingManager = ({ managerEmail, name, area }) => {
     }
   };
 
+  const isValid = validateHouses().valid;
+
   return (
     <div className="max-w-3xl mx-auto p-6 bg-white rounded-lg shadow">
       <h2 className="text-2xl font-bold text-blue-700 mb-6">
         Onboard Your Houses
       </h2>
 
-      {/* Show area for reference only */}
       <div className="mb-6 p-4 bg-blue-50 rounded-md">
         <p className="text-sm text-gray-700">
           <span className="font-semibold">Your Area:</span> {area || "Not specified"}
@@ -156,13 +251,13 @@ const OnboardingManager = ({ managerEmail, name, area }) => {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Houses Section */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-800">Properties</h3>
           
           {houses.map((house, i) => (
             <div
               key={i}
+              id={`house-card-${i}`}
               className="border p-4 rounded-md bg-gray-50 space-y-4"
             >
               <div className="flex justify-between items-center mb-2">
@@ -200,7 +295,6 @@ const OnboardingManager = ({ managerEmail, name, area }) => {
                 required
               />
               
-              {/* UPDATED POSTCODE INPUT */}
               <PostcodeInput
                 id={`house-postcode-${i}`}
                 value={house.postcode}
@@ -209,6 +303,83 @@ const OnboardingManager = ({ managerEmail, name, area }) => {
                 placeholder="e.g., SK3 0AA"
                 required
               />
+
+              {/* House Staff Access Section */}
+              <div className="border-t border-gray-300 pt-4 mt-4">
+                <div className="flex items-start gap-2 mb-3 bg-blue-50 p-3 rounded-md">
+                  <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-gray-700">
+                    <p className="font-semibold mb-1">House Staff Access</p>
+                    <p>Create login credentials for house staff to view daily and weekly bookings on a tablet. Staff will have read-only access.</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {/* Username field */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Username <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="text"
+                      placeholder="e.g., oakhouse-main, bigblue2024"
+                      value={house.username || ""}
+                      onChange={(e) => {
+                        const value = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+                        handleHouseChange(i, "username", value);
+                      }}
+                      required
+                      minLength={6}
+                      maxLength={20}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      6-20 characters: lowercase letters, numbers, and hyphens only
+                    </p>
+                  </div>
+
+                  {/* Password field */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Password <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <Input
+                        type={showPasswords[i] ? "text" : "password"}
+                        placeholder="Min 8 chars with uppercase, lowercase, number & symbol"
+                        value={house.password}
+                        onChange={(e) => handleHouseChange(i, "password", e.target.value)}
+                        required
+                        minLength={8}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => togglePasswordVisibility(i)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      >
+                        {showPasswords[i] ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      At least 8 characters with uppercase, lowercase, number, and special character (!@#$%^&*)
+                    </p>
+                  </div>
+
+                  {/* Confirm Password */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Confirm Password <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type={showPasswords[i] ? "text" : "password"}
+                      placeholder="Re-enter password"
+                      value={house.confirmPassword}
+                      onChange={(e) => handleHouseChange(i, "confirmPassword", e.target.value)}
+                      required
+                      minLength={8}
+                    />
+                  </div>
+                </div>
+              </div>
               
               <Textarea
                 placeholder="Notes (optional - any additional information)"

@@ -69,12 +69,12 @@ export default async function ManagerDashboardPage() {
     console.error("Failed to load recent trips:", recentTripsResult.error);
   }
 
-  // ✅ Get manager's bookings (unified)
+  // Get manager's bookings (unified)
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   const [upcomingBookings, pendingBids, completedCount] = await Promise.all([
-    // ✅ Upcoming bookings (unified)
+    //  Upcoming bookings (unified)
     prisma.booking.findMany({
       where: {
         createdById: user.id,
@@ -82,7 +82,7 @@ export default async function ManagerDashboardPage() {
           gte: today,
         },
         status: {
-          in: ["PENDING", "BID_ACCEPTED", "ACCEPTED"],  // ✅ Updated statuses
+          in: ["PENDING", "BID_ACCEPTED", "ACCEPTED"],  //  Updated statuses
         },
         deletedAt: null,
       },
@@ -130,11 +130,11 @@ export default async function ManagerDashboardPage() {
       take: 10,
     }),
 
-    // ✅ Count bookings needing attention (have bids but not accepted)
+    //  Count bookings needing attention (have bids but not accepted)
     prisma.booking.count({
       where: {
         createdById: user.id,
-        status: "PENDING",  // ✅ Changed from "OPEN"
+        status: "PENDING",  //  Changed from "OPEN"
         bids: {
           some: {},
         },
@@ -142,7 +142,7 @@ export default async function ManagerDashboardPage() {
       },
     }),
 
-    // ✅ Count completed bookings
+    //  Count completed bookings
     prisma.booking.count({
       where: {
         createdById: user.id,

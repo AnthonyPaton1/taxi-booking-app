@@ -4,16 +4,63 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/db";
 import { validateTextArea, sanitizePlainText } from "@/lib/validation";
+import { getHouseSession } from "@/lib/houseAuth"; // NEW: House session helper
 
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
+    // Check for either user session OR house session
+    const userSession = await getServerSession(authOptions);
+    const houseSession = await getHouseSession(request);
 
-    // Only drivers and managers can submit incidents
-    if (
-      !session ||
-      !["DRIVER", "MANAGER"].includes(session.user.role)
-    ) {
+    let userId = null;
+    let businessId = null;
+    let houseId = null;
+    let reportedBy = null;
+
+    // Authorization: Must be driver/manager OR valid house session
+    if (userSession && ["DRIVER", "MANAGER"].includes(userSession.user.role)) {
+      // User-based submission (existing logic)
+      const user = await prisma.user.findUnique({
+        where: { id: userSession.user.id },
+        select: {
+          id: true,
+          businessId: true,
+          areaId: true,
+        },
+      });
+
+      if (!user || !user.businessId) {
+        return NextResponse.json(
+          { success: false, error: "User not associated with a business" },
+          { status: 400 }
+        );
+      }
+
+      userId = user.id;
+      businessId = user.businessId;
+      reportedBy = userSession.user.role;
+    } else if (houseSession?.houseId) {
+      // House-based submission (NEW)
+      const house = await prisma.house.findUnique({
+        where: { id: houseSession.houseId },
+        select: {
+          id: true,
+          businessId: true,
+        },
+      });
+
+      if (!house) {
+        return NextResponse.json(
+          { success: false, error: "Invalid house session" },
+          { status: 401 }
+        );
+      }
+
+      houseId = house.id;
+      businessId = house.businessId;
+      reportedBy = "HOUSE_STAFF";
+    } else {
+      // No valid auth
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 }
@@ -31,7 +78,7 @@ export async function POST(request) {
       emergency,
       witnesses,
       image,
-      houseId,
+      houseId: bodyHouseId, // House ID from form (for drivers/managers)
     } = body;
 
     // ===== INPUT SANITIZATION & VALIDATION =====
@@ -82,31 +129,25 @@ export async function POST(request) {
       }
     }
 
-    // Get user's business for linking
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: {
-        id: true,
-        businessId: true,
-        areaId: true,
-      },
-    });
-
-    if (!user || !user.businessId) {
+    // For house staff, verify they can only report for their own house
+    if (reportedBy === "HOUSE_STAFF" && bodyHouseId && bodyHouseId !== houseId) {
       return NextResponse.json(
-        { success: false, error: "User not associated with a business" },
-        { status: 400 }
+        { success: false, error: "Cannot report incidents for other houses" },
+        { status: 403 }
       );
     }
+
+    // Determine final houseId (house staff use their session, users use form input)
+    const finalHouseId = houseId || bodyHouseId || null;
 
     // Determine if this is incident or feedback
     if (type === "INCIDENT") {
       // Create incident record with sanitized data
       const incident = await prisma.incident.create({
         data: {
-          userId: user.id,
-          businessId: user.businessId,
-          houseId: houseId || null,
+          userId: userId, // null for house staff
+          businessId: businessId,
+          houseId: finalHouseId,
           type: incidentType,
           description: sanitizedDescription,
           time: new Date(time),
@@ -115,6 +156,7 @@ export async function POST(request) {
           emergency: Boolean(emergency),
           image: sanitizedImage,
           evidenceUrl: sanitizedWitnesses,
+          reportedBy: reportedBy, // NEW: Track who reported it
         },
       });
 
@@ -124,10 +166,17 @@ export async function POST(request) {
         message: "Incident reported successfully",
       });
     } else {
-      // Create feedback record with sanitized data
+      // Feedback only available for user sessions (not house staff)
+      if (reportedBy === "HOUSE_STAFF") {
+        return NextResponse.json(
+          { success: false, error: "House staff can only report incidents" },
+          { status: 400 }
+        );
+      }
+
       const feedback = await prisma.tripFeedback.create({
         data: {
-          userId: user.id,
+          userId: userId,
           type: "NOTE",
           message: sanitizedDescription,
           resolved: false,

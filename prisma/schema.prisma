@@ -337,7 +337,7 @@ model House {
   postcode   String
   notes      String?
   internalId String     @unique
-  pin        String
+  password   String    //stored with bcrypt
   loginName  String     @unique
   lat        Float?
   lng        Float?
@@ -351,9 +351,21 @@ model House {
   manager    User       @relation(fields: [managerId], references: [id], onDelete: Cascade)
   incidents  Incident[]
   residents  Resident[]
+  sessions   HouseSession[]
 
   @@index([businessId, label])
   @@index([deletedAt])
+}
+
+model HouseSession {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  houseId   String
+  house     House    @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  
+  @@index([houseId])
 }
 
 model Resident {

@@ -11,7 +11,7 @@ import { Eye, EyeClosed } from "lucide-react";
 export default function LoginForm() {
   const searchParams = useSearchParams();
   const isTimeout = searchParams.get('timeout') === 'true';
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState(""); // CHANGED: email → identifier
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const router = useRouter();
@@ -33,8 +33,10 @@ export default function LoginForm() {
         router.push("/dashboard/manager");
       } else if (role === "DRIVER") {
         router.push("/dashboard/driver");
+      } else if (role === "HOUSE_STAFF") { // NEW: House staff redirect
+        router.push("/house/dashboard");
       } else {
-        router.push("/dashboard"); // fallback
+        router.push("/dashboard");
       }
     }
   }, [session, router]);
@@ -45,12 +47,12 @@ export default function LoginForm() {
 
     const res = await signIn("credentials", {
       redirect: false,
-      email,
+      identifier, // CHANGED: Pass identifier instead of email
       password,
     });
 
     if (res?.error) {
-      setError("Invalid email or password. Please try again.");
+      setError("Invalid credentials. Please try again.");
     }
   };
 
@@ -85,20 +87,24 @@ export default function LoginForm() {
         )}
 
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-            Email <span className="text-red-500">*</span>
+          <label htmlFor="identifier" className="block text-sm font-medium text-gray-700">
+            Email or Username <span className="text-red-500">*</span>
           </label>
           <input
-            id="email"
-            type="email"
+            id="identifier"
+            type="text" // CHANGED: email → text
             required
-            autoComplete="email"
+            autoComplete="username" // Works for both email and username
             aria-required="true"
-            aria-label="Email address"
+            aria-label="Email or username"
+            placeholder="your@email.com or username"
             className="w-full border p-2 rounded"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
           />
+          <p className="text-xs text-gray-500 mt-1">
+            Staff: use your house username • Others: use your email
+          </p>
         </div>
 
         <div>
@@ -138,7 +144,7 @@ export default function LoginForm() {
         <button
           type="submit"
           className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-          aria-label="Login with your email and password"
+          aria-label="Login with your credentials"
         >
           Login
         </button>

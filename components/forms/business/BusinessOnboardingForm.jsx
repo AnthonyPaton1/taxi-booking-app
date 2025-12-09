@@ -167,7 +167,7 @@ export default function BusinessOnboardingForm({ prefillData = {} }) {
 
     // Check if any filled coordinator is incomplete
     const hasIncompleteCoordinators = filledCoordinators.some(
-      (coord) => !coord.name || !coord.email || !coord.phone
+      (coord) => !coord.name || !coord.email || !coord.phone || !coord.area 
     );
 
     if (hasIncompleteCoordinators) {

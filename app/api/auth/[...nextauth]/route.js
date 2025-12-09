@@ -21,6 +21,8 @@ function getDashboardByRole(role) {
       return "/dashboard/coordinator";
     case "DRIVER":
       return "/dashboard/driver";
+    case "HOUSE_STAFF": // NEW
+      return "/house/dashboard";
     case "PUBLIC":
     default:
       return "/dashboard/public";
@@ -53,7 +55,7 @@ export const authOptions = {
       id: "credentials",
       name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "text" },
+        identifier: { label: "Email or Username", type: "text" }, // CHANGED: email → identifier
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
@@ -69,53 +71,106 @@ export const authOptions = {
           throw new Error("Too many login attempts. Please try again in 15 minutes.");
         }
 
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("Missing email or password");
+        if (!credentials?.identifier || !credentials?.password) {
+          throw new Error("Missing credentials");
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-          select: {
-            id: true,
-            email: true,
-            password: true,
-            role: true,
-            name: true,
-            businessId: true,
-            driverOnboarded: true,
-          },
-        });
+        const { identifier, password } = credentials;
 
-        if (!user || !user.password) {
-          // ✅ Track failed attempt
-          await simpleRateLimit(
-            `failed-login:${ip}:${credentials.email}`,
-            3,
-            900 // 15 minutes
-          );
-          throw new Error("Invalid credentials");
+        // NEW: Determine if identifier is email or username
+        const isEmail = identifier.includes("@");
+
+        if (isEmail) {
+          // EMAIL LOGIN - Regular users
+          const user = await prisma.user.findUnique({
+            where: { email: identifier },
+            select: {
+              id: true,
+              email: true,
+              password: true,
+              role: true,
+              name: true,
+              businessId: true,
+              driverOnboarded: true,
+              adminOnboarded: true,
+            },
+          });
+
+          if (!user || !user.password) {
+            await simpleRateLimit(
+              `failed-login:${ip}:${identifier}`,
+              3,
+              900
+            );
+            throw new Error("Invalid credentials");
+          }
+
+          const isValid = await bcrypt.compare(password, user.password);
+          if (!isValid) {
+            await simpleRateLimit(
+              `failed-login:${ip}:${identifier}`,
+              3,
+              900
+            );
+            throw new Error("Invalid credentials");
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            name: user.name,
+            businessId: user.businessId,
+            driverOnboarded: user.driverOnboarded,
+            adminOnboarded: user.adminOnboarded,
+          };
+        } else {
+          // USERNAME LOGIN - House staff
+          const house = await prisma.house.findUnique({
+            where: { 
+              loginName: identifier,
+              deletedAt: null,
+            },
+            select: {
+              id: true,
+              loginName: true,
+              password: true,
+              label: true,
+              businessId: true,
+            },
+          });
+
+          if (!house || !house.password) {
+            await simpleRateLimit(
+              `failed-login:${ip}:${identifier}`,
+              3,
+              900
+            );
+            throw new Error("Invalid credentials");
+          }
+
+          const isValid = await bcrypt.compare(password, house.password);
+          if (!isValid) {
+            await simpleRateLimit(
+              `failed-login:${ip}:${identifier}`,
+              3,
+              900
+            );
+            throw new Error("Invalid credentials");
+          }
+
+          // Return house as "user" object
+          return {
+            id: `house_${house.id}`, // Prefix to avoid collision with user IDs
+            email: null, // House staff don't have email
+            role: "HOUSE_STAFF",
+            name: house.label,
+            businessId: house.businessId,
+            houseId: house.id, // Store actual house ID
+            driverOnboarded: true, // Not applicable but prevents errors
+            adminOnboarded: true, // Not applicable but prevents errors
+          };
         }
-
-        const isValid = await bcrypt.compare(credentials.password, user.password);
-        if (!isValid) {
-          // ✅ Track failed attempt per email
-          await simpleRateLimit(
-            `failed-login:${ip}:${credentials.email}`,
-            3,
-            900
-          );
-          throw new Error("Invalid credentials");
-        }
-
-        // ✅ SUCCESSFUL LOGIN - Return all needed data (including driverOnboarded)
-        return {
-          id: user.id,
-          email: user.email,
-          role: user.role,
-          name: user.name,
-          businessId: user.businessId,
-          driverOnboarded: user.driverOnboarded,
-        };
       },
     }),
   ],
@@ -126,17 +181,16 @@ export const authOptions = {
   },
   callbacks: {
     async jwt({ token, user, trigger }) {
-      // 🚀 OPTIMIZATION: On sign in, attach ALL user data to token
       if (user) {
         token.id = user.id;
         token.role = user.role;
         token.businessId = user.businessId;
         token.driverOnboarded = user.driverOnboarded;
+        token.adminOnboarded = user.adminOnboarded;
+        token.houseId = user.houseId; // NEW: Store houseId for house staff
       }
 
-      // CRITICAL: Only fetch from DB on explicit update trigger
-      // This eliminates DB hit on EVERY page load (was causing 3+ sec delays)
-      // Token refresh happens automatically via JWT, no DB needed
+      // Only fetch from DB on explicit update trigger
       if (trigger === "update" && token?.email) {
         const dbUser = await prisma.user.findUnique({
           where: { email: token.email },
@@ -144,6 +198,7 @@ export const authOptions = {
             id: true,
             role: true,
             driverOnboarded: true,
+            adminOnboarded: true,
             businessId: true,
           },
         });
@@ -152,6 +207,7 @@ export const authOptions = {
           token.id = dbUser.id;
           token.role = dbUser.role;
           token.driverOnboarded = dbUser.driverOnboarded;
+          token.adminOnboarded = dbUser.adminOnboarded;
           token.businessId = dbUser.businessId;
         }
       }
@@ -165,7 +221,9 @@ export const authOptions = {
         session.user.role = token.role;
         session.user.dashboardUrl = getDashboardByRole(token.role);
         session.user.driverOnboarded = Boolean(token.driverOnboarded);
+        session.user.adminOnboarded = Boolean(token.adminOnboarded);
         session.user.businessId = token.businessId;
+        session.user.houseId = token.houseId; // NEW: Available in session
       }
       return session;
     },

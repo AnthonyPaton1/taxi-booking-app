@@ -104,6 +104,7 @@ export default function CoordinatorOnboardingForm({ companyId, coordinatorArea }
                 disabled
                 className="bg-gray-100 cursor-not-allowed"
                 placeholder="Area"
+                required
               />
               <p className="text-xs text-gray-500 mt-1">
                 Managers will be assigned to your area: {coordinatorArea}

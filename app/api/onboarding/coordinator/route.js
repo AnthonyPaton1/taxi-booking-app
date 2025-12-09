@@ -13,15 +13,26 @@ export async function POST(req) {
     const body = await req.json();
     const validated = CoordinatorOnboardingSchema.parse(body);
     const session = await getServerSession(authOptions);
+    
+    // Get coordinator with their area
     const coordinatorUser = await prisma.user.findUnique({
       where: { email: session.user.email },
+      include: {
+        area: true, // Include area to show in logs
+      },
     });
+
+    if (!coordinatorUser?.areaId) {
+      return NextResponse.json(
+        { error: "Coordinator must have an area assigned" },
+        { status: 400 }
+      );
+    }
 
     const { companyId, managers } = validated;
     
-    console.log(`📋 Processing ${managers.length} managers...`);
+    console.log(`📋 Processing ${managers.length} managers for area: ${coordinatorUser.area?.name || coordinatorUser.areaId}`);
     
-    // Track email results
     const emailResults = [];
 
     for (const manager of managers) {
@@ -29,7 +40,6 @@ export async function POST(req) {
       
       // ===== INPUT SANITIZATION & VALIDATION =====
       
-      // Validate and sanitize email
       const emailValidation = validateEmail(manager.email);
       if (!emailValidation.valid) {
         console.error(`  ❌ Invalid email: ${manager.email}`);
@@ -38,11 +48,10 @@ export async function POST(req) {
           success: false,
           error: emailValidation.error
         });
-        continue; // Skip this manager
+        continue;
       }
       const sanitizedEmail = emailValidation.sanitized;
 
-      // Validate and sanitize name
       const nameValidation = validateName(manager.name);
       if (!nameValidation.valid) {
         console.error(`  ❌ Invalid name: ${manager.name}`);
@@ -55,7 +64,6 @@ export async function POST(req) {
       }
       const sanitizedName = nameValidation.sanitized;
 
-      // Validate and sanitize phone
       let sanitizedPhone = null;
       if (manager.phone) {
         const phoneValidation = validatePhoneUK(manager.phone);
@@ -71,34 +79,10 @@ export async function POST(req) {
         sanitizedPhone = phoneValidation.sanitized;
       }
 
-      // Sanitize area name
-      let sanitizedArea = null;
-      if (manager.area && manager.area.trim()) {
-        sanitizedArea = sanitizePlainText(manager.area.trim()).substring(0, 100);
-        
-        if (sanitizedArea.length < 2) {
-          console.error(`  ❌ Invalid area name: ${manager.area}`);
-          emailResults.push({
-            email: sanitizedEmail,
-            success: false,
-            error: 'Area name must be at least 2 characters'
-          });
-          continue;
-        }
-      }
+      // REMOVED: Area validation and creation
+      // Manager inherits coordinator's area - no need to process manager.area
 
-      // CREATE OR GET THE AREA RECORD (using sanitized area)
-      let areaRecord = null;
-      if (sanitizedArea) {
-        areaRecord = await prisma.area.upsert({
-          where: { name: sanitizedArea },
-          update: {},
-          create: { name: sanitizedArea },
-        });
-        
-      }
-
-      // Create/update user with sanitized data
+      // Create/update user with coordinator's areaId
       const user = await prisma.user.upsert({
         where: { email: sanitizedEmail },
         update: {
@@ -106,7 +90,7 @@ export async function POST(req) {
           phone: sanitizedPhone,
           role: "MANAGER",
           businessId: companyId,
-          areaId: areaRecord?.id,
+          areaId: coordinatorUser.areaId, // CHANGED: Use coordinator's area
         },
         create: {
           email: sanitizedEmail,
@@ -114,13 +98,13 @@ export async function POST(req) {
           phone: sanitizedPhone,
           role: "MANAGER",
           businessId: companyId,
-          areaId: areaRecord?.id,
+          areaId: coordinatorUser.areaId, // CHANGED: Use coordinator's area
         },
       });
       
+      console.log(`  ✅ Manager created/updated with areaId: ${coordinatorUser.areaId}`);
 
-      // Send invitation email (using sanitized data)
-     
+      // Send invitation email
       const emailResult = await inviteUserToLogin({
         email: sanitizedEmail,
         name: sanitizedName,
@@ -138,7 +122,6 @@ export async function POST(req) {
         console.error(`  ❌ Email failed for ${sanitizedEmail}:`, emailResult.error);
       }
       
-      // Add small delay between emails (optional, helps with rate limiting)
       if (managers.length > 1) {
         await new Promise(resolve => setTimeout(resolve, 3000));
       }
@@ -157,7 +140,7 @@ export async function POST(req) {
 
     return NextResponse.json({ 
       success: true,
-      emailResults // Return email results to frontend for debugging
+      emailResults
     });
     
   } catch (error) {
