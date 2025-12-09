@@ -1,6 +1,6 @@
 // app/dashboard/manager/trips/page.jsx
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import { getRecentTripsForUser } from "@/app/actions/bookings/getRecentTripsForUser";
 import RecentTrips from "@/components/dashboard/RecentTrips";

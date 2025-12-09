@@ -2,7 +2,7 @@
 
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/db";
-import { authOptions } from "@/lib/authOptions";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import DriverDashboardClient from "@/components/dashboard/driver/DriverDashboardClient";
 import dynamic from 'next/dynamic';

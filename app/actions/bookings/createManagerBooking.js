@@ -1,7 +1,7 @@
 // app/actions/bookings/createManagerBooking.js
 "use server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/db";
 import { matchDriverToBookingsCached } from '@/lib/matching/cached-matching-algorithm';
 import { sanitizeBookingData, validateResidentIds } from "@/lib/validation";

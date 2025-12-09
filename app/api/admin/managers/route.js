@@ -1,7 +1,7 @@
 // app/api/admin/managers/route.js is for the add manager role bypassing the coordinator for single property businesses
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/db";
 import { inviteUserToLogin } from "@/app/actions/inviteUserToLogin";
 

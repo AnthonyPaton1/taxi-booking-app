@@ -1,6 +1,6 @@
 // app/dashboard/coordinator/incidents/page.jsx
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import CoordinatorIncidentsClient from "@/components/dashboard/business/coordinator/coordinatorIncidentsClient";

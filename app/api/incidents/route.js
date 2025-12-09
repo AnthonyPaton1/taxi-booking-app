@@ -1,7 +1,7 @@
 // app/api/incidents/route.js
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/db";
 import { validateTextArea, sanitizePlainText } from "@/lib/validation";
 import { getHouseSession } from "@/lib/houseAuth"; // NEW: House session helper

@@ -1,7 +1,7 @@
 // app/dashboard/manager/page.jsx
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/db";
-import { authOptions } from "@/lib/authOptions";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import ManagerDashboardClient from "@/components/dashboard/business/manager/managerdashboardClient";
 import { getRecentTripsForUser } from "@/app/actions/bookings/getRecentTripsForUser";

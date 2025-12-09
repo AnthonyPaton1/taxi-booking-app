@@ -1,6 +1,6 @@
 // app/dashboard/manager/bookings/[id]/page.jsx
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import SingleBookingClient from "@/components/dashboard/business/singleBookingClient";  

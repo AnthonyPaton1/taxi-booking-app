@@ -1,6 +1,6 @@
 // app/dashboard/admin/areas/[id]/edit/page.jsx
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import EditAreaForm from "@/components/dashboard/business/admin/EditAreaForm";

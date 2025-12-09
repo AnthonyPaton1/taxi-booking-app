@@ -1,6 +1,6 @@
 // app/dashboard/manager/houses/[id]/residents/add/page.jsx
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import AddResidentForm from "@/components/forms/business/addResidentForm";
