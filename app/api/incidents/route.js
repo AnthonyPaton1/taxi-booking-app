@@ -4,13 +4,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/db";
 import { validateTextArea, sanitizePlainText } from "@/lib/validation";
-import { getHouseSession } from "@/lib/houseAuth"; // NEW: House session helper
 
 export async function POST(request) {
   try {
     // Check for either user session OR house session
     const userSession = await getServerSession(authOptions);
-    const houseSession = await getHouseSession(request);
+    
 
     let userId = null;
     let businessId = null;
@@ -39,10 +38,10 @@ export async function POST(request) {
       userId = user.id;
       businessId = user.businessId;
       reportedBy = userSession.user.role;
-    } else if (houseSession?.houseId) {
+    } else if (userSession?.user?.role === "HOUSE_STAFF" && userSession.user.houseId) {
       // House-based submission (NEW)
       const house = await prisma.house.findUnique({
-        where: { id: houseSession.houseId },
+        where: { id: userSession.user.houseId },
         select: {
           id: true,
           businessId: true,

@@ -72,7 +72,7 @@ export async function middleware(req) {
   const isApiRoute = pathname.startsWith('/api');
   const isHouseRoute = pathname.startsWith('/house');
 
-  // NEW: Handle house routes separately
+  // NEW: Handle house routes with NextAuth
   if (isHouseRoute) {
     // Allow access to login page
     if (pathname === '/house/login') {
@@ -80,15 +80,19 @@ export async function middleware(req) {
       return applySecurityHeaders(response);
     }
 
-    // Check for house session cookie
-    const houseSession = req.cookies.get('house-session');
-    
-    if (!houseSession) {
-      const response = NextResponse.redirect(new URL('/house/login', req.url));
+    // Check for NextAuth token (for house staff)
+    const token = await getToken({
+      req,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    // If no token or not house staff, redirect to main login
+    if (!token || token.role !== "HOUSE_STAFF") {
+      const response = NextResponse.redirect(new URL('/login', req.url));
       return applySecurityHeaders(response);
     }
 
-    // Allow through if house session exists
+    // Allow through if valid house staff session
     const response = NextResponse.next();
     return applySecurityHeaders(response);
   }

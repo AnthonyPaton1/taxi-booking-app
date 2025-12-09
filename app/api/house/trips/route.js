@@ -1,17 +1,29 @@
 // app/api/house/trips/route.js
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getHouseSession } from "@/lib/houseAuth";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function GET(request) {
   try {
-    // Verify house session
-    const session = await getHouseSession(request);
+    // Get NextAuth session instead of house session cookie
+    const session = await getServerSession(authOptions);
     
-    if (!session?.houseId) {
+    // Check if user is house staff
+    if (!session?.user?.role || session.user.role !== "HOUSE_STAFF") {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
+      );
+    }
+
+    // Get houseId from session
+    const houseId = session.user.houseId;
+
+    if (!houseId) {
+      return NextResponse.json(
+        { error: "House ID not found in session" },
+        { status: 400 }
       );
     }
 
@@ -19,25 +31,20 @@ export async function GET(request) {
     const view = searchParams.get("view") || "today";
 
     // Get house info
- const house = await prisma.house.findUnique({
-  where: { id: session.houseId },
-  select: {
-    id: true,
-    label: true,
-    residents: {
+    const house = await prisma.house.findUnique({
+      where: { id: houseId },
       select: {
         id: true,
-        name: true,
-        initials: true,
+        label: true,
+        residents: {
+          select: {
+            id: true,
+            name: true,
+            initials: true,
+          },
+        },
       },
-    },
-  },
-});
-
-if (!house) {
-  return NextResponse.json({ error: "House not found" }, { status: 404 });
-}
-
+    });
 
     if (!house) {
       return NextResponse.json(

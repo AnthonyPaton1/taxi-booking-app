@@ -1,8 +1,8 @@
 // app/api/house/incident/route.js
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import DOMPurify from "isomorphic-dompurify"; // Sanitize HTML
-import { rateLimit } from "@/lib/rate-limit"; // Prevent spam
+import { prisma } from "@/lib/db";
+import DOMPurify from "isomorphic-dompurify";
+import { rateLimit } from "@/lib/rateLimit"; 
 
 export async function POST(request) {
   try {
