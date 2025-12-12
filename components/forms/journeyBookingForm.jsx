@@ -4,10 +4,10 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { PostcodeInput } from "@/components/shared/PostcodeInput";
 import { createPublicBooking } from "@/app/actions/bookings/createPublicBooking";
 import RideAccessibilityOptions from "./RideAccessibilityOptions";
 import StatusMessage from "../shared/statusMessage";
+import AddressAutocomplete from "../AddressAutoComplete";
 import { toast } from "sonner";
 
 const defaultFormData = {
@@ -19,10 +19,9 @@ const defaultFormData = {
   pickupTime: "",
   returnTime: "",
   roundTrip: false,
-
   
-  passengerCount: "1",  // default 1 passenger
-  wheelchairUsers: "0", // default 0 wheelchairs
+  passengerCount: "1",
+  wheelchairUsers: "0",
 
   // Accessibility booleans
   wheelchairAccess: false,
@@ -40,11 +39,8 @@ const defaultFormData = {
   textOnlyCommunication: false,
   medicationOnBoard: false,
 
-  // Textarea
   additionalNeeds: "",
-
 };
-
 
 const JourneyBookingForm = () => {
   const [isRepeating, setIsRepeating] = useState(false);
@@ -55,6 +51,8 @@ const JourneyBookingForm = () => {
   const router = useRouter();
   const [formData, setFormData] = useState(defaultFormData);
   const errorRef = useRef(null);
+  const [pickupAddressData, setPickupAddressData] = useState(null);
+  const [dropoffAddressData, setDropoffAddressData] = useState(null);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -64,12 +62,38 @@ const JourneyBookingForm = () => {
     }));
   };
 
+  // ✅ Fixed: Added closing brace
+  const handlePickupPlaceSelected = (addressData) => {
+    console.log('Pickup place selected:', addressData);
+    setPickupAddressData(addressData);
+    
+    // Auto-populate the form fields
+    setFormData(prev => ({
+      ...prev,
+      pickupLocation: addressData.formattedAddress,
+      pickupPostcode: addressData.postcode || prev.pickupPostcode,
+    }));
+  };
+
+  const handleDropoffPlaceSelected = (addressData) => {
+    console.log('Dropoff place selected:', addressData);
+    setDropoffAddressData(addressData);
+    
+    // Auto-populate the form fields
+    setFormData(prev => ({
+      ...prev,
+      dropoffLocation: addressData.formattedAddress,
+      dropoffPostcode: addressData.postcode || prev.dropoffPostcode,
+    }));
+  };
+
   useEffect(() => {
     if (status && errorRef.current) {
       errorRef.current.focus();
     }
   }, [status]);
 
+  // ✅ Fixed: Removed addressData references
   useEffect(() => {
     if (repeatTripId) {
       const repeatData = sessionStorage.getItem("repeatBookingData");
@@ -91,17 +115,17 @@ const JourneyBookingForm = () => {
             wheelchairUsers: data.wheelchairUsers?.toString() || "0",
             
             // Accessibility options
-              wheelchairAccess: data.wheelchairAccess || false,
-  carerPresent: data.carerPresent || false,
-  femaleDriverOnly: data.femaleDriverOnly || false,
-  quietEnvironment: data.quietEnvironment || false,
-  walkingAid: data.walkingAid || false,
-  hearingImpairment: data.hearingImpairment || false,
-  visualImpairment: data.visualImpairment || false,
-  cognitiveSupport: data.cognitiveSupport || false,
-  mobilityScooter: data.mobilityScooter || false,
-  oxygenRequired: data.oxygenRequired || false,
-  serviceAnimal: data.serviceAnimal || false,
+            wheelchairAccess: data.wheelchairAccess || false,
+            carerPresent: data.carerPresent || false,
+            femaleDriverOnly: data.femaleDriverOnly || false,
+            quietEnvironment: data.quietEnvironment || false,
+            walkingAid: data.walkingAid || false,
+            hearingImpairment: data.hearingImpairment || false,
+            visualImpairment: data.visualImpairment || false,
+            cognitiveSupport: data.cognitiveSupport || false,
+            mobilityScooter: data.mobilityScooter || false,
+            oxygenRequired: data.oxygenRequired || false,
+            serviceAnimal: data.serviceAnimal || false,
             
             additionalNeeds: data.additionalNeeds || "",
             // Date and time intentionally left blank!
@@ -130,7 +154,6 @@ const JourneyBookingForm = () => {
       return;
     }
 
-    // --- Parse numbers safely ---
     const passengerCount = parseInt(formData.passengerCount, 10) || 0;
     const wheelchairUsers = parseInt(formData.wheelchairUsers, 10) || 0;
 
@@ -142,7 +165,7 @@ const JourneyBookingForm = () => {
       return;
     }
 
-    // --- Validate dates/times ---
+    // Validate dates/times
     const pickupTime = new Date(`${formData.pickupDate}T${formData.pickupTime}`);
     const returnTime = formData.returnTime
       ? new Date(`${formData.pickupDate}T${formData.returnTime}`)
@@ -156,99 +179,115 @@ const JourneyBookingForm = () => {
     }
 
     try {
-      // Step 1: Validate pickup postcode
-      toast.loading("Verifying pickup postcode...");
-      
-      const pickupValidation = await fetch("/api/validate-postcode", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postcode: formData.pickupPostcode }),
-      });
+      let pickupCoords, dropoffCoords;
 
-      const pickupData = await pickupValidation.json();
-
-      if (!pickupValidation.ok || !pickupData.valid) {
-        toast.dismiss();
-        toast.error(pickupData.error || "Pickup postcode not found", {
-          duration: 5000,
+      // ✅ Use cached Google coordinates if available
+      if (pickupAddressData && pickupAddressData.latitude) {
+        toast.loading("Using pickup location...");
+        pickupCoords = {
+          postcode: pickupAddressData.postcode || formData.pickupPostcode,
+          lat: pickupAddressData.latitude,
+          lng: pickupAddressData.longitude,
+        };
+      } else {
+        // Fall back to postcode validation
+        toast.loading("Verifying pickup postcode...");
+        
+        const pickupValidation = await fetch("/api/validate-postcode", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ postcode: formData.pickupPostcode }),
         });
-        
-        // Scroll to pickup postcode field
-        setTimeout(() => {
-          const pickupField = document.getElementById("pickupPostcode");
-          if (pickupField) {
-            pickupField.scrollIntoView({ 
-              behavior: "smooth", 
-              block: "center" 
-            });
-            pickupField.focus();
-          }
-        }, 100);
-        
-        setStatus("❌ " + pickupData.error);
-        setSubmitting(false);
-        return;
+
+        const pickupData = await pickupValidation.json();
+
+        if (!pickupValidation.ok || !pickupData.valid) {
+          toast.dismiss();
+          toast.error(pickupData.error || "Pickup postcode not found", {
+            duration: 5000,
+          });
+          
+          setTimeout(() => {
+            const pickupField = document.getElementById("pickupPostcode");
+            if (pickupField) {
+              pickupField.scrollIntoView({ 
+                behavior: "smooth", 
+                block: "center" 
+              });
+              pickupField.focus();
+            }
+          }, 100);
+          
+          setStatus("❌ " + pickupData.error);
+          setSubmitting(false);
+          return;
+        }
+
+        pickupCoords = pickupData.coordinates;
       }
 
       toast.dismiss();
-      toast.loading("Verifying dropoff postcode...");
 
-      // Step 2: Validate dropoff postcode
-      const dropoffValidation = await fetch("/api/validate-postcode", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postcode: formData.dropoffPostcode }),
-      });
+      // Same for dropoff
+      if (dropoffAddressData && dropoffAddressData.latitude) {
+        toast.loading("Using dropoff location...");
+        dropoffCoords = {
+          postcode: dropoffAddressData.postcode || formData.dropoffPostcode,
+          lat: dropoffAddressData.latitude,
+          lng: dropoffAddressData.longitude,
+        };
+      } else {
+        toast.loading("Verifying dropoff postcode...");
 
-      const dropoffData = await dropoffValidation.json();
-
-      if (!dropoffValidation.ok || !dropoffData.valid) {
-        toast.dismiss();
-        toast.error(dropoffData.error || "Dropoff postcode not found", {
-          duration: 5000,
+        const dropoffValidation = await fetch("/api/validate-postcode", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ postcode: formData.dropoffPostcode }),
         });
-        
-        // Scroll to dropoff postcode field
-        setTimeout(() => {
-          const dropoffField = document.getElementById("dropoffPostcode");
-          if (dropoffField) {
-            dropoffField.scrollIntoView({ 
-              behavior: "smooth", 
-              block: "center" 
-            });
-            dropoffField.focus();
-          }
-        }, 100);
-        
-        setStatus("❌ " + dropoffData.error);
-        setSubmitting(false);
-        return;
+
+        const dropoffData = await dropoffValidation.json();
+
+        if (!dropoffValidation.ok || !dropoffData.valid) {
+          toast.dismiss();
+          toast.error(dropoffData.error || "Dropoff postcode not found", {
+            duration: 5000,
+          });
+          
+          setTimeout(() => {
+            const dropoffField = document.getElementById("dropoffPostcode");
+            if (dropoffField) {
+              dropoffField.scrollIntoView({ 
+                behavior: "smooth", 
+                block: "center" 
+              });
+              dropoffField.focus();
+            }
+          }, 100);
+          
+          setStatus("❌ " + dropoffData.error);
+          setSubmitting(false);
+          return;
+        }
+
+        dropoffCoords = dropoffData.coordinates;
       }
 
       toast.dismiss();
       toast.loading("Submitting booking...");
 
-      // Step 3: Decide booking type
-      const today = new Date().toISOString().split("T")[0];
-      const bookingType = formData.pickupDate === today ? "INSTANT" : "ADVANCED";
-
-      // Step 4: Create booking with validated postcodes and coordinates
+      // ✅ Simplified - just "BOOKING"
       const bookingPayload = {
         ...formData,
-        // Normalized postcodes
-        pickupPostcode: pickupData.coordinates.postcode,
-        dropoffPostcode: dropoffData.coordinates.postcode,
-        // Cached coordinates
-        pickupLat: pickupData.coordinates.lat,
-        pickupLng: pickupData.coordinates.lng,
-        dropoffLat: dropoffData.coordinates.lat,
-        dropoffLng: dropoffData.coordinates.lng,
-        // Parsed values
+        pickupPostcode: pickupCoords.postcode,
+        dropoffPostcode: dropoffCoords.postcode,
+        pickupLat: pickupCoords.lat,
+        pickupLng: pickupCoords.lng,
+        dropoffLat: dropoffCoords.lat,
+        dropoffLng: dropoffCoords.lng,
         passengerCount,
         wheelchairUsers,
         pickupTime,
         returnTime,
-        type: bookingType,
       };
 
       const res = await createPublicBooking(bookingPayload);
@@ -259,6 +298,8 @@ const JourneyBookingForm = () => {
         setStatus("✅ Booking submitted successfully!");
         router.push("/dashboard/public?success=true"); 
         setFormData(defaultFormData);
+        setPickupAddressData(null);
+        setDropoffAddressData(null);
       } else {
         toast.dismiss();
         toast.error(res.error || "Failed to submit booking");
@@ -274,7 +315,6 @@ const JourneyBookingForm = () => {
       setSubmitting(false);
     }
   };
-
 
   return (
     <>
@@ -309,66 +349,68 @@ const JourneyBookingForm = () => {
         </h2>
 
  {/* Pickup Location */}
-      <div>
-        <label
-          htmlFor="pickupLocation"
-          className="block font-medium text-gray-700"
-        >
-          Pickup Location
-        </label>
-        <input
-          type="text"
-          id="pickupLocation"
-          name="pickupLocation"
-          required
-          aria-label="Pickup location"
-          value={formData.pickupLocation}
-          onChange={handleChange}
-          className="w-full mt-1 p-2 border text-gray-500 rounded focus:outline-none focus:ring focus:ring-blue-500"
-          placeholder="e.g. Main Street Care Home"
-        />
-      </div>
+<AddressAutocomplete
+  label="Pickup Location"
+  value={formData.pickupLocation}
+  onChange={(value) => setFormData(prev => ({ ...prev, pickupLocation: value }))}
+  onPlaceSelected={handlePickupPlaceSelected}
+  placeholder="Enter address or place name (e.g., Stepping Hill Hospital)"
+  required
+/>
 
-      {/* Pickup Postcode - UPDATED */}
-      <PostcodeInput
-        id="pickupPostcode"
-        value={formData.pickupPostcode}
-        onChange={(value) => setFormData(prev => ({ ...prev, pickupPostcode: value }))}
-        label="Pickup Postcode"
-        placeholder="e.g., SK3 0AA"
-        required
-      />
+{/* Pickup Postcode - can still be manually entered */}
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Pickup Postcode <span className="text-red-500">*</span>
+  </label>
+  <input
+    id="pickupPostcode"
+    type="text"
+    name="pickupPostcode"
+    value={formData.pickupPostcode}
+    onChange={handleChange}
+    placeholder="e.g., SK2 7JE"
+    required
+    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+  />
+  <p className="mt-1 text-xs text-gray-500">
+    {pickupAddressData?.postcode ? 
+      `✓ Auto-filled from address: ${pickupAddressData.postcode}` : 
+      'Or enter manually'}
+  </p>
+</div>
 
-      {/* Dropoff Location */}
-      <div>
-        <label
-          htmlFor="dropoffLocation"
-          className="block font-medium text-gray-700"
-        >
-          Dropoff Location
-        </label>
-        <input
-          type="text"
-          id="dropoffLocation"
-          name="dropoffLocation"
-          required
-          aria-label="Dropoff location"
-          value={formData.dropoffLocation}
-          onChange={handleChange}
-          className="w-full mt-1 p-2 border text-gray-500 rounded focus:outline-none focus:ring focus:ring-blue-500"
-          placeholder="e.g. City Hospital"
-        />
-      </div>
+{/* Dropoff Location */}
+<AddressAutocomplete
+  label="Dropoff Location"
+  value={formData.dropoffLocation}
+  onChange={(value) => setFormData(prev => ({ ...prev, dropoffLocation: value }))}
+  onPlaceSelected={handleDropoffPlaceSelected}
+  placeholder="Enter address or place name"
+  required
+/>
 
-      {/* Dropoff Postcode - UPDATED */}
-      <PostcodeInput
-        id="dropoffPostcode"
-        value={formData.dropoffPostcode}
-        onChange={(value) => setFormData(prev => ({ ...prev, dropoffPostcode: value }))}
-        label="Dropoff Postcode"
-        placeholder="e.g., M1 1AA"
-        required
-      />
+{/* Dropoff Postcode */}
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Dropoff Postcode <span className="text-red-500">*</span>
+  </label>
+  <input
+    id="dropoffPostcode"
+    type="text"
+    name="dropoffPostcode"
+    value={formData.dropoffPostcode}
+    onChange={handleChange}
+    placeholder="e.g., M1 1AE"
+    required
+    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+  />
+  <p className="mt-1 text-xs text-gray-500">
+    {dropoffAddressData?.postcode ? 
+      `✓ Auto-filled from address: ${dropoffAddressData.postcode}` : 
+      'Or enter manually'}
+  </p>
+</div>
 
         
         

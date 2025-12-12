@@ -16,21 +16,14 @@ export default async function HousesManagementPage() {
     where: { email: session.user.email },
     include: {
       houses: {
-                where: {
-          deletedAt: null, 
-        },
-
+        where: { deletedAt: null },
         include: {
           area: true,
           residents: {
-            orderBy: {
-              name: "asc",
-            },
+            orderBy: { name: "asc" },
           },
         },
-        orderBy: {
-          label: "asc",  
-        },
+        orderBy: { label: "asc" },
       },
     },
   });
@@ -39,39 +32,47 @@ export default async function HousesManagementPage() {
     redirect("/login");
   }
 
-  // Get booking counts for each house
-  const housesWithStats = await Promise.all(
-    user.houses.map(async (house) => {
-     const [upcomingBookings, totalBookings] = await Promise.all([
-  // ✅ Count upcoming bookings (unified)
-  prisma.booking.count({
+  // ✅ IMPROVED: Get all booking counts in TWO queries instead of N queries
+  const houseIds = user.houses.map(h => h.id);
+  
+  // Get upcoming booking counts for all houses at once
+  const upcomingCounts = await prisma.booking.groupBy({
+    by: ['houseId'],
     where: {
-      createdById: user.id,
+      houseId: { in: houseIds },
       pickupTime: { gte: new Date() },
-      status: {
-        in: ["PENDING", "BID_ACCEPTED", "ACCEPTED"]
-      },
+      status: { in: ["PENDING", "BID_ACCEPTED", "ACCEPTED"] },
       deletedAt: null,
-    }
-  }),
-  // ✅ Count total bookings (unified)
-  prisma.booking.count({
+    },
+    _count: { id: true },
+  });
+  
+  // Get total booking counts for all houses at once
+  const totalCounts = await prisma.booking.groupBy({
+    by: ['houseId'],
     where: {
-      createdById: user.id,
+      houseId: { in: houseIds },
       deletedAt: null,
-    }
-  }),
-]);
-
-      return {
-        ...house,
-        stats: {
-          upcomingBookings,
-          totalBookings,
-        },
-      };
-    })
+    },
+    _count: { id: true },
+  });
+  
+  // Create lookup maps
+  const upcomingMap = Object.fromEntries(
+    upcomingCounts.map(c => [c.houseId, c._count.id])
   );
+  const totalMap = Object.fromEntries(
+    totalCounts.map(c => [c.houseId, c._count.id])
+  );
+  
+  // ✅ IMPROVED: Map stats to houses (no more queries in loop!)
+  const housesWithStats = user.houses.map(house => ({
+    ...house,
+    stats: {
+      upcomingBookings: upcomingMap[house.id] || 0,
+      totalBookings: totalMap[house.id] || 0,
+    },
+  }));
 
   return <HousesManagementClient houses={housesWithStats} userName={user.name} />;
 }

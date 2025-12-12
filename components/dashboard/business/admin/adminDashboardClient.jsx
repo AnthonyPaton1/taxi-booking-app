@@ -223,8 +223,8 @@ export default function AdminDashboardClient({
               <span
                 className={`text-xs ${
                   coordinator.coordinatorOnboarded
-                    ? "text-green-600"
-                    : "text-yellow-600"
+                    ? "text-green-800"
+                    : "text-red-800"
                 }`}
               >
                 {coordinator.coordinatorOnboarded
@@ -288,20 +288,20 @@ export default function AdminDashboardClient({
 // Stat Card
 const StatCard = ({ title, value, color, icon }) => {
   const colors = {
-    blue: "bg-blue-50 text-blue-700 border-blue-200",
-    green: "bg-green-50 text-green-700 border-green-200",
-    purple: "bg-purple-50 text-purple-700 border-purple-200",
-    yellow: "bg-yellow-50 text-yellow-700 border-yellow-200",
-    indigo: "bg-indigo-50 text-indigo-700 border-indigo-200",
-    pink: "bg-pink-50 text-pink-700 border-pink-200",
-    orange: "bg-orange-50 text-orange-700 border-orange-200",
+    blue: "bg-blue-200 text-black border-blue-400",
+    green: "bg-green-200 text-black border-green-400",
+    purple: "bg-purple-200 text-black border-purple-400",
+    yellow: "bg-yellow-200 text-black border-yellow-400",
+    indigo: "bg-indigo-200 text-black  border-indigo-400",
+    pink: "bg-pink-200 text-black  border-pink-400",
+    orange: "bg-orange-200 text-black  border-orange-400",
   };
 
   return (
     <div className={`${colors[color]} border rounded-lg p-4`}>
       <div className="flex items-center gap-2 mb-2">
         {icon}
-        <h3 className="text-xs font-medium opacity-75">{title}</h3>
+        <h2 className="text-xs font-medium opacity-75">{title}</h2>
       </div>
       <p className="text-2xl font-bold">{value}</p>
     </div>
@@ -311,10 +311,10 @@ const StatCard = ({ title, value, color, icon }) => {
 // Quick Action Card
 const QuickAction = ({ title, description, href, color, icon }) => {
   const colors = {
-    blue: "border-blue-200 hover:bg-blue-50",
-    green: "border-green-200 hover:bg-green-50",
-    purple: "border-purple-200 hover:bg-purple-50",
-    orange: "border-orange-200 hover:bg-orange-50",
+    blue: "border-blue-400 hover:bg-blue-200",
+    green: "border-green-400 hover:bg-green-200",
+    purple: "border-purple-400 hover:bg-purple-200",
+    orange: "border-orange-400 hover:bg-orange-200",
   };
 
   return (
@@ -323,7 +323,7 @@ const QuickAction = ({ title, description, href, color, icon }) => {
       className={`block bg-white border-2 ${colors[color]} rounded-lg p-6 transition-colors`}
     >
       <span className="text-3xl block mb-2">{icon}</span>
-      <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+      <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
       <p className="text-sm text-gray-600 mt-1">{description}</p>
     </Link>
   );

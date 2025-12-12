@@ -39,6 +39,8 @@ async function getClientIp() {
   return headersList.get('x-real-ip') || 'unknown';
 }
 
+// app/api/auth/[...nextauth]/route.js
+
 export const authOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
@@ -55,11 +57,10 @@ export const authOptions = {
       id: "credentials",
       name: "Credentials",
       credentials: {
-        identifier: { label: "Email or Username", type: "text" }, // CHANGED: email → identifier
+        identifier: { label: "Email or Username", type: "text" }, 
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        // ✅ RATE LIMITING - Check before attempting login
         const ip = await getClientIp();
         const rateLimitResult = await simpleRateLimit(
           `login:${ip}`,
@@ -77,7 +78,7 @@ export const authOptions = {
 
         const { identifier, password } = credentials;
 
-        // NEW: Determine if identifier is email or username
+        // Determine if identifier is email or username
         const isEmail = identifier.includes("@");
 
         if (isEmail) {
@@ -114,6 +115,36 @@ export const authOptions = {
             );
             throw new Error("Invalid credentials");
           }
+
+          // ✅ CHECK IF SUPER ADMIN - Auto-promote on login
+          const superAdminEmails = process.env.SUPER_ADMIN_EMAIL?.split(',').map(e => e.trim()) || [];
+          if (superAdminEmails.includes(user.email) && user.role !== 'SUPER_ADMIN') {
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { 
+                role: 'SUPER_ADMIN',
+                lastLogin: new Date() 
+              }
+            });
+            
+            console.log(`✅ Super admin access granted: ${user.email}`);
+            
+            // Return updated role
+            return {
+              id: user.id,
+              email: user.email,
+              role: 'SUPER_ADMIN', // ✅ Return as super admin
+              name: user.name,
+              businessId: user.businessId,
+              driverOnboarded: true,
+              adminOnboarded: true,
+            };
+          }
+
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { lastLogin: new Date() }
+          });
 
           return {
             id: user.id,
@@ -159,16 +190,15 @@ export const authOptions = {
             throw new Error("Invalid credentials");
           }
 
-          // Return house as "user" object
           return {
-            id: `house_${house.id}`, // Prefix to avoid collision with user IDs
-            email: null, // House staff don't have email
+            id: `house_${house.id}`,
+            email: null,
             role: "HOUSE_STAFF",
             name: house.label,
             businessId: house.businessId,
-            houseId: house.id, // Store actual house ID
-            driverOnboarded: true, // Not applicable but prevents errors
-            adminOnboarded: true, // Not applicable but prevents errors
+            houseId: house.id,
+            driverOnboarded: true,
+            adminOnboarded: true,
           };
         }
       },
@@ -177,7 +207,7 @@ export const authOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 30 * 24 * 60 * 60,
   },
   callbacks: {
     async jwt({ token, user, trigger }) {
@@ -187,10 +217,9 @@ export const authOptions = {
         token.businessId = user.businessId;
         token.driverOnboarded = user.driverOnboarded;
         token.adminOnboarded = user.adminOnboarded;
-        token.houseId = user.houseId; // NEW: Store houseId for house staff
+        token.houseId = user.houseId; 
       }
 
-      // Only fetch from DB on explicit update trigger
       if (trigger === "update" && token?.email) {
         const dbUser = await prisma.user.findUnique({
           where: { email: token.email },
@@ -223,7 +252,7 @@ export const authOptions = {
         session.user.driverOnboarded = Boolean(token.driverOnboarded);
         session.user.adminOnboarded = Boolean(token.adminOnboarded);
         session.user.businessId = token.businessId;
-        session.user.houseId = token.houseId; // NEW: Available in session
+        session.user.houseId = token.houseId;
       }
       return session;
     },

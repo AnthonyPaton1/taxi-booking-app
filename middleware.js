@@ -23,41 +23,43 @@ const protectedApiRoutes = {
   "/api/bids": ["DRIVER", "MANAGER", "ADMIN"],
   "/api/rides": ["ADMIN", "MANAGER", "COORDINATOR", "DRIVER"],
   "/api/residents": ["ADMIN", "MANAGER", "COORDINATOR"],
-  "/api/incidents": ["ADMIN", "MANAGER", "COORDINATOR", "DRIVER", "HOUSE_STAFF"], // UPDATED: Allow house staff
+  "/api/incidents": ["ADMIN", "MANAGER", "COORDINATOR", "DRIVER", "HOUSE_STAFF"],
   "/api/invite": roleAccess.admin,
   "/api/onboarding": ["ADMIN", "DRIVER", "MANAGER", "COORDINATOR"],
   "/api/edit-details": ["ADMIN", "COORDINATOR"],
   "/api/user": roleAccess.admin,
+  "/api/super-admin": ["SUPER_ADMIN"], // ✅ Add super admin API protection
 };
 
-const DEBUG = false;
+const DEBUG = process.env.NODE_ENV === 'development';
 
-// Security headers function
+// ✅ Enhanced security headers for production launch
 function applySecurityHeaders(response) {
   const securityHeaders = {
-    'X-Frame-Options': 'SAMEORIGIN',
+    'X-Frame-Options': 'DENY', // Changed from SAMEORIGIN for better security
     'X-Content-Type-Options': 'nosniff',
     'X-XSS-Protection': '1; mode=block',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
-    'Permissions-Policy': 'camera=(), microphone=(), geolocation=(self)',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=(self), payment=()',
     'Content-Security-Policy': [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://www.gstatic.com https://www.googletagmanager.com",
-      "style-src 'self' 'unsafe-inline'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://www.gstatic.com https://www.googletagmanager.com https://maps.googleapis.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: https: blob:",
-      "font-src 'self' data:",
-      "connect-src 'self' https://www.google.com https://res.cloudinary.com",
+      "font-src 'self' data: https://fonts.gstatic.com",
+      "connect-src 'self' https://www.google.com https://res.cloudinary.com https://maps.googleapis.com",
       "frame-src 'self' https://www.google.com",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
-      "frame-ancestors 'self'"
+      "frame-ancestors 'none'", // Changed from 'self' - prevents any framing
+      "upgrade-insecure-requests"
     ].join('; '),
   };
 
   if (process.env.NODE_ENV === 'production') {
     securityHeaders['Strict-Transport-Security'] = 
-      'max-age=31536000; includeSubDomains; preload';
+      'max-age=63072000; includeSubDomains; preload'; // 2 years instead of 1
   }
 
   Object.entries(securityHeaders).forEach(([key, value]) => {
@@ -67,32 +69,47 @@ function applySecurityHeaders(response) {
   return response;
 }
 
+// ✅ Check if user is super admin
+function isSuperAdmin(email, role) {
+  const superAdminEmails = process.env.SUPER_ADMIN_EMAIL?.split(',').map(e => e.trim()) || [];
+  return role === 'SUPER_ADMIN' || superAdminEmails.includes(email);
+}
+
+// ✅ Get default dashboard for role
+function getRoleDashboard(role) {
+  const dashboards = {
+    'SUPER_ADMIN': '/dashboard/super-admin',
+    'ADMIN': '/dashboard/admin',
+    'MANAGER': '/dashboard/manager',
+    'DRIVER': '/dashboard/driver',
+    'COORDINATOR': '/dashboard/coordinator',
+    'HOUSE_STAFF': '/house/dashboard',
+  };
+  return dashboards[role] || '/dashboard';
+}
+
 export async function middleware(req) {
   const { pathname } = req.nextUrl;
   const isApiRoute = pathname.startsWith('/api');
   const isHouseRoute = pathname.startsWith('/house');
 
-  // NEW: Handle house routes with NextAuth
+  // Handle house routes with NextAuth
   if (isHouseRoute) {
-    // Allow access to login page
     if (pathname === '/house/login') {
       const response = NextResponse.next();
       return applySecurityHeaders(response);
     }
 
-    // Check for NextAuth token (for house staff)
     const token = await getToken({
       req,
       secret: process.env.NEXTAUTH_SECRET,
     });
 
-    // If no token or not house staff, redirect to main login
     if (!token || token.role !== "HOUSE_STAFF") {
       const response = NextResponse.redirect(new URL('/login', req.url));
       return applySecurityHeaders(response);
     }
 
-    // Allow through if valid house staff session
     const response = NextResponse.next();
     return applySecurityHeaders(response);
   }
@@ -106,22 +123,17 @@ export async function middleware(req) {
   if (DEBUG) {
     console.log("🔍 Middleware:", pathname, "Token:", !!token, "Role:", token?.role);
   }
-
-  // NOTE: Rate limiting is now handled in individual API routes with Redis
-  // Middleware runs on Edge Runtime which doesn't support Redis/ioredis
   
   if (isApiRoute) {
-    // Special handling for house API routes
+    // Handle house API routes
     if (pathname.startsWith('/api/house')) {
       const houseSession = req.cookies.get('house-session');
       
-      // Login route is public
       if (pathname === '/api/house/login') {
         const response = NextResponse.next();
         return applySecurityHeaders(response);
       }
 
-      // Other house API routes require session
       if (!houseSession) {
         return new NextResponse(
           JSON.stringify({ success: false, error: 'Unauthorized' }),
@@ -136,7 +148,7 @@ export async function middleware(req) {
       return applySecurityHeaders(response);
     }
 
-    // No token = return 401 JSON (don't redirect)
+    // No token = return 401 JSON
     if (!token) {
       return new NextResponse(
         JSON.stringify({ success: false, error: 'Unauthorized' }),
@@ -147,15 +159,17 @@ export async function middleware(req) {
       );
     }
 
+    // ✅ Check if super admin - they have access to everything
+    const userIsSuperAdmin = isSuperAdmin(token.email, token.role);
+
     // Check API route permissions
     for (const [routePrefix, allowedRoles] of Object.entries(protectedApiRoutes)) {
       if (pathname.startsWith(routePrefix)) {
-        if (token.role === "SUPER_ADMIN" || allowedRoles.includes(token.role)) {
+        if (userIsSuperAdmin || allowedRoles.includes(token.role)) {
           const response = NextResponse.next();
           return applySecurityHeaders(response);
         }
 
-        // Not allowed = return 403 JSON
         return new NextResponse(
           JSON.stringify({ success: false, error: 'Forbidden' }),
           {
@@ -166,7 +180,6 @@ export async function middleware(req) {
       }
     }
 
-    // API route not in protected list = allow through
     const response = NextResponse.next();
     return applySecurityHeaders(response);
   }
@@ -177,7 +190,24 @@ export async function middleware(req) {
     return applySecurityHeaders(response);
   }
 
-  // Onboarding checks
+  // ✅ Check if super admin
+  const userIsSuperAdmin = isSuperAdmin(token.email, token.role);
+
+  // ✅ AUTO-REDIRECT: If accessing /dashboard root, redirect to appropriate dashboard
+  if (pathname === '/dashboard') {
+    const targetDashboard = getRoleDashboard(token.role);
+    const response = NextResponse.redirect(new URL(targetDashboard, req.url));
+    return applySecurityHeaders(response);
+  }
+
+  // ✅ SUPER ADMIN SPECIAL ACCESS: Can access any dashboard for testing/monitoring
+  if (userIsSuperAdmin) {
+    // Allow super admin to access any route without checks
+    const response = NextResponse.next();
+    return applySecurityHeaders(response);
+  }
+
+  // Onboarding checks (skip for super admin)
   const needsDriverOnboarding = token.role === "DRIVER" && !token.driverOnboarded;
   const needsAdminOnboarding = token.role === "ADMIN" && !token.adminOnboarded;
 
@@ -194,7 +224,7 @@ export async function middleware(req) {
   // Check protected dashboard routes
   for (const [routePrefix, allowedRoles] of Object.entries(protectedRoutes)) {
     if (pathname.startsWith(routePrefix)) {
-      if (token.role === "SUPER_ADMIN" || allowedRoles.includes(token.role)) {
+      if (allowedRoles.includes(token.role)) {
         const response = NextResponse.next();
         return applySecurityHeaders(response);
       }
@@ -218,6 +248,7 @@ export const config = {
     "/api/manager/:path*",
     "/api/driver/:path*",
     "/api/house/:path*", 
+    "/api/super-admin/:path*", 
     "/api/bookings/advanced/:path*",
     "/api/bookings/[id]/:path*",
     "/api/bids/:path*",

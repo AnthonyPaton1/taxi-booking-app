@@ -17,8 +17,7 @@ export async function sendContactEmail(formData) {
         message,
       },
     });
-
-
+    
     // Send notification email to admin
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,

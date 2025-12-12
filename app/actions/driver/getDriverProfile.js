@@ -4,75 +4,54 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/db";
+import { cacheGet, cacheSet } from '@/lib/redis';
 
-/**
- * Get complete driver profile with all relations
- */
 // app/actions/driver/getDriverProfile.js
 
-export async function getDriverStats() {
+export async function getDriverStats(driverId) {  // ✅ Accept driverId
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
-      return { success: false, error: "Unauthorized" };
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      include: { driver: true },
-    });
-
-    if (!user?.driver) {
-      return { success: false, error: "No driver profile found" };
-    }
-
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // ✅ Count today's jobs (unified)
-    const todaysJobs = await prisma.booking.count({
-      where: {
-        driverId: user.driver.id,
-        pickupTime: { gte: today, lt: tomorrow },
-        status: { in: ["ACCEPTED", "IN_PROGRESS"] },
-        deletedAt: null,
-      },
-    });
+    // ✅ No more session check or user fetch - just use driverId
+    const [todaysJobs, upcomingJobs, completedWithEarnings] = await Promise.all([
+      prisma.booking.count({
+        where: {
+          driverId: driverId,  // ✅ Use passed driverId
+          pickupTime: { gte: today, lt: tomorrow },
+          status: { in: ["ACCEPTED", "IN_PROGRESS"] },
+          deletedAt: null,
+        },
+      }),
+      
+      prisma.booking.count({
+        where: {
+          driverId: driverId,
+          pickupTime: { gte: new Date() },
+          status: { in: ["ACCEPTED", "IN_PROGRESS"] },
+          deletedAt: null,
+        },
+      }),
+      
+      prisma.booking.findMany({
+        where: {
+          driverId: driverId,
+          status: "COMPLETED",
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          finalCostPence: true,
+          acceptedBid: {
+            select: { amountCents: true },
+          },
+        },
+      }),
+    ]);
 
-    // ✅ Count upcoming jobs (unified)
-    const upcomingJobs = await prisma.booking.count({
-      where: {
-        driverId: user.driver.id,
-        pickupTime: { gte: new Date() },
-        status: { in: ["ACCEPTED", "IN_PROGRESS"] },
-        deletedAt: null,
-      },
-    });
-
-    // ✅ Count completed jobs (unified)
-    const completedJobs = await prisma.booking.count({
-      where: {
-        driverId: user.driver.id,
-        status: "COMPLETED",
-        deletedAt: null,
-      },
-    });
-
-    // ✅ Calculate total earnings (unified)
-    const completedWithEarnings = await prisma.booking.findMany({
-      where: {
-        driverId: user.driver.id,
-        status: "COMPLETED",
-        deletedAt: null,
-      },
-      include: {
-        acceptedBid: true,
-      },
-    });
-
+    const completedJobs = completedWithEarnings.length;
     const totalEarnings = completedWithEarnings.reduce((sum, booking) => {
       return sum + (booking.acceptedBid?.amountCents || booking.finalCostPence || 0);
     }, 0);

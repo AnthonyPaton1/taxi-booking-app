@@ -279,11 +279,13 @@ export default function AllBookingsListClient({
                           booking.acceptedBid && (
                             <div className="bg-green-50 border border-green-200 rounded p-3 text-sm">
                               <p className="font-medium text-green-900">
-                                Driver: {booking.acceptedBid.driver.user.name}
+                                Driver: {booking.acceptedBid.driver.name}
+                                {/* driver.user.name */}
                               </p>
                               <p className="text-green-700">
                                 {booking.acceptedBid.driver.vehicleClass} •{" "}
-                                {booking.acceptedBid.driver.user.phone}
+                                {booking.acceptedBid.driver.phone}
+                                {/* driver.user.phone */}
                               </p>
                             </div>
                           )}

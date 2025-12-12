@@ -11,7 +11,7 @@ import { Eye, EyeClosed } from "lucide-react";
 export default function LoginForm() {
   const searchParams = useSearchParams();
   const isTimeout = searchParams.get('timeout') === 'true';
-  const [identifier, setIdentifier] = useState(""); // CHANGED: email → identifier
+  const [identifier, setIdentifier] = useState(""); 
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const router = useRouter();
@@ -33,7 +33,7 @@ export default function LoginForm() {
         router.push("/dashboard/manager");
       } else if (role === "DRIVER") {
         router.push("/dashboard/driver");
-      } else if (role === "HOUSE_STAFF") { // NEW: House staff redirect
+      } else if (role === "HOUSE_STAFF") { 
         router.push("/house/dashboard");
       } else {
         router.push("/dashboard");
@@ -47,7 +47,7 @@ export default function LoginForm() {
 
     const res = await signIn("credentials", {
       redirect: false,
-      identifier, // CHANGED: Pass identifier instead of email
+      identifier, 
       password,
     });
 
@@ -87,7 +87,7 @@ export default function LoginForm() {
         )}
 
         <div>
-          <label htmlFor="identifier" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="identifier" className="block text-sm font-medium text-gray-700 mb-2">
             Email or Username <span className="text-red-500">*</span>
           </label>
           <input
@@ -108,7 +108,7 @@ export default function LoginForm() {
         </div>
 
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
             Password <span className="text-red-500">*</span>
           </label>
           <div className="relative">

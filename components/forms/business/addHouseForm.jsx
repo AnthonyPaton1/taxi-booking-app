@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PostcodeInput } from "@/components/shared/PostcodeInput";
 import { toast } from "sonner";
-import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Info } from "lucide-react"; // Added Info
 import Link from "next/link";
 
 export default function AddHouseForm({
@@ -28,8 +28,9 @@ export default function AddHouseForm({
     city: "",
     postcode: "",
     notes: "",
-    password: "", // NEW
-    confirmPassword: "", // NEW
+    username: "", // NEW
+    password: "",
+    confirmPassword: "",
   });
 
   const handleChange = (e) => {
@@ -41,17 +42,39 @@ export default function AddHouseForm({
     setFormData((prev) => ({ ...prev, postcode: value }));
   };
 
+  // NEW: Password validation helper
+  const validatePassword = (password) => {
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSpecialChar = /[!@#$%^&*]/.test(password);
+    
+    return password.length >= 8 && hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar;
+  };
+
+  // NEW: Username validation helper
+  const validateUsername = (username) => {
+    const isValidFormat = /^[a-z0-9-]+$/.test(username);
+    return username.length >= 6 && username.length <= 20 && isValidFormat;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.label || !formData.line1 || !formData.city || !formData.postcode || !formData.password) {
+    if (!formData.label || !formData.line1 || !formData.city || !formData.postcode || !formData.username || !formData.password) {
       toast.error("Please complete all required fields");
       return;
     }
 
-    // Validate password
-    if (formData.password.length < 6) {
-      toast.error("Password must be at least 6 characters");
+    // Validate username
+    if (!validateUsername(formData.username)) {
+      toast.error("Username must be 6-20 characters (lowercase letters, numbers, hyphens only)");
+      return;
+    }
+
+    // Validate password complexity
+    if (!validatePassword(formData.password)) {
+      toast.error("Password must be at least 8 characters with uppercase, lowercase, number, and special character");
       return;
     }
 
@@ -91,9 +114,10 @@ export default function AddHouseForm({
         label: formData.label,
         line1: formData.line1,
         city: formData.city,
-        postcode: postcodeData.coordinates.postcode, // Normalized
+        postcode: postcodeData.coordinates.postcode,
         notes: formData.notes,
-        password: formData.password, // NEW: include password
+        username: formData.username, // NEW
+        password: formData.password,
         lat: postcodeData.coordinates.lat,
         lng: postcodeData.coordinates.lng,
         businessId,
@@ -116,7 +140,6 @@ export default function AddHouseForm({
       toast.dismiss();
       toast.success("House added successfully!");
 
-      // Redirect to houses list
       setTimeout(() => {
         router.push("/dashboard/manager/houses");
       }, 1000);
@@ -209,31 +232,58 @@ export default function AddHouseForm({
           />
         </div>
 
-        {/* NEW: House Password Section */}
+        {/* House Staff Access Section */}
         <div className="border-t border-gray-200 pt-4 mt-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            House Staff Access
-          </h3>
-          <p className="text-sm text-gray-600 mb-4">
-            Set a password for read-only staff access at this house
-          </p>
+          <div className="flex items-start gap-2 mb-3 bg-blue-50 p-3 rounded-md">
+            <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-gray-700">
+              <p className="font-semibold mb-1">House Staff Access</p>
+              <p>Create login credentials for house staff to view daily and weekly bookings on a tablet. Staff will have read-only access.</p>
+            </div>
+          </div>
 
           <div className="space-y-4">
+            {/* Username field */}
+            <div>
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+                Username <span className="text-red-500">*</span>
+              </label>
+              <Input
+                id="username"
+                name="username"
+                type="text"
+                placeholder="e.g., oakhouse-main, bigblue2024"
+                value={formData.username}
+                onChange={(e) => {
+                  const value = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+                  handleChange({ target: { name: 'username', value } });
+                }}
+                required
+                disabled={submitting}
+                minLength={6}
+                maxLength={20}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                6-20 characters: lowercase letters, numbers, and hyphens only
+              </p>
+            </div>
+
+            {/* Password field */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                House Password <span className="text-red-500">*</span>
+                Password <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <Input
                   id="password"
                   name="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="e.g., House123"
+                  placeholder="Min 8 chars with uppercase, lowercase, number & symbol"
                   value={formData.password}
                   onChange={handleChange}
                   required
                   disabled={submitting}
-                  minLength={6}
+                  minLength={8}
                 />
                 <button
                   type="button"
@@ -245,10 +295,11 @@ export default function AddHouseForm({
                 </button>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Minimum 6 characters (e.g., "House123" or "Spring24")
+                At least 8 characters with uppercase, lowercase, number, and special character (!@#$%^&*)
               </p>
             </div>
 
+            {/* Confirm Password */}
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
                 Confirm Password <span className="text-red-500">*</span>
@@ -262,7 +313,7 @@ export default function AddHouseForm({
                 onChange={handleChange}
                 required
                 disabled={submitting}
-                minLength={6}
+                minLength={8}
               />
             </div>
           </div>

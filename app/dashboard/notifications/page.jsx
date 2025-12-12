@@ -122,6 +122,15 @@ export default function NotificationsPage() {
           }
         </p>
       </div>
+        <Link
+            href="/dashboard/settings/notifications"
+            className="flex items-center gap-2 px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+          >
+            <Settings className="w-4 h-4" />
+            Email Settings
+          </Link>
+       
+      
 
       {/* Filter Tabs */}
       <div className="flex items-center justify-between mb-6">

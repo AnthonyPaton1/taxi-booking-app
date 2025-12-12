@@ -56,7 +56,7 @@ export async function getMyBookings() {
             },
           },
         },
-        driver: {  // Direct driver assignment (if no bidding)
+        driver: {
           select: {
             name: true,
             phone: true,
@@ -77,35 +77,14 @@ export async function getMyBookings() {
 
 /**
  * Get available bookings for DRIVERS (with matching)
- * Shows ALL bookings they can bid on (regardless of pickup time)
+ * ✅ OPTIMIZED: Accepts driver object instead of refetching
  */
-export async function getAvailableBookings() {
+export async function getAvailableBookings(driver, userId) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
-      return { success: false, error: "Unauthorized" };
+    if (!driver) {
+      return { success: false, error: "No driver profile provided" };
     }
 
-    // Get driver profile
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      include: {
-        driver: {
-          include: {
-            accessibilityProfile: true,
-          },
-        },
-      },
-    });
-
-    if (!user?.driver) {
-      return { success: false, error: "No driver profile found" };
-    }
-
-    const driver = user.driver;
-
-    // Check if driver has location set
     if (!driver.baseLat || !driver.baseLng) {
       return { 
         success: true, 
@@ -115,15 +94,14 @@ export async function getAvailableBookings() {
       };
     }
 
-    // Get all PENDING bookings (available for bidding)
     const allBookings = await prisma.booking.findMany({
       where: {
-        status: "PENDING",  // ✅ New unified status
+        status: "PENDING",
         visibility: {
           in: ["PUBLIC", "PRIVATE_TO_COMPANY"],
         },
         pickupTime: {
-          gte: new Date(),  // Only future bookings
+          gte: new Date(),
         },
         deletedAt: null,
       },
@@ -143,7 +121,7 @@ export async function getAvailableBookings() {
         },
         bids: {
           where: {
-            userId: session.user.id,
+            userId: userId,
           },
           select: {
             id: true,
@@ -160,7 +138,6 @@ export async function getAvailableBookings() {
       orderBy: { pickupTime: "asc" },
     });
 
-    // Filter bookings with valid coordinates
     const bookingsWithCoords = allBookings
       .filter(booking => booking.pickupLatitude && booking.pickupLongitude)
       .map(booking => ({
@@ -169,14 +146,18 @@ export async function getAvailableBookings() {
         pickupLng: booking.pickupLongitude,
       }));
 
-    // Run matching algorithm
     const matches = await matchDriverToBookingsCached(driver, bookingsWithCoords);
 
     if (!matches || !Array.isArray(matches)) {
       return { success: true, bookings: [], count: 0 };
     }
 
-    const matchedBookings = matches.map(match => match.booking);
+    // ✅ ADD matchScore and distance to each booking
+    const matchedBookings = matches.map(match => ({
+      ...match.booking,
+      matchScore: match.score,      
+      distance: match.distance,     
+    }));
 
     console.log(`✅ Matched ${matchedBookings.length} bookings for driver`);
 

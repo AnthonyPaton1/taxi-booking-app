@@ -3,16 +3,17 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import AvailableBookingsClient from "@/components/dashboard/driver/AvailableBookingsClient";  
-import { matchDriverToBookingsCached } from "@/lib/matching/cached-matching-algorithm";
+import AvailableBookingsClient from "@/components/dashboard/driver/AvailableBookingsClient";
+import { getAvailableBookings } from "@/app/actions/bookings/getBookings";
 
-export default async function AvailableBookingsPage() {  
+export default async function AvailableBookingsPage() {
   const session = await getServerSession(authOptions);
 
   if (!session || session.user.role !== "DRIVER") {
     redirect("/login");
   }
 
+  // ✅ Fetch user/driver once
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     include: {
@@ -41,100 +42,36 @@ export default async function AvailableBookingsPage() {
     );
   }
 
-  // Get all PENDING bookings (unified - available for bidding)
-  const availableBookings = await prisma.booking.findMany({
+  // ✅ Use the action (returns bookings with matchScore and distance)
+  const result = await getAvailableBookings(driver, user.id);
+
+  if (!result.success) {
+    return (
+      <AvailableBookingsClient
+        driver={driver}
+        bookings={[]}
+        error={result.error || "Failed to load bookings"}
+      />
+    );
+  }
+
+  // ✅ Get total available count (before matching)
+  const totalAvailable = await prisma.booking.count({
     where: {
-      status: "PENDING", 
-      pickupTime: {
-        gte: new Date(),  
-      },
-      visibility: {
-        in: ["PUBLIC", "PRIVATE_TO_COMPANY"],
-      },
+      status: "PENDING",
+      pickupTime: { gte: new Date() },
+      visibility: { in: ["PUBLIC", "PRIVATE_TO_COMPANY"] },
       deletedAt: null,
     },
-    include: {
-      accessibilityProfile: true,
-      bids: {
-        where: {
-          driverId: driver.id,
-        },
-        select: {
-          id: true,
-          amountCents: true,
-          status: true,
-          createdAt: true,
-        },
-      },
-      createdBy: {
-        select: {
-          name: true,
-          business: {
-            select: {
-              name: true,
-              lat: true,
-              lng: true,
-            },
-          },
-        },
-      },
-      _count: {
-        select: {
-          bids: true,
-        },
-      },
-    },
-    orderBy: {
-      pickupTime: "asc",  
-      
-    },
   });
-
-  // Add coordinates for matching
-  const bookingsWithCoords = availableBookings
-    .filter(booking => 
-      booking.pickupLatitude && 
-      booking.pickupLongitude
-    )
-    .map(booking => ({
-      ...booking,
-      pickupLat: booking.pickupLatitude,   
-      pickupLng: booking.pickupLongitude,  
-    }));
-
-  // Match driver to bookings using the algorithm
-  const driverForMatching = {
-    id: driver.id,
-    approved: driver.approved,
-    suspended: driver.suspended || false,
-    hasWAV: driver.hasWAV,
-    wavOnly: driver.wavOnly || false,
-    femaleDriverOnly: driver.femaleDriverOnly || false,
-    baseLat: driver.baseLat,
-    baseLng: driver.baseLng,
-    radiusMiles: driver.radiusMiles || 25,
-    rating: driver.rating || 0,
-    completedRides: driver.completedRides || 0,
-  };
-
-  const matches = await matchDriverToBookingsCached(driverForMatching, bookingsWithCoords);
-
-  const safeMatches = Array.isArray(matches) ? matches : [];
-  const matchedBookings = safeMatches.map(match => ({
-    ...match.booking,
-    matchScore: match.score,
-    distance: match.distance,
-  }));
-
- 
 
   return (
     <AvailableBookingsClient
       driver={driver}
       driverId={driver.id}
-      bookings={matchedBookings}
-      totalAvailable={availableBookings.length}
-      matchedCount={matchedBookings.length}
+      bookings={result.bookings}  
+      totalAvailable={totalAvailable}
+      matchedCount={result.count}
     />
   );
 }

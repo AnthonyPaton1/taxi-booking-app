@@ -161,7 +161,7 @@ export default function CoordinatorDashboardClient({
             <p className="text-gray-500">
               Incidents and feedback will appear here
             </p>
-            <p className="text-sm text-gray-400 mt-2">
+            <p className="text-sm text-gray-600 mt-2">
               Reports submitted by managers and drivers for audit trail
             </p>
           </div>
@@ -174,12 +174,12 @@ export default function CoordinatorDashboardClient({
 // Stat Card
 const StatCard = ({ title, value, color, icon, highlight }) => {
   const colors = {
-    blue: "bg-blue-50 text-blue-700 border-blue-200",
-    green: "bg-green-50 text-green-700 border-green-200",
-    yellow: "bg-yellow-50 text-yellow-700 border-yellow-200",
-    orange: "bg-orange-50 text-orange-700 border-orange-200",
-    purple: "bg-purple-50 text-purple-700 border-purple-200",
-    indigo: "bg-indigo-50 text-indigo-700 border-indigo-200",
+    blue: "bg-blue-300 text-black border-blue-400",
+    green: "bg-green-300 text-black border-green-400",
+    yellow: "bg-yellow-300 text-black border-yellow-400",
+    orange: "bg-orange-300 text-black border-orange-400",
+    purple: "bg-purple-300 text-black border-purple-400",
+    indigo: "bg-indigo-300 text-black border-indigo-400",
   };
 
   return (
@@ -190,7 +190,7 @@ const StatCard = ({ title, value, color, icon, highlight }) => {
     >
       <div className="flex items-center gap-2 mb-2">
         {icon}
-        <h3 className="text-sm font-medium opacity-75">{title}</h3>
+        <h2 className="text-sm font-bold opacity-75">{title}</h2>
       </div>
       <p className="text-3xl font-bold">{value}</p>
     </div>
@@ -200,11 +200,11 @@ const StatCard = ({ title, value, color, icon, highlight }) => {
 // Quick Action Card
 const QuickAction = ({ title, description, href, color, icon }) => {
   const colors = {
-    blue: "border-blue-200 hover:bg-blue-50",
-    green: "border-green-200 hover:bg-green-50",
-    purple: "border-purple-200 hover:bg-purple-50",
-    orange: "border-orange-200 hover:bg-orange-50",
-    indigo: "border-indigo-200 hover:bg-indigo-50",
+    blue: "border-blue-200 hover:bg-blue-100",
+    green: "border-green-200 hover:bg-green-100",
+    purple: "border-purple-200 hover:bg-purple-100",
+    orange: "border-orange-200 hover:bg-orange-100",
+    indigo: "border-indigo-200 hover:bg-indigo-100",
   };
 
   return (
@@ -213,7 +213,7 @@ const QuickAction = ({ title, description, href, color, icon }) => {
       className={`block bg-white border-2 ${colors[color]} rounded-lg p-6 transition-colors`}
     >
       <span className="text-3xl block mb-2">{icon}</span>
-      <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+      <h2 className="text-lg font-bold text-gray-900">{title}</h2>
       <p className="text-sm text-gray-600 mt-1">{description}</p>
     </Link>
   );
@@ -227,10 +227,10 @@ const ManagerCard = ({ manager }) => (
           <Users className="w-5 h-5 text-blue-600" />
         </div>
         <div>
-          <h3 className="font-semibold text-gray-900">{manager.name}</h3>
-          <p className="text-sm text-gray-600">{manager.email}</p>
+          <h3 className="font-bold text-gray-900">{manager.name}</h3>
+          <p className="text-sm text-gray-900">{manager.email}</p>
           {!manager.managerOnboarded && (
-            <span className="text-xs text-yellow-600">⏳ Pending Setup</span>
+            <span className="text-xs text-blue-800">⏳ Pending Setup</span>
           )}
         </div>
       </div>

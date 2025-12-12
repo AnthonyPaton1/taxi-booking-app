@@ -1,3 +1,5 @@
+// app/api/super-admin/stats/route.js (or wherever this file is)
+
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
@@ -20,19 +22,21 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Super admin access required' }, { status: 403 });
     }
 
-    // Fetch all stats in parallel for speed
+    // ✅ Fetch all stats in parallel - UNIFIED BOOKINGS
     const [
       totalUsers,
       totalDrivers,
       pendingDrivers,
       approvedDrivers,
       totalBusinesses,
-      totalAdvancedBookings,
-      totalInstantBookings,
-      completedAdvancedBookings,
-      completedInstantBookings,
+      totalBookings,
+      urgentBookings,
+      standardBookings,
+      completedBookings,
       totalHouses,
       totalIncidents,
+      totalBids,
+      activeBids,
       recentUsers,
       recentBookings
     ] = await Promise.all([
@@ -67,19 +71,29 @@ export async function GET(request) {
       // Businesses
       prisma.business.count(),
       
-      // Advanced bookings
-      prisma.advancedBooking.count(),
+      // ✅ Total bookings (unified)
+      prisma.booking.count(),
       
-      // Instant bookings
-      prisma.instantBooking.count(),
-      
-      // Completed advanced bookings
-      prisma.advancedBooking.count({
-        where: { status: 'COMPLETED' }
+      // ✅ Urgent bookings (< 48 hours)
+      prisma.booking.count({
+        where: {
+          pickupTime: {
+            lte: new Date(Date.now() + 48 * 60 * 60 * 1000) // Next 48 hours
+          }
+        }
       }),
       
-      // Completed instant bookings
-      prisma.instantBooking.count({
+      // ✅ Standard bookings (> 48 hours)
+      prisma.booking.count({
+        where: {
+          pickupTime: {
+            gt: new Date(Date.now() + 48 * 60 * 60 * 1000)
+          }
+        }
+      }),
+      
+      // ✅ Completed bookings
+      prisma.booking.count({
         where: { status: 'COMPLETED' }
       }),
       
@@ -90,6 +104,14 @@ export async function GET(request) {
       
       // Incidents
       prisma.incident.count(),
+      
+      // ✅ Total bids
+      prisma.bid.count(),
+      
+      // ✅ Active bids (pending status)
+      prisma.bid.count({
+        where: { status: 'PENDING' }
+      }),
       
       // Recent users (last 7 days)
       prisma.user.findMany({
@@ -110,8 +132,8 @@ export async function GET(request) {
         take: 5
       }),
       
-      // Recent bookings
-      prisma.advancedBooking.findMany({
+      // ✅ Recent bookings (unified)
+      prisma.booking.findMany({
         where: {
           createdAt: {
             gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
@@ -123,15 +145,15 @@ export async function GET(request) {
           dropoffLocation: true,
           pickupTime: true,
           status: true,
-          createdAt: true
+          createdAt: true,
+          _count: {
+            select: { bids: true }
+          }
         },
         orderBy: { createdAt: 'desc' },
         take: 5
       })
     ]);
-
-    const totalBookings = totalAdvancedBookings + totalInstantBookings;
-    const completedBookings = completedAdvancedBookings + completedInstantBookings;
 
     return NextResponse.json({
       overview: {
@@ -143,7 +165,9 @@ export async function GET(request) {
         totalBookings,
         completedBookings,
         totalHouses,
-        totalIncidents
+        totalIncidents,
+        totalBids,
+        activeBids
       },
       breakdown: {
         drivers: {
@@ -156,17 +180,31 @@ export async function GET(request) {
         },
         bookings: {
           total: totalBookings,
-          advanced: totalAdvancedBookings,
-          instant: totalInstantBookings,
+          urgent: urgentBookings, // ✅ < 48 hours
+          standard: standardBookings, // ✅ > 48 hours
           completed: completedBookings,
           completionRate: totalBookings > 0 
             ? (completedBookings / totalBookings * 100).toFixed(1)
+            : 0,
+          averageBidsPerBooking: totalBookings > 0
+            ? (totalBids / totalBookings).toFixed(1)
+            : 0
+        },
+        bids: {
+          total: totalBids,
+          active: activeBids,
+          acceptanceRate: totalBids > 0
+            ? ((totalBids - activeBids) / totalBids * 100).toFixed(1)
             : 0
         }
       },
       recent: {
         users: recentUsers,
-        bookings: recentBookings
+        bookings: recentBookings.map(booking => ({
+          ...booking,
+          bidCount: booking._count.bids,
+          isUrgent: new Date(booking.pickupTime) <= new Date(Date.now() + 48 * 60 * 60 * 1000)
+        }))
       },
       timestamp: new Date().toISOString()
     });

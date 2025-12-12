@@ -1,4 +1,4 @@
-// app/dashboard/coordinator/page.jsx
+// app/(protected)/coordinator/dashboard/page.jsx
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
@@ -21,18 +21,17 @@ export default async function CoordinatorDashboardPage() {
         select: {
           name: true,
           id: true,
+          
         },
       },
     },
   });
 
-
-
   if (!user) {
     redirect("/login");
   }
 
-  // Check if coordinator has onboarded
+  
   if (!user.coordinatorOnboarded) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
@@ -45,14 +44,15 @@ export default async function CoordinatorDashboardPage() {
               You're managing {user.area?.name}. Let's onboard your managers.
             </p>
           </div>
-          <CoordinatorOnboardingForm companyId={user.businessId} coordinatorArea={user.area?.name}  />
-          
+          <CoordinatorOnboardingForm 
+            companyId={user.businessId} 
+            coordinatorArea={user.area?.name}  
+          />
         </div>
       </div>
     );
   }
 
-  // Get managers in this coordinator's area
   const managers = await prisma.user.findMany({
     where: {
       role: "MANAGER",
@@ -60,7 +60,11 @@ export default async function CoordinatorDashboardPage() {
       businessId: user.businessId,
       deletedAt: null, 
     },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      lastLogin: true, 
       houses: {
         where: {
           deletedAt: null 
@@ -85,7 +89,7 @@ export default async function CoordinatorDashboardPage() {
       where: {
         house: {
           areaId: user.areaId,
-          deletedAt: null, // ✅ Only count incidents for active houses
+          deletedAt: null,
         },
       },
     }),
@@ -103,7 +107,6 @@ export default async function CoordinatorDashboardPage() {
     incidentCount,
     feedbackCount,
   };
-
 
   return (
     <CoordinatorDashboardClient

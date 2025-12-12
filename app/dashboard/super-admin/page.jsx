@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   Users, Car, Building2, TrendingUp, AlertCircle, 
-  Database, Shield, CheckCircle, Clock, Loader2
+  Database, Shield, MessageSquare, ChevronRight, Clock, Loader2
 } from 'lucide-react';
 
 export default function SuperAdminDashboard() {
@@ -219,17 +219,20 @@ export default function SuperAdminDashboard() {
             </Link>
 
             {/* System Settings */}
-            <div className="flex items-start gap-4 p-4 border-2 border-gray-200 rounded-lg opacity-50 cursor-not-allowed">
-              <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <Shield className="w-6 h-6 text-gray-600" />
-                </div>
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-gray-900 mb-1">System Settings</h3>
-                <p className="text-sm text-gray-600">Coming soon</p>
-              </div>
-            </div>
+  <Link href="/dashboard/super-admin/sms-stats">
+  <div className="flex items-start gap-4 p-4 border-2 border-blue-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer">
+    <div className="flex-shrink-0">
+      <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+        <MessageSquare className="w-6 h-6 text-blue-600" />
+      </div>
+    </div>
+    <div className="flex-1">
+      <h3 className="font-semibold text-gray-900 mb-1">SMS Cost Tracking</h3>
+      <p className="text-sm text-gray-600">Monitor SMS usage and operational costs</p>
+    </div>
+    <ChevronRight className="w-5 h-5 text-gray-400 mt-3" />
+  </div>
+</Link>
           </div>
         </div>
 

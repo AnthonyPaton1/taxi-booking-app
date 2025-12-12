@@ -46,7 +46,7 @@ export default function ManagerDashboardClient({
                 
                 <button
                   onClick={() => setShowIncidentForm(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition shadow-sm"
+                  className="flex items-center gap-2 px-4 py-2 bg-orange-700 text-white rounded-lg hover:bg-orange-800 transition shadow-sm"
                 >
                   <FileText className="w-5 h-5" />
                   <span className="hidden sm:inline">Incident & Feedback</span>
@@ -227,10 +227,10 @@ export default function ManagerDashboardClient({
 // Stat Card
 const StatCard = ({ title, value, color, icon, highlight }) => {
   const colors = {
-    blue: "bg-blue-50 border-blue-200 text-blue-700",
-    green: "bg-green-50 border-green-200 text-green-700",
-    yellow: "bg-yellow-50 border-yellow-200 text-yellow-700",
-    purple: "bg-purple-50 border-purple-200 text-purple-700",
+    blue: "bg-blue-300 border-blue-400 text-black",
+    green: "bg-green-300 border-green-400 text-black",
+    yellow: "bg-yellow-300 border-yellow-400 text-black",
+    purple: "bg-purple-300 border-purple-400 text-black",
   };
 
   return (
@@ -241,7 +241,7 @@ const StatCard = ({ title, value, color, icon, highlight }) => {
     >
       <div className="flex items-center gap-2 mb-2">
         <span className="text-2xl">{icon}</span>
-        <h3 className="text-sm font-medium opacity-75">{title}</h3>
+        <h2 className="text-sm font-medium opacity-75">{title}</h2>
       </div>
       <p className="text-3xl font-bold">{value}</p>
     </div>
@@ -251,8 +251,8 @@ const StatCard = ({ title, value, color, icon, highlight }) => {
 // Quick Action Card - ✅ UPDATED
 const QuickAction = ({ title, description, href, color, icon }) => {
   const colors = {
-    blue: "border-blue-200 hover:bg-blue-50",
-    green: "border-green-200 hover:bg-green-50",
+    blue: "border-blue-200 hover:bg-blue-100",
+    green: "border-green-200 hover:bg-green-100",
     purple: "border-purple-200 hover:bg-purple-50",
   };
 
@@ -262,7 +262,7 @@ const QuickAction = ({ title, description, href, color, icon }) => {
       className={`block bg-white border-2 ${colors[color]} rounded-lg p-6 transition-colors`}
     >
       <span className="text-3xl block mb-2">{icon}</span>
-      <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+      <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
       <p className="text-sm text-gray-600 mt-1">{description}</p>
     </Link>
   );

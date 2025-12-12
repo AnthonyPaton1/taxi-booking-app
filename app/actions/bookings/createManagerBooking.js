@@ -185,6 +185,10 @@ if (sanitizedData.wheelchairUsers > 0 && finalVehicleType === 'STANDARD_CAR') {
         returnTime: sanitizedData.returnTime ? new Date(sanitizedData.returnTime) : null,
         initials: residentInitials,
 
+        house: {
+      connect: { id: sanitizedData.houseId }
+    },
+
         // Link to accessibility profile
         accessibilityProfile: {
           connect: { id: accessibilityProfile.id },

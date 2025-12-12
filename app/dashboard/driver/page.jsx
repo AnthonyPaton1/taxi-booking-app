@@ -55,43 +55,47 @@ if (!user) {
 
 
 const recentBids = await prisma.bid.findMany({
-  where: {
-    driverId: user.driver.id,
-    booking: {
-      deletedAt: null,  
+    where: {
+      driverId: user.driver.id,
+      booking: { deletedAt: null },
     },
-  },
-  include: {
-    booking: {
-      include: {
-        accessibilityProfile: true,
+    select: {
+      id: true,
+      amountCents: true,
+      status: true,
+      createdAt: true,
+      booking: {
+        select: {
+          id: true,
+          pickupLocation: true,
+          dropoffLocation: true,
+          pickupTime: true,
+          status: true,
+        },
       },
     },
-  },
-  orderBy: {
-    createdAt: "desc",
-  },
-  take: 5,
-});
+    orderBy: { createdAt: "desc" },
+    take: 5,
+  });
 
-  // ✅ Fetch dashboard data (unified)
+  // ✅ Pass driver.id to actions instead of refetching
   const [statsResult, todaysBookings, availableBookingsResult] = await Promise.all([
-    getDriverStats(),
-    getDriverBookingsForToday(),
-    getAvailableBookings(),  
+    getDriverStats(user.driver.id),              // ✅ Pass driverId
+    getDriverBookingsForToday(user.driver.id),    // ✅ Pass driverId
+    getAvailableBookings(user.driver, user.id),            // ✅ Pass full driver object
   ]);
 
-  return (<>
-    
-    <DriverDashboardClient
-      user={user}
-      driver={user.driver}
-      stats={statsResult.success ? statsResult.stats : null}
-      todaysBookings={todaysBookings.success ? todaysBookings.bookings : []}  
-      availableBookings={availableBookingsResult.success ? availableBookingsResult.bookings : []}  
-      recentBids={recentBids}
+  return (
+    <>
+      <DriverDashboardClient
+        user={user}
+        driver={user.driver}
+        stats={statsResult.success ? statsResult.stats : null}
+        todaysBookings={todaysBookings.success ? todaysBookings.bookings : []}
+        availableBookings={availableBookingsResult.success ? availableBookingsResult.bookings : []}
+        recentBids={recentBids}
       />
       <SubscriptionBadge driver={user.driver} />
-      </>
+    </>
   );
 }

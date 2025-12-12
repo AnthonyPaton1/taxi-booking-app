@@ -3,10 +3,10 @@
 
 import { prisma } from "@/lib/db";
 import { simpleRateLimit, RATE_LIMITS } from "@/lib/rateLimit";
-import { validatePhoneUK } from "@/lib/phoneValidation"; // ✅ Changed to validatePhoneUK
+import { validatePhoneUK } from "@/lib/phoneValidation";
 import { validateEmail, validateName, sanitizePlainText } from "@/lib/validation";
 import { headers } from "next/headers";
-import nodemailer from "nodemailer";
+import { sendEmail } from "@/lib/email"; // ✅ Use centralized email function
 import { nanoid } from "nanoid";
 import { addHours } from "date-fns";
 
@@ -30,7 +30,6 @@ export async function registerAndInviteUser(payload) {
       RATE_LIMITS.auth.windowSeconds
     );
 
-    // ✅ Defensive null check
     if (!rateLimitResult || !rateLimitResult.success) {
       const retryAfter = rateLimitResult?.retryAfter || 900;
       return {
@@ -84,7 +83,6 @@ export async function registerAndInviteUser(payload) {
 
     // ===== INPUT SANITIZATION & VALIDATION =====
     
-    // Validate required fields first
     if (!name || !email || !phone || !company || !type || !role) {
       return {
         success: false,
@@ -92,7 +90,6 @@ export async function registerAndInviteUser(payload) {
       };
     }
 
-    // Validate and sanitize name
     const nameValidation = validateName(name);
     if (!nameValidation.valid) {
       return {
@@ -102,7 +99,6 @@ export async function registerAndInviteUser(payload) {
     }
     const sanitizedName = nameValidation.sanitized;
 
-    // Validate and sanitize email
     const emailValidation = validateEmail(email);
     if (!emailValidation.valid) {
       return {
@@ -112,7 +108,6 @@ export async function registerAndInviteUser(payload) {
     }
     const sanitizedEmail = emailValidation.sanitized;
 
-    // ✅ VALIDATE PHONE - Using validatePhoneUK with correct properties
     const phoneValidation = validatePhoneUK(phone);
     if (!phoneValidation.valid) {
       return {
@@ -122,7 +117,6 @@ export async function registerAndInviteUser(payload) {
     }
     const sanitizedPhone = phoneValidation.formatted;
 
-    // Sanitize company name
     const sanitizedCompany = sanitizePlainText(company).substring(0, 200);
     if (sanitizedCompany.length < 2) {
       return {
@@ -131,7 +125,6 @@ export async function registerAndInviteUser(payload) {
       };
     }
 
-    // Validate type
     const validTypes = ['CARE', 'TAXI'];
     if (!validTypes.includes(type)) {
       return {
@@ -140,7 +133,6 @@ export async function registerAndInviteUser(payload) {
       };
     }
 
-    // Validate role
     const validRoles = ["DRIVER", "ADMIN", "COORDINATOR"];
     if (!validRoles.includes(role)) {
       return {
@@ -149,7 +141,7 @@ export async function registerAndInviteUser(payload) {
       };
     }
 
-    // Check for duplicate email (using sanitized email)
+    // Check for duplicate email
     const existingUser = await prisma.user.findUnique({
       where: { email: sanitizedEmail },
     });
@@ -162,18 +154,26 @@ export async function registerAndInviteUser(payload) {
       };
     }
 
+    // ✅ CHECK IF SUPER ADMIN EMAIL
+    const superAdminEmails = process.env.SUPER_ADMIN_EMAIL?.split(',').map(e => e.trim()) || [];
+    const isSuperAdmin = superAdminEmails.includes(sanitizedEmail);
+
     // Create user with sanitized data
     const user = await prisma.user.create({
       data: {
         name: sanitizedName,
         email: sanitizedEmail,
         phone: sanitizedPhone,
-        role,
+        role: isSuperAdmin ? 'SUPER_ADMIN' : role, // ✅ Auto-promote super admin
+        isApproved: isSuperAdmin ? true : undefined, // ✅ Auto-approve super admin
+        emailVerified: isSuperAdmin ? new Date() : undefined, // ✅ Auto-verify super admin
+        driverOnboarded: isSuperAdmin ? true : undefined,
+        adminOnboarded: isSuperAdmin ? true : undefined,
       },
     });
 
-    // Create business if ADMIN/COORDINATOR (using sanitized company name)
-    if (role === "ADMIN" || role === "COORDINATOR") {
+    // Create business if ADMIN/COORDINATOR (not for super admin)
+    if (!isSuperAdmin && (role === "ADMIN" || role === "COORDINATOR")) {
       await prisma.business.create({
         data: {
           name: sanitizedCompany,
@@ -183,7 +183,7 @@ export async function registerAndInviteUser(payload) {
       });
     }
 
-    // ✅ SEND INVITATION EMAIL
+    // ✅ SEND INVITATION EMAIL using centralized function
     try {
       // Delete any existing tokens
       await prisma.passwordResetToken.deleteMany({
@@ -200,47 +200,85 @@ export async function registerAndInviteUser(payload) {
         },
       });
 
-      // Setup email (using sanitized name and email)
-      const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
       const setPasswordUrl = `${baseUrl}/set-password?token=${token}`;
 
-      const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT),
-        secure: process.env.SMTP_SECURE === 'true',
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
-        },
-      });
-
-      await transporter.sendMail({
-        from: `"NEAT Transport" <${process.env.SMTP_USER}>`,
+      // ✅ Use centralized email function with proper IONOS config
+      await sendEmail({
         to: sanitizedEmail,
         subject: 'Welcome to NEAT Transport - Set Your Password',
+        text: `Welcome to NEAT Transport, ${sanitizedName}! Set your password here: ${setPasswordUrl}`,
         html: `
           <!DOCTYPE html>
           <html>
-            <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <div style="background-color: #f8f9fa; padding: 30px; border-radius: 10px;">
-                <h1 style="color: #0070f3;">Welcome to NEAT Transport, ${sanitizedName}!</h1>
-                <p>Your account has been created successfully as a <strong>${role}</strong>.</p>
-                <p>Click the button below to set your password and get started:</p>
-                <div style="text-align: center; margin: 30px 0;">
-                  <a href="${setPasswordUrl}" 
-                     style="display: inline-block; padding: 14px 28px; background-color: #0070f3; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
-                    Set Your Password
-                  </a>
-                </div>
-                <p style="font-size: 14px; color: #666;">
-                  Or copy and paste this link:<br/>
-                  <a href="${setPasswordUrl}" style="color: #0070f3;">${setPasswordUrl}</a>
-                </p>
-                <p style="font-size: 12px; color: #999; margin-top: 30px;">
-                  This link expires in 24 hours. If you didn't request this, please ignore this email.
-                </p>
-              </div>
-            </body>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px;">
+              <tr>
+                <td align="center">
+                  <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden;">
+                    
+                    <!-- Header -->
+                    <tr>
+                      <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+                        <h1 style="color: #ffffff; margin: 0; font-size: 28px;">NEAT Transport</h1>
+                        <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 14px; opacity: 0.9;">Accessible Transport Marketplace</p>
+                      </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                      <td style="padding: 40px 30px;">
+                        <h2 style="color: #333333; margin: 0 0 20px 0; font-size: 24px;">Welcome, ${sanitizedName}!</h2>
+                        
+                        <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 10px 0;">
+                          Your account has been created successfully as a <strong>${isSuperAdmin ? 'Super Admin' : role}</strong>.
+                        </p>
+                        
+                        <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                          Click the button below to set your password and get started:
+                        </p>
+                        
+                        <table cellpadding="0" cellspacing="0" style="margin: 30px 0;">
+                          <tr>
+                            <td style="background-color: #667eea; border-radius: 6px; text-align: center;">
+                              <a href="${setPasswordUrl}" style="display: inline-block; padding: 14px 28px; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 16px;">
+                                Set Your Password
+                              </a>
+                            </td>
+                          </tr>
+                        </table>
+                        
+                        <p style="color: #666666; font-size: 14px; line-height: 1.6; margin: 20px 0 0 0;">
+                          Or copy and paste this link into your browser:
+                        </p>
+                        <p style="color: #667eea; font-size: 14px; word-break: break-all;">
+                          ${setPasswordUrl}
+                        </p>
+                        
+                        <p style="color: #999999; font-size: 12px; line-height: 1.6; margin: 30px 0 0 0;">
+                          This link will expire in 24 hours. If you didn't request this, please ignore this email.
+                        </p>
+                      </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                      <td style="background-color: #f8f9fa; padding: 20px 30px; border-top: 1px solid #e9ecef; text-align: center;">
+                        <p style="color: #6c757d; font-size: 12px; margin: 0;">
+                          © ${new Date().getFullYear()} NEAT Transport. All rights reserved.
+                        </p>
+                      </td>
+                    </tr>
+                    
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </body>
           </html>
         `,
       });
@@ -250,7 +288,6 @@ export async function registerAndInviteUser(payload) {
     } catch (emailError) {
       console.error("⚠️ Email sending failed:", emailError);
       // Don't fail the registration if email fails
-      // User is created, we can resend the email later
     }
 
     console.log("✅ User registered:", {
@@ -258,11 +295,12 @@ export async function registerAndInviteUser(payload) {
       email: user.email,
       role: user.role,
       company: sanitizedCompany,
+      isSuperAdmin
     });
 
     return {
       success: true,
-      message: "Registration successful! Check your email to set your password.",
+      message: `Registration successful! ${isSuperAdmin ? 'Super admin account created.' : 'Check your email to set your password.'}`,
       userId: user.id,
     };
 

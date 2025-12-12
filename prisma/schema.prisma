@@ -114,6 +114,8 @@ model User {
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
   deletedAt            DateTime?
+  lastLogin            DateTime?
+  emailPreferences UserEmailPreferences?
   Account              Account[]
   bookings             Booking[]            @relation("CreatorBookings")
   bids                 Bid[]                @relation("UserBids")
@@ -131,6 +133,8 @@ model User {
   savedLocations       SavedLocation[]
   Session              Session[]
   feedback             TripFeedback[]
+  smsLogs              SmsLog[]
+
   area                 Area?                @relation("UserArea", fields: [areaId], references: [id])
   business             Business?            @relation("UserBusiness", fields: [businessId], references: [id])
   manager              User?                @relation("ManagerDrivers", fields: [managerId], references: [id])
@@ -345,6 +349,7 @@ model House {
   deletedAt  DateTime?
   managerId  String
   areaId     String
+  bookings   Booking[]
   area       Area       @relation(fields: [areaId], references: [id])
   business   Business   @relation("HouseBusiness", fields: [businessId], references: [id], onDelete: Cascade)
   company    Business?  @relation("HouseCompany", fields: [companyId], references: [id])
@@ -400,6 +405,7 @@ model Booking {
   createdById            String
   businessId             String?
   pickupTime             DateTime
+  houseId                String?
   returnTime             DateTime?
   pickupLocation         String
   pickupLatitude         Float?
@@ -448,6 +454,7 @@ model Booking {
   acceptedByUser       User?                @relation("UserAcceptedBookings", fields: [acceptedByUserId], references: [id])
   accessibilityProfile AccessibilityProfile @relation("BookingAccessibility", fields: [accessibilityProfileId], references: [id], onDelete: Cascade)
   business             Business?            @relation("BusinessBookings", fields: [businessId], references: [id])
+  house                House?               @relation(fields: [houseId], references: [id]) 
   createdBy            User                 @relation("CreatorBookings", fields: [createdById], references: [id])
   driver               Driver?              @relation("DriverBookings", fields: [driverId], references: [id])
   bids                 Bid[]                @relation("BookingBids")
@@ -457,6 +464,7 @@ model Booking {
   feedback             TripFeedback[]
 
   @@index([status, pickupTime, deletedAt])
+  @@index([houseId, status, deletedAt]) 
   @@index([driverId, status, deletedAt])
   @@index([createdById, deletedAt])
   @@index([businessId, status, deletedAt])
@@ -521,6 +529,46 @@ model RideSchedule {
   @@index([startAt])
 }
 
+// Notification Types and Preferences
+
+model UserEmailPreferences {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Individual notification types
+  bookingAvailable    Boolean  @default(true)
+  bidAccepted         Boolean  @default(true)
+  bookingAssigned     Boolean  @default(true)
+  bookingCancelled    Boolean  @default(true)
+  paymentReceived     Boolean  @default(true)
+  tripReminders       Boolean  @default(true)
+  systemUpdates       Boolean  @default(false)
+  
+  // Digest settings
+  emailDigest         Boolean  @default(false)
+  digestTime          String   @default("09:00")
+  
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  
+  @@map("user_email_preferences")
+}
+
+model SmsLog {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phoneNumber String
+  message     String
+  twilioSid   String?
+  costCents   Int      @default(4) // 4p per SMS
+  sentAt      DateTime @default(now())
+  
+  @@index([userId, sentAt])
+  @@map("sms_logs")
+}
+
 model Notification {
   id        String    @id @default(cuid())
   userId    String
@@ -535,9 +583,13 @@ model Notification {
   bid       Bid?      @relation(fields: [bidId], references: [id])
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, createdAt])
-  @@index([deletedAt])
+   @@index([userId, deletedAt, createdAt(sort: Desc)]) 
+  @@index([userId, readAt, deletedAt])
+  
 }
+
+
+//Forms
 
 model TripFeedback {
   id        String       @id @default(cuid())
@@ -595,6 +647,8 @@ model Incident {
   house        House?   @relation(fields: [houseId], references: [id])
   user         User     @relation(fields: [userId], references: [id])
 }
+
+//General
 
 model Account {
   id                String  @id @default(cuid())
